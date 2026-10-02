@@ -41,7 +41,7 @@ button { font: inherit; color: inherit; }
 /* ---------------------------------------------------------------- menu */
 
 .screen {
-  height: 100vh; overflow-y: auto; display: flex; flex-direction: column;
+  height: 100vh; height: 100dvh; overflow-y: auto; display: flex; flex-direction: column;
   align-items: center; padding: 24px 16px; gap: 14px;
 }
 .logo {
@@ -122,7 +122,7 @@ button { font: inherit; color: inherit; }
 /* ---------------------------------------------------------------- table */
 
 #table {
-  height: 100vh; display: grid;
+  height: 100vh; height: 100dvh; display: grid;
   grid-template-rows: auto auto 1fr auto 1fr auto auto;
   padding: 6px 16px 0; gap: 4px; max-width: 1280px; margin: 0 auto;
 }
@@ -144,15 +144,15 @@ body.in-game #table { padding-right: 16px; }
 .hero .stat { bottom: -6%; width: 34%; }
 .hero .stat.armor { right: -8%; bottom: 30%; }
 
-.weapon {
+.hero-weapon {
   position: relative; width: calc(var(--hero-w) * .62); aspect-ratio: 1; border-radius: 50%;
   display: grid; place-items: center; font-size: calc(var(--hero-w) * .26);
   background: radial-gradient(circle, #5c5148, #231c16); border: 3px solid #9b8b70;
 }
-.weapon .stat { font-size: .5em; bottom: -14%; width: 40%; }
-.weapon .stat.atk { left: -14%; }
-.weapon .stat.dur { right: -14%; }
-.weapon.empty { visibility: hidden; }
+.hero-weapon .stat { font-size: .5em; bottom: -14%; width: 40%; }
+.hero-weapon .stat.atk { left: -14%; }
+.hero-weapon .stat.dur { right: -14%; }
+.hero-weapon.empty { visibility: hidden; }
 
 .hero-power {
   position: relative; width: calc(var(--hero-w) * .7); aspect-ratio: 1; border-radius: 50%; cursor: pointer;
@@ -234,7 +234,10 @@ body.in-game #table { padding-right: 16px; }
   margin: 0 calc(var(--card-w) * -.16); transform: rotate(var(--rot)); transform-origin: 50% 140%;
   transition: transform .15s, margin .15s; cursor: pointer; position: relative;
 }
-.hand-card:hover, .hand-card.selected { transform: translateY(-38%) scale(1.25); z-index: 20; margin: 0 calc(var(--card-w) * .05); }
+.hand-card.selected { transform: translateY(-38%) scale(1.25); z-index: 20; margin: 0 calc(var(--card-w) * .05); }
+@media (hover: hover) {
+  .hand-card:hover { transform: translateY(-38%) scale(1.25); z-index: 20; margin: 0 calc(var(--card-w) * .05); }
+}
 .hand-card.playable .card { box-shadow: 0 0 0 3px var(--good), 0 0 14px var(--good); }
 .hand-card.selected .card { box-shadow: 0 0 0 3px var(--gold), 0 0 22px var(--gold); }
 #table.targeting .hand-card:not(.selected) { opacity: .6; }
