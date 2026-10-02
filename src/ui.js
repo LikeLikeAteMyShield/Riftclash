@@ -184,10 +184,10 @@ function heroHTML(pid, targets) {
   const crystals = Array.from({ length: MAX_MANA }, (_, i) =>
     `<i class="${i < p.mana ? 'full' : i < p.maxMana ? 'spent' : 'locked'}"></i>`).join('');
   const weapon = p.weapon ? `
-    <div class="weapon" data-card="${p.weapon.cardId}">
+    <div class="hero-weapon" data-card="${p.weapon.cardId}">
       <span>${CARDS[p.weapon.cardId].emoji}</span>
       <span class="stat atk">${p.weapon.attack}</span><span class="stat dur">${p.weapon.durability}</span>
-    </div>` : '<div class="weapon empty"></div>';
+    </div>` : '<div class="hero-weapon empty"></div>';
   return `
     <div class="hero-row ${isHuman ? 'you' : 'foe'}">
       <div class="side-info">
