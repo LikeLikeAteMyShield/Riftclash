@@ -1,0 +1,12 @@
+{
+  "name": "riftclash",
+  "version": "0.1.0",
+  "description": "A browser-based collectible card battle game with an original card set.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": ">=18" }
+}

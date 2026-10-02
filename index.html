@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Riftclash</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="app">
+    <section id="menu" class="screen">
+      <h1 class="logo">Riftclash</h1>
+      <p class="tagline">Choose your champion</p>
+      <div id="class-grid" class="class-grid"></div>
+      <div class="opponent-pick">
+        <label for="opponent-select">Opponent</label>
+        <select id="opponent-select"></select>
+      </div>
+      <button id="start-btn" class="btn primary" disabled>Enter the Rift</button>
+    </section>
+
+    <section id="mulligan" class="screen hidden">
+      <h2 id="mulligan-title">Starting hand</h2>
+      <p class="hint">Click cards to replace them, then confirm.</p>
+      <div id="mulligan-cards" class="mulligan-cards"></div>
+      <button id="mulligan-btn" class="btn primary">Confirm</button>
+    </section>
+
+    <section id="table" class="hidden" aria-label="Game board"></section>
+  </main>
+
+  <aside id="log-panel">
+    <h3>Battle log</h3>
+    <ol id="log"></ol>
+  </aside>
+
+  <div id="tooltip" class="hidden" role="tooltip"></div>
+  <div id="toast" class="hidden" role="status"></div>
+  <div id="banner" class="hidden"></div>
+
+  <div id="overlay" class="hidden">
+    <div class="overlay-box">
+      <h2 id="result-title"></h2>
+      <div class="overlay-actions">
+        <button id="again-btn" class="btn primary">Rematch</button>
+        <button id="menu-btn" class="btn">Change class</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/ui.js"></script>
+</body>
+</html>
