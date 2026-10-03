@@ -3,11 +3,13 @@
 import { Game, MAX_MANA } from './engine.js';
 import { CARDS, CLASSES, KEYWORD_LABELS, KEYWORD_HELP, cardText } from './cards.js';
 import { nextAction, applyAction, mulliganChoice } from './ai.js';
+import * as fx from './fx.js';
+import { sfx, unlock, isMuted, setMuted } from './sfx.js';
 
 const HUMAN = 0;
 const AI = 1;
 const $ = sel => document.querySelector(sel);
-const sleep = ms => new Promise(r => setTimeout(r, ms));
+const sleep = fx.sleep;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 const ui = {
@@ -92,7 +94,7 @@ $('#mulligan-btn').addEventListener('click', async () => {
   await flushEvents();
   render();
   if (ui.game.current === AI) runAiTurn();
-  else banner('Your turn');
+  else yourTurn();
 });
 
 // ------------------------------------------------------------------ rendering
@@ -256,6 +258,7 @@ function hasMovesLeft() {
 // ------------------------------------------------------------------ feedback
 
 function toast(msg) {
+  sfx.error();
   const t = $('#toast');
   t.textContent = msg;
   t.classList.remove('hidden');
@@ -280,52 +283,401 @@ function floatText(uid, text, kind) {
   el.appendChild(f);
 }
 
-/** Animate pending engine events on the current DOM, then re-render. */
-async function flushEvents() {
-  const events = ui.game.takeEvents();
-  let visual = false;
-  for (const ev of events) {
-    switch (ev.type) {
-      case 'log': {
-        const li = document.createElement('li');
-        li.textContent = ev.msg;
-        $('#log').prepend(li);
-        break;
-      }
-      case 'attack': {
-        const a = document.querySelector(`[data-uid="${ev.attacker}"]`);
-        const t = document.querySelector(`[data-uid="${ev.target}"]`);
-        if (a && t) {
-          const ar = a.getBoundingClientRect(), tr = t.getBoundingClientRect();
-          a.style.setProperty('--dx', `${(tr.left - ar.left) * 0.7}px`);
-          a.style.setProperty('--dy', `${(tr.top - ar.top) * 0.7}px`);
-          a.classList.add('lunge');
-          await sleep(220);
-        }
-        visual = true;
-        break;
-      }
-      case 'damage': floatText(ev.uid, `-${ev.amount}`, 'dmg'); document.querySelector(`[data-uid="${ev.uid}"]`)?.classList.add('hit'); visual = true; break;
-      case 'heal': floatText(ev.uid, `+${ev.amount}`, 'heal'); visual = true; break;
-      case 'armor': floatText(ev.uid, `+${ev.amount} 🛡`, 'armor'); visual = true; break;
-      case 'shield': floatText(ev.uid, 'Blocked!', 'shield'); visual = true; break;
-      case 'freeze': floatText(ev.uid, 'Frozen', 'freeze'); visual = true; break;
-      case 'death': document.querySelector(`[data-uid="${ev.uid}"]`)?.classList.add('dying'); visual = true; break;
-      case 'burn': if (ev.player === HUMAN) toast(`Hand full! ${CARDS[ev.cardId].name} was burned.`); break;
-      case 'play': if (ev.player === AI) await showAiPlay(ev.cardId); break;
-    }
-  }
-  if (visual) await sleep(550);
-  render();
-  if (ui.game.winner !== null) showResult();
+// ------------------------------------------------------------------ animation director
+//
+// The engine resolves an action instantly and leaves a list of events. The
+// director replays them on the *old* DOM (before re-rendering) so the player
+// sees cards fly, attacks land and minions shatter in order, then renders the
+// final state.
+
+const EFFECT_EVENTS = new Set(['damage', 'heal', 'freeze', 'buff', 'shield', 'destroy', 'bounce']);
+const nodeOf = uid => document.querySelector(`#table [data-uid="${uid}"]`);
+const tableEl = () => $('#table');
+
+function classColor(cardId, fallback = '#ff9a3c') {
+  const c = CARDS[cardId];
+  return (c && CLASSES[c.cls]?.color) || fallback;
 }
 
-async function showAiPlay(cardId) {
-  const tip = $('#tooltip');
-  tip.innerHTML = cardHTML(cardId);
-  tip.className = 'ai-play';
+function effectColor(ev) {
+  switch (ev.type) {
+    case 'freeze': return '#9fe7ff';
+    case 'heal': return '#8dff8d';
+    case 'buff': return '#ffe27a';
+    case 'destroy': return '#b16cff';
+    case 'bounce': return '#c9a8ff';
+    default: return ev.spell ? classColor(ev.cardId) : '#ff8a3c';
+  }
+}
+
+/** Nudge a displayed Health number so it updates as hits land. */
+function bumpHp(uid, delta) {
+  const node = nodeOf(uid);
+  const stat = node?.querySelector(':scope > .stat.hp');
+  if (!stat || node.querySelector(':scope > .stat.armor')) return;
+  stat.textContent = Number(stat.textContent) + delta;
+  if (delta < 0) stat.classList.add('damaged');
+}
+
+function restartClass(node, cls) {
+  if (!node) return;
+  node.classList.remove(cls);
+  void node.offsetWidth;
+  node.classList.add(cls);
+}
+
+async function flushEvents({ fromRect = null } = {}) {
+  const events = ui.game.takeEvents();
+  const st = { fromRect, flying: null, castPoint: null, attackReturn: null };
+  $('#tooltip').className = 'hidden';
+  if (events.some(e => e.type === 'play' || e.type === 'attack' || e.type === 'heroPower')) $('#banner').classList.add('hidden');
+  let visual = false;
+  for (let i = 0; i < events.length;) {
+    const ev = events[i];
+    if (EFFECT_EVENTS.has(ev.type) && !ev.combat) {
+      let j = i + 1;
+      while (j < events.length && EFFECT_EVENTS.has(events[j].type) && !events[j].combat && events[j].fx === ev.fx) j++;
+      await effectGroup(events.slice(i, j), st);
+      visual = true;
+      i = j;
+      continue;
+    }
+    if (await animateEvent(ev, st, events.slice(i + 1))) visual = true;
+    i++;
+  }
+  if (st.attackReturn) await st.attackReturn;
+  st.flying?.remove();
+  if (visual) await sleep(380);
+  render();
+  if (ui.game.winner !== null) await gameOverFx();
+}
+
+async function animateEvent(ev, st, rest) {
+  switch (ev.type) {
+    case 'log': {
+      const li = document.createElement('li');
+      li.textContent = ev.msg;
+      $('#log').prepend(li);
+      return false;
+    }
+    case 'play': await playCardFx(ev, st); return true;
+    case 'summon': await summonFx(ev, st); return true;
+    case 'equip': await equipFx(ev, st); return true;
+    case 'heroPower': await heroPowerFx(ev); return true;
+    case 'attack': await attackFx(ev, st, rest); return true;
+    case 'armor': armorFx(ev); await sleep(200); return true;
+    case 'death': await deathFx(ev); return true;
+    case 'draw': drawFx(ev); return false;
+    case 'burn':
+      if (ev.player === HUMAN) toast(`Hand full! ${CARDS[ev.cardId].name} was burned.`);
+      fx.burst($(ev.player === HUMAN ? '.hand' : '.foe-hand'), { color: ['#ff6a3c', '#ffd27a'], count: 30, gravity: -0.05 });
+      sfx.burn();
+      return true;
+    default:
+      if (EFFECT_EVENTS.has(ev.type)) { landEffect(ev, { combat: true }); return true; }
+      return false;
+  }
+}
+
+/** Visuals for one effect arriving on its target. */
+function landEffect(ev, { combat = false } = {}) {
+  const node = nodeOf(ev.uid);
+  switch (ev.type) {
+    case 'damage': {
+      floatText(ev.uid, `-${ev.amount}`, 'dmg');
+      bumpHp(ev.uid, -ev.amount);
+      restartClass(node, 'hit');
+      if (combat) {
+        fx.burst(node, { color: ['#ff6a3c', '#ffd27a'], count: 8 + ev.amount * 2, speed: 3 });
+      } else {
+        fx.burst(node, { color: [effectColor(ev), '#fff3c4'], count: 18 + ev.amount * 4, speed: 4 + ev.amount * 0.6 });
+        fx.ring(node, { color: effectColor(ev), maxR: 40 + ev.amount * 8 });
+        sfx.impact(ev.amount);
+      }
+      const isHero = ui.game.getEntity(ev.uid)?.kind === 'hero';
+      if (ev.amount >= 5 || (isHero && ev.amount >= 3)) fx.shake(tableEl(), Math.min(14, ev.amount * 1.5));
+      break;
+    }
+    case 'shield':
+      floatText(ev.uid, 'Blocked!', 'shield');
+      node?.classList.remove('shielded');
+      fx.burst(node, { color: ['#ffe78a', '#fff8d0'], count: 22, speed: 6, shape: 'shard', gravity: 0.25 });
+      sfx.shield();
+      break;
+    case 'heal':
+      floatText(ev.uid, `+${ev.amount}`, 'heal');
+      bumpHp(ev.uid, ev.amount);
+      fx.sparkle(node, { color: ['#8dff8d', '#e8ffd0'] });
+      sfx.heal();
+      break;
+    case 'buff':
+      fx.sparkle(node, { color: ['#ffe27a', '#fff6d8'], count: 14 });
+      fx.ring(node, { color: '#ffe27a', maxR: 55, width: 4 });
+      node?.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.18)' }, { transform: 'scale(1)' }], { duration: 360, easing: 'ease-out' });
+      sfx.buff();
+      break;
+    case 'freeze':
+      floatText(ev.uid, 'Frozen', 'freeze');
+      node?.classList.add('frozen');
+      fx.burst(node, { color: ['#bff3ff', '#7fd8ff', '#ffffff'], count: 26, speed: 5, shape: 'shard', gravity: 0.15 });
+      sfx.freeze();
+      break;
+    case 'destroy':
+      fx.burst(node, { color: ['#b16cff', '#6a2bbf', '#f0d8ff'], count: 30, speed: 6 });
+      fx.ring(node, { color: '#b16cff', maxR: 80, width: 8 });
+      sfx.destroy();
+      break;
+    case 'bounce':
+      node?.animate([{ transform: 'none', opacity: 1 }, { transform: 'translateY(-70px) scale(.5)', opacity: 0 }],
+        { duration: 400, easing: 'ease-in', fill: 'forwards' });
+      fx.sparkle(node, { color: '#c9a8ff' });
+      sfx.bounce();
+      break;
+  }
+}
+
+/** One effect hitting one or more targets: projectiles, or a shockwave for area spells. */
+async function effectGroup(group, st) {
+  const first = group[0];
+  const fromNode = first.from != null ? nodeOf(first.from) : null;
+  const origin = first.spell && st.castPoint ? st.castPoint : fx.centerOf(fromNode);
+  const color = effectColor(first);
+  const hostile = first.type === 'damage' || first.type === 'shield';
+
+  if (hostile && group.length >= 3) {
+    const c = origin ?? fx.centerOf(tableEl());
+    sfx.explosion();
+    fx.ring(c, { color, maxR: Math.max(innerWidth, innerHeight) * 0.6, width: 16, life: 650 });
+    fx.flash(color, 320, 0.2);
+    fx.shake(tableEl(), 9);
+    await sleep(160);
+    group.forEach((ev, k) => setTimeout(() => landEffect(ev), k * 45));
+    await sleep(group.length * 45 + 260);
+    return;
+  }
+
+  const travels = origin && group.length <= 2 && group.some(ev => ev.uid !== first.from);
+  if (travels) {
+    sfx.projectile();
+    await Promise.all(group.map((ev, k) => sleep(k * 80)
+      .then(() => fx.projectile(origin, nodeOf(ev.uid), { color, size: first.type === 'damage' ? 6 + Math.min(6, ev.amount ?? 0) : 7 }))
+      .then(() => landEffect(ev))));
+  } else {
+    group.forEach(ev => landEffect(ev));
+  }
+  await sleep(220);
+}
+
+async function playCardFx(ev, st) {
+  const card = CARDS[ev.cardId];
+  const color = classColor(card.id, '#e8c46a');
+  sfx.cardPlay();
+  const fly = document.createElement('div');
+  fly.className = 'fly-card';
+  fly.innerHTML = cardHTML(card.id);
+  document.body.appendChild(fly);
+  const w = fly.offsetWidth, h = fly.offsetHeight;
+  const tb = tableEl().getBoundingClientRect();
+  const cx = tb.left + tb.width / 2, cy = tb.top + tb.height * 0.47;
+  fly.style.left = `${cx - w / 2}px`;
+  fly.style.top = `${cy - h / 2}px`;
+
+  let from;
+  if (ev.player === HUMAN && st.fromRect) {
+    const r = st.fromRect;
+    from = `translate(${r.left + r.width / 2 - cx}px, ${r.top + r.height / 2 - cy}px) scale(${r.width / w})`;
+  } else {
+    const fh = $('.foe-hand').getBoundingClientRect();
+    from = `translate(0px, ${fh.top + fh.height / 2 - cy}px) scale(.2) rotateY(90deg)`;
+  }
+  await fly.animate([{ transform: from, opacity: 0.6 }, { transform: 'none', opacity: 1 }],
+    { duration: 380, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' }).finished;
+  fx.ring({ x: cx, y: cy }, { color, maxR: w * 0.9, width: 5 });
+  fx.burst({ x: cx, y: cy }, { color: [color, '#fff6d8'], count: 16, speed: 3, gravity: 0 });
+  await sleep(ev.player === AI ? 800 : 220);
+
+  if (card.type === 'spell') {
+    const c = { x: cx, y: cy };
+    sfx.spellCast();
+    fx.burst(c, { color: [color, '#fff6d8', '#ffffff'], count: 70, speed: 10, size: 5, gravity: 0.01, life: 850 });
+    fx.ring(c, { color, maxR: 240, width: 10 });
+    await fly.animate([{ transform: 'scale(1)', opacity: 1, filter: 'brightness(1)' },
+      { transform: 'scale(1.3)', opacity: 0, filter: 'brightness(3)' }],
+      { duration: 280, easing: 'ease-in', fill: 'forwards' }).finished;
+    fly.remove();
+    st.castPoint = c;
+  } else {
+    st.flying = fly;
+  }
+}
+
+/** Fly the held card onto a target element, shrinking into it. */
+async function landFlyingCard(st, target) {
+  const card = st.flying;
+  st.flying = null;
+  if (!card) return false;
+  const r = target.getBoundingClientRect(), f = card.getBoundingClientRect();
+  await card.animate([{ transform: 'none', opacity: 1 },
+    { transform: `translate(${r.left + r.width / 2 - (f.left + f.width / 2)}px, ${r.top + r.height / 2 - (f.top + f.height / 2)}px) scale(${r.width / f.width})`, opacity: 0.2 }],
+    { duration: 260, easing: 'cubic-bezier(.6,0,.8,.4)', fill: 'forwards' }).finished;
+  card.remove();
+  return true;
+}
+
+async function summonFx(ev, st) {
+  let node = nodeOf(ev.uid);
+  if (!node) {
+    const def = CARDS[ev.cardId];
+    const ent = ui.game.getEntity(ev.uid) ?? {
+      uid: ev.uid, kind: 'minion', cardId: ev.cardId, owner: ev.player, attack: def.attack, health: def.health,
+      maxHealth: def.health, keywords: { ...def.keywords }, spellDamage: def.spellDamage || 0, sleeping: true,
+    };
+    $(ev.player === HUMAN ? '.you-lane' : '.foe-lane').insertAdjacentHTML('beforeend', minionHTML(ent, new Set()));
+    node = nodeOf(ev.uid);
+  }
+  const cost = CARDS[ev.cardId].cost;
+  const color = classColor(ev.cardId, '#e8c46a');
+  if (st.flying) {
+    node.style.opacity = '0';
+    await landFlyingCard(st, node);
+    node.style.opacity = '';
+    node.animate([{ transform: 'translateY(-46px) scale(1.5)', opacity: 0.3 }, { transform: 'none', opacity: 1, offset: 0.7 },
+      { transform: 'scale(1.08, .92)', offset: 0.85 }, { transform: 'none' }], { duration: 340, easing: 'ease-in' });
+    await sleep(230);
+    const r = node.getBoundingClientRect();
+    sfx.summon(cost);
+    fx.burst({ x: r.left + r.width / 2, y: r.bottom - 4 }, { color: ['#d8c4a0', '#8f7b5a', '#fff2d0'], count: 14 + cost * 3,
+      speed: 2.5 + cost * 0.45, gravity: 0.04, life: 600, angle: -Math.PI / 2, spread: Math.PI * 1.6 });
+    fx.ring(node, { color, maxR: 45 + cost * 9, width: 4 });
+    if (cost >= 6) fx.shake(tableEl(), cost);
+  } else {
+    node.animate([{ transform: 'scale(0)', opacity: 0 }, { transform: 'scale(1.18)', opacity: 1, offset: 0.7 }, { transform: 'none' }],
+      { duration: 320, easing: 'ease-out' });
+    fx.sparkle(node, { color: ['#ffe27a', '#ffffff'], count: 12 });
+    sfx.summon(Math.min(cost, 2));
+    await sleep(200);
+  }
+}
+
+async function equipFx(ev, st) {
+  const hero = nodeOf(ev.uid);
+  if (!hero) return;
+  await landFlyingCard(st, hero);
+  sfx.equip();
+  fx.burst(hero, { color: ['#e6ecf3', '#9fb0c3', '#ffffff'], count: 24, speed: 5, shape: 'shard', gravity: 0.2 });
+  fx.ring(hero, { color: '#d6dde6', maxR: 80, width: 5 });
+  await sleep(200);
+}
+
+async function heroPowerFx(ev) {
+  const btn = $(`.hero-row.${ev.player === HUMAN ? 'you' : 'foe'} .hero-power`);
+  const color = CLASSES[ui.game.players[ev.player].heroClass].color;
+  sfx.heroPower();
+  btn?.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.25) rotate(8deg)' }, { transform: 'scale(1)' }], { duration: 320, easing: 'ease-out' });
+  fx.ring(btn, { color, maxR: 70, width: 6 });
+  fx.burst(btn, { color: [color, '#ffffff'], count: 16, speed: 3.5, gravity: 0 });
+  await sleep(ev.player === AI ? 450 : 220);
+}
+
+async function attackFx(ev, st, rest) {
+  const a = nodeOf(ev.attacker), t = nodeOf(ev.target);
+  if (!a || !t) return;
+  if (st.attackReturn) await st.attackReturn;
+  const ac = fx.centerOf(a), tc = fx.centerOf(t);
+  const dx = tc.x - ac.x, dy = tc.y - ac.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const ux = dx / dist, uy = dy / dist;
+  const stopX = dx - ux * 28, stopY = dy - uy * 28;
+  const hit = rest.find(e => (e.type === 'damage' || e.type === 'shield') && e.uid === ev.target && e.combat);
+  const amount = hit?.type === 'damage' ? hit.amount : 1;
+
+  a.style.zIndex = '30';
+  sfx.swing();
+  await a.animate([
+    { transform: 'none' },
+    { transform: `translate(${-ux * 16}px, ${-uy * 16}px) scale(1.14) rotate(${ux >= 0 ? -7 : 7}deg)`, offset: 0.45 },
+    { transform: `translate(${stopX}px, ${stopY}px) scale(1.12)` },
+  ], { duration: 430, easing: 'cubic-bezier(.55,0,.85,.35)', fill: 'forwards' }).finished;
+
+  const p = { x: ac.x + stopX + ux * 22, y: ac.y + stopY + uy * 22 };
+  fx.burst(p, { color: ['#fff3c4', '#ffb347', '#ff6a3c'], count: 20 + amount * 5, speed: 5 + amount * 0.8, gravity: 0.08 });
+  fx.ring(p, { color: '#ffd27a', maxR: 40 + amount * 8, width: 5 });
+  sfx.impact(amount);
+  fx.shake(tableEl(), Math.min(14, 2 + amount * 1.4));
+  t.animate([{ transform: `translate(${ux * 14}px, ${uy * 14}px)` }, { transform: 'none' }], { duration: 280, easing: 'ease-out' });
+
+  st.attackReturn = a.animate([{ transform: `translate(${stopX}px, ${stopY}px) scale(1.12)` }, { transform: 'none' }],
+    { duration: 300, delay: 140, easing: 'ease-out', fill: 'forwards' }).finished.then(() => { a.style.zIndex = ''; });
+}
+
+function armorFx(ev) {
+  const node = nodeOf(ev.uid);
+  floatText(ev.uid, `+${ev.amount} 🛡`, 'armor');
+  fx.burst(node, { color: ['#e6ecf3', '#9fb0c3'], count: 18, speed: 4, shape: 'shard', gravity: 0.15 });
+  fx.ring(node, { color: '#c4cfdc', maxR: 75, width: 6 });
+  sfx.armor();
+}
+
+async function deathFx(ev) {
+  const node = nodeOf(ev.uid);
+  if (!node) return;
+  await sleep(140);
+  const color = classColor(node.dataset.card, '#c9b9a0');
+  sfx.death();
+  fx.burst(node, { color: [color, '#ffffff', '#6b5a44'], count: 34, speed: 6.5, shape: 'shard', gravity: 0.22, life: 850 });
+  fx.burst(node, { color: '#6b5a44', count: 12, speed: 1.5, gravity: -0.03, life: 900 });
+  node.animate([{ transform: 'scale(1)', opacity: 1, filter: 'brightness(1)' },
+    { transform: 'scale(1.15)', opacity: 1, filter: 'brightness(2.5)', offset: 0.25 },
+    { transform: 'scale(.4) rotate(-12deg)', opacity: 0, filter: 'brightness(1)' }],
+    { duration: 460, easing: 'ease-in', fill: 'forwards' });
+}
+
+function drawFx(ev) {
+  if (ui.game.phase !== 'play') return;
+  const mine = ev.player === HUMAN;
+  const from = $(mine ? '.hero-row.you .deck-count' : '.hero-row.foe .deck-count');
+  const to = $(mine ? '.hand' : '.foe-hand');
+  if (!from || !to) return;
+  const a = fx.centerOf(from), b = fx.centerOf(to);
+  const back = document.createElement('div');
+  back.className = 'fly-back';
+  back.style.left = `${a.x - 17}px`;
+  back.style.top = `${a.y - 24}px`;
+  document.body.appendChild(back);
+  sfx.draw();
+  back.animate([{ transform: 'none', opacity: 1 },
+    { transform: `translate(${(b.x - a.x) / 2}px, ${(b.y - a.y) / 2 - 40}px) rotate(-12deg) scale(1.3)`, opacity: 1 },
+    { transform: `translate(${b.x - a.x}px, ${b.y - a.y}px) scale(.9)`, opacity: 0 }],
+    { duration: 520, easing: 'ease-in-out' }).finished.then(() => back.remove());
+}
+
+async function gameOverFx() {
+  const w = ui.game.winner;
+  const losers = w === 'draw' ? [0, 1] : [1 - w];
+  for (const pid of losers) {
+    const hero = nodeOf(ui.game.players[pid].hero.uid);
+    if (!hero) continue;
+    const color = CLASSES[ui.game.players[pid].heroClass].color;
+    hero.animate([{ filter: 'brightness(1)' }, { filter: 'brightness(3) saturate(0)' }], { duration: 500, fill: 'forwards' });
+    fx.shake(tableEl(), 18, 700);
+    await sleep(450);
+    sfx.explosion();
+    fx.flash('#ffffff', 450, 0.5);
+    fx.burst(hero, { color: [color, '#ffffff', '#ffd27a'], count: 90, speed: 11, shape: 'shard', gravity: 0.2, life: 1200 });
+    fx.ring(hero, { color, maxR: 300, width: 14, life: 800 });
+    hero.animate([{ opacity: 1, transform: 'scale(1.1)' }, { opacity: 0, transform: 'scale(.3)' }], { duration: 500, fill: 'forwards' });
+  }
   await sleep(900);
-  tip.className = 'hidden';
+  if (w === HUMAN) {
+    sfx.victory();
+    for (let k = 0; k < 3; k++) {
+      setTimeout(() => fx.burst({ x: innerWidth * (0.25 + k * 0.25), y: innerHeight * 0.3 },
+        { color: ['#ffd27a', '#7cc0ff', '#8dff8d', '#ff8a7a'], count: 60, speed: 9, shape: 'shard', gravity: 0.15, life: 1500 }), k * 200);
+    }
+  } else {
+    sfx.defeat();
+  }
+  showResult();
 }
 
 function showResult() {
@@ -336,12 +688,15 @@ function showResult() {
 
 // ------------------------------------------------------------------ input
 
-async function act(fn) {
+async function act(fn, { handUid } = {}) {
   ui.selection = null;
   ui.busy = true;
+  const handCard = handUid != null ? document.querySelector(`[data-hand="${handUid}"]`) : null;
+  const fromRect = handCard?.querySelector('.card').getBoundingClientRect() ?? null;
   const ok = fn();
   if (!ok && ui.game.lastError) toast(ui.game.lastError);
-  await flushEvents();
+  else if (handCard) handCard.style.visibility = 'hidden';
+  await flushEvents({ fromRect });
   ui.busy = false;
   render();
 }
@@ -350,7 +705,7 @@ $('#table').addEventListener('click', e => {
   const g = ui.game;
   if (!g || ui.busy || g.current !== HUMAN || g.winner !== null) return;
 
-  if (e.target.closest('#end-turn')) { endPlayerTurn(); return; }
+  if (e.target.closest('#end-turn')) { sfx.click(); endPlayerTurn(); return; }
 
   const handEl = e.target.closest('[data-hand]');
   const entEl = e.target.closest('[data-uid]');
@@ -361,7 +716,7 @@ $('#table').addEventListener('click', e => {
   if (sel && entEl) {
     const uid = Number(entEl.dataset.uid);
     if (targetSet().has(uid)) {
-      if (sel.type === 'hand') return act(() => g.playCard(sel.uid, { target: uid }));
+      if (sel.type === 'hand') return act(() => g.playCard(sel.uid, { target: uid }), { handUid: sel.uid });
       if (sel.type === 'heroPower') return act(() => g.useHeroPower(uid));
       if (sel.type === 'attacker') return act(() => g.attack(sel.uid, uid));
     }
@@ -372,8 +727,8 @@ $('#table').addEventListener('click', e => {
     if (sel?.type === 'hand' && sel.uid === uid) { ui.selection = null; return render(); }
     const blocker = g.playBlocker(HUMAN, uid);
     if (blocker) { toast(blocker); return; }
-    if (g.cardTargets(HUMAN, uid).length) { ui.selection = { type: 'hand', uid }; return render(); }
-    return act(() => g.playCard(uid));
+    if (g.cardTargets(HUMAN, uid).length) { sfx.click(); ui.selection = { type: 'hand', uid }; return render(); }
+    return act(() => g.playCard(uid), { handUid: uid });
   }
 
   if (hpEl) {
@@ -382,7 +737,7 @@ $('#table').addEventListener('click', e => {
       toast(g.players[HUMAN].heroPowerUsed ? 'Hero power already used' : 'Not enough mana');
       return;
     }
-    if (g.heroPower(HUMAN).target) { ui.selection = { type: 'heroPower' }; return render(); }
+    if (g.heroPower(HUMAN).target) { sfx.click(); ui.selection = { type: 'heroPower' }; return render(); }
     return act(() => g.useHeroPower());
   }
 
@@ -391,7 +746,7 @@ $('#table').addEventListener('click', e => {
     const ent = g.getEntity(uid);
     if (ent?.owner === HUMAN) {
       if (sel?.uid === uid) { ui.selection = null; return render(); }
-      if (g.canAttack(uid)) { ui.selection = { type: 'attacker', uid }; return render(); }
+      if (g.canAttack(uid)) { sfx.click(); ui.selection = { type: 'attacker', uid }; return render(); }
       if (ent.kind === 'minion') {
         toast(ent.frozen ? 'Frozen!' : ent.sleeping && ent.attacksThisTurn === 0 ? 'Needs a turn to get ready' : ent.attack <= 0 ? 'No attack' : 'Already attacked');
       }
@@ -412,7 +767,6 @@ document.addEventListener('contextmenu', e => {
 // Hover previews
 const tip = $('#tooltip');
 document.addEventListener('mouseover', e => {
-  if (tip.classList.contains('ai-play')) return;
   const el = e.target.closest('[data-card], [data-hp]');
   if (!el || el.closest('.hand-card') || el.closest('.mulligan-slot')) { tip.className = 'hidden'; return; }
   let html;
@@ -444,6 +798,11 @@ async function endPlayerTurn() {
   if (ui.game.winner === null) await runAiTurn();
 }
 
+function yourTurn() {
+  sfx.yourTurn();
+  banner('Your turn');
+}
+
 async function runAiTurn() {
   const g = ui.game;
   ui.busy = true;
@@ -467,7 +826,23 @@ async function runAiTurn() {
   }
   ui.busy = false;
   render();
-  if (g.winner === null) banner('Your turn');
+  if (g.winner === null) yourTurn();
 }
 
+function renderSoundButton() {
+  const b = $('#sound-btn');
+  b.textContent = isMuted() ? '🔇' : '🔊';
+  b.setAttribute('aria-pressed', String(isMuted()));
+  b.title = isMuted() ? 'Sound off' : 'Sound on';
+}
+$('#sound-btn').addEventListener('click', () => {
+  setMuted(!isMuted());
+  renderSoundButton();
+  sfx.click();
+});
+// Browsers only start audio after a user gesture.
+document.addEventListener('pointerdown', unlock);
+document.addEventListener('keydown', unlock);
+
+renderSoundButton();
 renderMenu();
