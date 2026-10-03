@@ -202,6 +202,25 @@ test('fatigue damage grows and can end the game', () => {
   assert.equal(g.endTurn(), false);
 });
 
+test('events carry source and effect ids for animations', () => {
+  const g = setup({ classes: ['warlord', 'oracle'] });
+  const berserker = put(g, 0, 'w_berserker');
+  put(g, 1, 'n_ram');
+  g.takeEvents();
+  g.playCard(give(g, 0, 'w_stomp'));
+  const ev = g.takeEvents();
+  const hits = ev.filter(e => e.type === 'damage');
+  const buff = ev.find(e => e.type === 'buff');
+  assert.equal(hits.length, 2);
+  assert.equal(hits[0].fx, hits[1].fx, 'one spell, one effect id, even with a trigger in between');
+  assert.notEqual(buff.fx, hits[0].fx, 'nested trigger gets its own id');
+  assert.equal(buff.from, berserker.uid);
+  assert.ok(hits.every(h => h.spell && h.from === g.players[0].hero.uid && !h.combat));
+
+  g.attack(berserker.uid, g.players[1].hero.uid);
+  assert.ok(g.takeEvents().filter(e => e.type === 'damage').every(e => e.combat));
+});
+
 test('board is capped at 7', () => {
   const g = setup();
   for (let i = 0; i < 7; i++) put(g, 0, 'n_mossling');

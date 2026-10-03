@@ -21,6 +21,12 @@ It has no dependencies and no build step. ES modules don't load over `file://`, 
 - Right-click or press Esc to cancel a selection. Hover any minion or weapon to read its full card.
 - Boards hold 7 minions and hands hold 10 cards; a card drawn into a full hand is burned. Drawing from an empty deck deals growing fatigue damage.
 
+### Effects and sound
+
+Played cards fly to the center of the table. Spells burst into particles and shoot projectiles at their targets, and area spells send out a shockwave. Attacks wind up and lunge with an impact flash and screen shake. Minions slam onto the board and shatter when they die.
+
+Every sound is synthesized live with the Web Audio API, so there are no audio files. Use the 🔊 button in the top-left corner to mute; the setting is remembered. With your system's "reduce motion" setting on, the game skips shake and flashes and shortens the animations.
+
 ### Keywords
 
 Taunt, Charge, Rush, Divine Shield, Windfury, Stealth, Lifesteal, Poisonous, Spell Damage, Freeze, Battlecry, Deathrattle, Combo, plus triggered effects (end of turn, on damage, on casting a spell).
@@ -45,7 +51,10 @@ index.html, styles.css   page shell and visuals (CSS-only card art, emoji illust
 src/cards.js             all card + class data, and deck building
 src/engine.js            rules engine (no DOM); deterministic given a seed
 src/ai.js                greedy AI: removal/trades, lethal check, curve play
-src/ui.js                rendering, input, animations, AI turn pacing
+src/ui.js                rendering, input, AI turn pacing, and the animation director
+                         that replays engine events as effects
+src/fx.js                canvas particles, projectiles, shockwaves, screen shake
+src/sfx.js               synthesized sound effects and the mute setting
 test/engine.test.js      node:test suite
 server.js                tiny static file server
 ```

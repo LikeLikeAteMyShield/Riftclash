@@ -35,6 +35,11 @@ export class Game {
     this.phase = 'mulligan';
     this.events = [];
     this.log = [];
+    // Presentation metadata for the UI: which effect (fx) an event belongs to,
+    // and whether damage came from combat.
+    this.fx = 0;
+    this.fxSeq = 0;
+    this.combat = false;
     this.current = firstPlayer ?? (this.rand() < 0.5 ? 0 : 1);
     this.players = [0, 1].map(i => this.#createPlayer(i, classes[i], decks?.[i] ?? buildDeck(classes[i], this.rand)));
     this.mulliganDone = [false, false];
@@ -222,7 +227,7 @@ export class Game {
     p.hand = p.hand.filter(c => c.uid !== handUid);
     const comboActive = p.cardsPlayedThisTurn > 0;
     p.cardsPlayedThisTurn++;
-    this.#emit({ type: 'play', player: pid, cardId: card.id });
+    this.#emit({ type: 'play', player: pid, cardId: card.id, cardType: card.type });
     this.#log(`${this.#name(pid)} ${pid === 0 ? 'play' : 'plays'} ${card.name}${targetEnt ? ` on ${this.#entName(targetEnt)}` : ''}.`);
 
     if (card.type === 'spell') {
@@ -277,8 +282,11 @@ export class Game {
 
     const atkDmg = attacker.attack;
     const counterDmg = target.kind === 'minion' ? target.attack : 0;
+    this.combat = true;
+    this.fx = ++this.fxSeq;
     this.#damage(target, atkDmg, attacker);
     if (counterDmg > 0) this.#damage(attacker, counterDmg, target);
+    this.combat = false;
 
     if (attacker.kind === 'hero') {
       const w = this.players[attacker.owner].weapon;
@@ -347,6 +355,7 @@ export class Game {
     if (!inst) {
       p.fatigue++;
       this.#log(`${this.#name(p.id)} take${p.id === 0 ? '' : 's'} ${p.fatigue} fatigue damage.`);
+      this.fx = ++this.fxSeq;
       this.#damage(p.hero, p.fatigue, null);
       return;
     }
@@ -370,7 +379,7 @@ export class Game {
       sleeping: true, attacksThisTurn: 0, frozen: false, frozenTurn: -1, destroyed: false,
     };
     p.board.push(m);
-    this.#emit({ type: 'summon', uid: m.uid, player: pid });
+    this.#emit({ type: 'summon', uid: m.uid, player: pid, cardId });
     return m;
   }
 
@@ -380,6 +389,7 @@ export class Game {
     const def = CARDS[cardId];
     p.weapon = { cardId, attack: def.attack, durability: def.durability };
     p.hero.attack = def.attack;
+    this.#emit({ type: 'equip', player: pid, uid: p.hero.uid, cardId });
   }
 
   #destroyWeapon(pid) {
@@ -393,7 +403,7 @@ export class Game {
     if (amount <= 0 || !target || target.health <= 0 && target.kind === 'hero') return 0;
     if (target.kind === 'minion' && target.keywords.divineShield) {
       target.keywords.divineShield = false;
-      this.#emit({ type: 'shield', uid: target.uid });
+      this.#emit({ type: 'shield', uid: target.uid, ...this.#meta(source) });
       return 0;
     }
     let dealt = amount;
@@ -404,11 +414,11 @@ export class Game {
     } else {
       target.health -= amount;
     }
-    this.#emit({ type: 'damage', uid: target.uid, amount });
+    this.#emit({ type: 'damage', uid: target.uid, amount, ...this.#meta(source) });
 
     if (source && source.kind === 'minion') {
       if (source.keywords.poisonous && target.kind === 'minion') target.destroyed = true;
-      if (source.keywords.lifesteal) this.#heal(this.players[source.owner].hero, dealt);
+      if (source.keywords.lifesteal) this.#heal(this.players[source.owner].hero, dealt, source);
     }
     if (target.kind === 'minion') {
       const def = CARDS[target.cardId];
@@ -417,11 +427,17 @@ export class Game {
     return dealt;
   }
 
-  #heal(target, amount) {
+  /** Where an effect visually comes from: a minion/hero uid, or the caster's hero for spells. */
+  #meta(source) {
+    const from = source?.uid ?? (source?.kind === 'spell' ? this.players[source.owner].hero.uid : null);
+    return { from, fx: this.fx, combat: this.combat, spell: !!source?.isSpell, cardId: source?.cardId };
+  }
+
+  #heal(target, amount, source) {
     if (!target || target.health <= 0) return;
     const before = target.health;
     target.health = Math.min(target.maxHealth, target.health + amount);
-    if (target.health > before) this.#emit({ type: 'heal', uid: target.uid, amount: target.health - before });
+    if (target.health > before) this.#emit({ type: 'heal', uid: target.uid, amount: target.health - before, ...this.#meta(source) });
   }
 
   #resolveDeaths() {
@@ -484,6 +500,17 @@ export class Game {
   }
 
   #resolveEffect(eff, ctx) {
+    // Nested triggers (e.g. onDamaged) get their own fx id and restore ours after.
+    const outerFx = this.fx;
+    this.fx = ++this.fxSeq;
+    try {
+      this.#applyEffect(eff, ctx);
+    } finally {
+      this.fx = outerFx;
+    }
+  }
+
+  #applyEffect(eff, ctx) {
     const me = this.players[ctx.player];
     switch (eff.type) {
       case 'damage': {
@@ -491,6 +518,7 @@ export class Game {
         const times = eff.times || 1;
         const hit = new Set();
         for (let i = 0; i < times; i++) {
+          if (i > 0) this.fx = ++this.fxSeq;
           let targets = this.#select(eff.to, ctx);
           if (eff.distinct && eff.to.startsWith('random')) {
             const them = this.opponentOf(ctx.player);
@@ -503,7 +531,7 @@ export class Game {
         break;
       }
       case 'heal':
-        for (const t of this.#select(eff.to, ctx)) this.#heal(t, eff.amount);
+        for (const t of this.#select(eff.to, ctx)) this.#heal(t, eff.amount, ctx.source);
         break;
       case 'armor':
         me.hero.armor += eff.amount;
@@ -522,18 +550,22 @@ export class Game {
           t.health += eff.health || 0;
           t.maxHealth += eff.health || 0;
           Object.assign(t.keywords, eff.keywords || {});
-          this.#emit({ type: 'buff', uid: t.uid });
+          this.#emit({ type: 'buff', uid: t.uid, ...this.#meta(ctx.source) });
         }
         break;
       case 'destroy':
-        for (const t of this.#select(eff.to, ctx)) if (t.kind === 'minion') t.destroyed = true;
+        for (const t of this.#select(eff.to, ctx)) {
+          if (t.kind !== 'minion') continue;
+          t.destroyed = true;
+          this.#emit({ type: 'destroy', uid: t.uid, ...this.#meta(ctx.source) });
+        }
         break;
       case 'freeze':
         for (const t of this.#select(eff.to, ctx)) {
           if (!this.#alive(t)) continue;
           t.frozen = true;
           t.frozenTurn = this.turn;
-          this.#emit({ type: 'freeze', uid: t.uid });
+          this.#emit({ type: 'freeze', uid: t.uid, ...this.#meta(ctx.source) });
         }
         break;
       case 'weapon':
@@ -550,7 +582,7 @@ export class Game {
           if (t.kind !== 'minion') continue;
           const owner = this.players[t.owner];
           owner.board = owner.board.filter(m => m !== t);
-          this.#emit({ type: 'bounce', uid: t.uid });
+          this.#emit({ type: 'bounce', uid: t.uid, ...this.#meta(ctx.source) });
           if (owner.hand.length < MAX_HAND) owner.hand.push({ uid: this.nextUid++, cardId: t.cardId });
         }
         break;
