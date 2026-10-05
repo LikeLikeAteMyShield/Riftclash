@@ -49,7 +49,7 @@ Each deck is 2 copies of the class's 8 cards plus 7 pairs of neutral cards chose
 ## Code layout
 
 ```
-index.html, styles.css   page shell and visuals (CSS card frames, pixel art, emoji for cards without art)
+index.html, styles.css   page shell and visuals (CSS card frames, pixel art, emoji for neutral cards)
 src/cards.js             all card + class data, and deck building
 src/engine.js            rules engine (no DOM); deterministic given a seed
 src/ai.js                greedy AI: removal/trades, lethal check, curve play
@@ -84,7 +84,7 @@ The full list of selectors for `to` is at the top of `src/cards.js`.
 
 ### Adding pixel art
 
-Hero portraits and the Vanguard and Pyromancer cards are pixel art; other cards still use emoji until their wave of art lands. Each sprite is a text grid where every character is one pixel, looked up in a palette (`.` is transparent):
+Hero portraits and every class card are pixel art; neutral cards still use emoji until their wave of art lands. Each sprite is a text grid where every character is one pixel, looked up in a palette (`.` is transparent):
 
 ```js
 // src/sprites/heroes.js (or a new file, e.g. src/sprites/cards.js)
@@ -113,6 +113,6 @@ Sprites render to SVG, so they stay sharp at any size. They can also be built fr
 
 - Deck builder and saved decks
 - Secrets, discover, silence, auras ("your other minions have +1 Attack")
-- Pixel art for the remaining classes and neutral cards (Vanguard and Pyromancer are done), attack arrows
+- Pixel art for the neutral cards (every class card is done), attack arrows
 - Smarter AI (look-ahead search over the engine, which is already headless and seedable)
 - Online PvP: the engine is deterministic and could run server-authoritatively
