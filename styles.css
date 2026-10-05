@@ -62,7 +62,11 @@ button { font: inherit; color: inherit; }
 }
 .class-tile:hover { transform: translateY(-2px); }
 .class-tile.chosen { border-color: var(--gold); box-shadow: 0 0 18px color-mix(in srgb, var(--cls) 70%, transparent); }
-.class-emoji { font-size: 34px; }
+.class-portrait {
+  width: 72px; height: 72px; border-radius: 14px; overflow: hidden; display: grid; place-items: center; font-size: 34px;
+  background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--cls) 45%, #fff2), #1c150f 85%);
+  border: 2px solid color-mix(in srgb, var(--cls) 60%, #6a5536);
+}
 .class-name { font-family: Cinzel, serif; font-size: 20px; font-weight: 800; }
 .class-hero { color: var(--muted); font-size: 13px; }
 .class-power { font-size: 13px; margin-top: 4px; }
@@ -139,7 +143,11 @@ body.in-game #table { padding-right: 16px; }
   border: 4px solid color-mix(in srgb, var(--cls) 70%, #6a5536); display: grid; place-items: center;
   box-shadow: 0 6px 18px #000a; font-size: calc(var(--hero-w) * .16);
 }
-.hero .portrait { font-size: 2.7em; margin-bottom: 20%; }
+.hero .portrait {
+  position: absolute; inset: 0; border-radius: inherit; overflow: hidden;
+  display: grid; place-items: center; font-size: 2.7em;
+}
+.hero .portrait .emoji-art { margin-bottom: 20%; }
 .hero .hero-name { position: absolute; bottom: -24%; white-space: nowrap; font-size: .7em; color: var(--muted); }
 .hero .stat { bottom: -6%; width: 34%; }
 .hero .stat.armor { right: -8%; bottom: 30%; }
@@ -334,3 +342,10 @@ body.in-game #table { padding-right: 16px; }
 }
 .drag-card.over-board { transform: translate(-50%, -60%) scale(.8); }
 body.busy .end-turn { opacity: .55; cursor: default; }
+
+/* ---------------------------------------------------------------- pixel art */
+
+.pixel-art { display: block; width: 100%; height: 100%; }
+.card .art .pixel-art { width: 82%; height: 82%; }
+.unit-art .pixel-art { width: calc(var(--minion-w) * .78); height: calc(var(--minion-w) * .78); }
+.weapon-art .pixel-art { width: 1.4em; height: 1.4em; }

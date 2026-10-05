@@ -5,6 +5,8 @@ import { CARDS, CLASSES, KEYWORD_LABELS, KEYWORD_HELP, cardText } from './cards.
 import { nextAction, applyAction, mulliganChoice } from './ai.js';
 import * as fx from './fx.js';
 import { sfx, unlock, isMuted, setMuted } from './sfx.js';
+import { artHTML } from './pixelart.js';
+import './sprites/index.js';
 
 const HUMAN = 0;
 const AI = 1;
@@ -29,10 +31,13 @@ const ui = {
 
 // ------------------------------------------------------------------ menu
 
+/** A class's hero portrait (pixel art, or its emoji if no sprite exists). */
+const heroArt = c => artHTML({ sprite: c.portrait, emoji: c.emoji }, { title: c.hero });
+
 function renderMenu() {
   $('#class-grid').innerHTML = Object.entries(CLASSES).map(([key, c]) => `
     <button class="class-tile${ui.playerClass === key ? ' chosen' : ''}" data-class="${key}" style="--cls:${c.color}">
-      <span class="class-emoji">${c.emoji}</span>
+      <span class="class-portrait">${heroArt(c)}</span>
       <span class="class-name">${c.name}</span>
       <span class="class-hero">${esc(c.hero)}</span>
       <span class="class-power"><b>${c.heroPower.name}</b> (${c.heroPower.cost}): ${esc(c.heroPower.text)}</span>
@@ -116,7 +121,7 @@ function cardHTML(cardId, { cost, extraClass = '' } = {}) {
   return `
     <div class="card ${c.type} ${extraClass}" style="--cls:${color}">
       <span class="cost">${cost ?? c.cost}</span>
-      <div class="art">${c.emoji}</div>
+      <div class="art">${artHTML(c)}</div>
       <div class="name">${esc(c.name)}</div>
       <div class="text"><span>${formatText(cardText(c))}</span></div>
       <div class="type-line">${c.cls === 'neutral' ? '' : CLASSES[c.cls].name + ' '}${c.type}</div>
@@ -168,7 +173,7 @@ function minionHTML(m, targets) {
   ].join('');
   return `
     <div class="${cls.join(' ')}" data-uid="${m.uid}" data-card="${m.cardId}" style="--cls:${CLASSES[def.cls]?.color ?? '#8a8f98'}">
-      <div class="unit-art">${def.emoji}</div>
+      <div class="unit-art">${artHTML(def)}</div>
       ${m.sleeping && !m.keywords.charge && !m.keywords.rush && m.owner === g.current ? '<span class="zzz">z<sup>z</sup></span>' : ''}
       <div class="unit-icons">${icons}</div>
       <span class="stat atk ${atkCls}">${m.attack}</span>
@@ -194,7 +199,7 @@ function heroHTML(pid, targets) {
     `<i class="${i < p.mana ? 'full' : i < p.maxMana ? 'spent' : 'locked'}"></i>`).join('');
   const weapon = p.weapon ? `
     <div class="hero-weapon" data-card="${p.weapon.cardId}">
-      <span>${CARDS[p.weapon.cardId].emoji}</span>
+      <span class="weapon-art">${artHTML(CARDS[p.weapon.cardId])}</span>
       <span class="stat atk">${p.weapon.attack}</span><span class="stat dur">${p.weapon.durability}</span>
     </div>` : '<div class="hero-weapon empty"></div>';
   return `
@@ -205,7 +210,7 @@ function heroHTML(pid, targets) {
       </div>
       ${weapon}
       <div class="${cls.join(' ')}" data-uid="${h.uid}" style="--cls:${c.color}">
-        <div class="portrait">${c.emoji}</div>
+        <div class="portrait">${heroArt(c)}</div>
         <div class="hero-name">${esc(c.hero)}</div>
         ${h.attack > 0 ? `<span class="stat atk">${h.attack}</span>` : ''}
         <span class="stat hp ${h.health < h.maxHealth ? 'damaged' : ''}">${h.health}</span>
@@ -281,7 +286,7 @@ function youLaneHTML(me, targets) {
 
 function ghostHTML(def) {
   return `<div class="unit ghost" style="--cls:${CLASSES[def.cls]?.color ?? '#8a8f98'}">
-    <div class="unit-art">${def.emoji}</div>
+    <div class="unit-art">${artHTML(def)}</div>
     <span class="stat atk">${def.attack}</span><span class="stat hp">${def.health}</span></div>`;
 }
 

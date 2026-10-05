@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Riftclash Sprites</title>
+  <style>
+    :root { --bg: #15110e; --panel: #241c15; --ink: #f3e9d7; --muted: #b3a48c; --line: #4a3b2a; --bad: #ff7a6b; }
+    body { margin: 0; padding: 24px 16px; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, sans-serif; }
+    h1 { margin: 0 0 4px; font-size: 22px; }
+    p { margin: 0 0 20px; color: var(--muted); }
+    code { color: var(--ink); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+    .sprite { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+    .sprite h2 { margin: 0 0 8px; font: 600 13px ui-monospace, monospace; }
+    .sizes { display: flex; align-items: flex-end; gap: 10px; }
+    .tile { background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--cls, #8a8f98) 45%, #fff2), #1c150f 85%); border-radius: 6px; }
+    .tile svg { display: block; width: 100%; height: 100%; }
+    .meta { margin-top: 8px; color: var(--muted); font-size: 12px; }
+    .error { color: var(--bad); white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Sprites</h1>
+  <p>Every registered sprite at 1×, 2× and 4×. Add sprites in <code>src/sprites/</code>; errors in sprite data show here.</p>
+  <div id="out" class="grid"></div>
+  <script type="module">
+    const out = document.getElementById('out');
+    try {
+      const { listSprites, getSprite, spriteSVG } = await import('./src/pixelart.js');
+      await import('./src/sprites/index.js');
+      const { CLASSES } = await import('./src/cards.js');
+      const colorFor = id => Object.values(CLASSES).find(c => c.portrait === id)?.color;
+      out.innerHTML = listSprites().map(id => {
+        const s = getSprite(id);
+        const colors = new Set(s.grid.flat().filter(Boolean)).size;
+        const tiles = [1, 2, 4].map(k =>
+          `<div class="tile" style="width:${s.width * k}px;height:${s.height * k}px">${spriteSVG(id, { title: id })}</div>`).join('');
+        return `<section class="sprite" style="--cls:${colorFor(id) ?? '#8a8f98'}">
+          <h2>${id}</h2><div class="sizes">${tiles}</div>
+          <div class="meta">${s.width}×${s.height} · ${colors} colors</div></section>`;
+      }).join('');
+    } catch (err) {
+      out.innerHTML = `<section class="sprite error">${String(err.message).replace(/</g, '&lt;')}</section>`;
+    }
+  </script>
+</body>
+</html>
