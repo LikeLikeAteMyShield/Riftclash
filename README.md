@@ -23,6 +23,10 @@ It has no dependencies and no build step. ES modules don't load over `file://`, 
 - Position matters: some minions affect the minions **adjacent** to them. Tokens from a Battlecry appear to the minion's right, and Deathrattle tokens take the dead minion's spot.
 - Boards hold 7 minions (extra summons are lost) and hands hold 10 cards; a card drawn into a full hand is burned. Drawing from an empty deck deals growing fatigue damage.
 
+### Card library
+
+Open **Card Library** from the main menu to browse every card. Filter by class with the tabs (All, each class, Neutral), narrow by mana cost or by searching names and rules text, and tick **Show tokens** to include cards that only appear in play. Click any card for a closer look with its keywords explained; use the arrow keys to flip through and Esc to close.
+
 ### Effects and sound
 
 Played cards fly to the center of the table. Spells burst into particles and shoot projectiles at their targets, and area spells send out a shockwave. Attacks wind up and lunge with an impact flash and screen shake. Minions slam onto the board and shatter when they die.
@@ -53,6 +57,8 @@ index.html, styles.css   page shell and visuals (CSS card frames around pixel ar
 src/cards.js             all card + class data, and deck building
 src/engine.js            rules engine (no DOM); deterministic given a seed
 src/ai.js                greedy AI: removal/trades, lethal check, curve play
+src/cardview.js          card faces and keyword help, shared by the game and the library
+src/library.js           the card library screen and its filters
 src/ui.js                rendering, input, AI turn pacing, and the animation director
                          that replays engine events as effects
 src/fx.js                canvas particles, projectiles, shockwaves, screen shake

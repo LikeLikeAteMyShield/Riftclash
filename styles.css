@@ -349,3 +349,89 @@ body.busy .end-turn { opacity: .55; cursor: default; }
 .card .art .pixel-art { width: 82%; height: 82%; }
 .unit-art .pixel-art { width: calc(var(--minion-w) * .78); height: calc(var(--minion-w) * .78); }
 .weapon-art .pixel-art { width: 1.4em; height: 1.4em; }
+
+/* ---------------------------------------------------------------- card library */
+
+.menu-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+#library { align-items: stretch; padding: 0; }
+.lib-wrap { width: min(1240px, 100%); margin: 0 auto; padding: 20px 16px 40px; display: flex; flex-direction: column; gap: 14px; }
+.lib-head { display: flex; align-items: center; gap: 16px; }
+.lib-head h2 { font-family: Cinzel, serif; font-size: clamp(24px, 4vw, 34px); margin: 0; flex: 1; color: var(--gold); }
+.lib-count { color: var(--muted); font-weight: 600; }
+.lib-back { padding: 8px 16px; }
+
+.lib-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.lib-tab {
+  display: flex; align-items: center; gap: 8px; flex: none; cursor: pointer; padding: 6px 14px 6px 6px;
+  border-radius: 999px; border: 2px solid color-mix(in srgb, var(--cls, #8a8f98) 45%, #3a2d20);
+  background: #1f1913; font-weight: 700; transition: background .15s, border-color .15s;
+}
+.lib-tab:hover { background: #2a2119; }
+.lib-tab.active { border-color: var(--cls, var(--gold)); background: color-mix(in srgb, var(--cls, #e8c46a) 30%, #1f1913); }
+.lib-tab-icon { width: 28px; height: 28px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: #0006; }
+.lib-tab-icon-text { color: var(--gold); font-size: 15px; }
+
+.lib-tools { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.lib-search {
+  flex: 1 1 220px; min-width: 0; padding: 9px 12px; border-radius: 10px; border: 1px solid #6b5536;
+  background: #1a1410; color: var(--ink); font: inherit;
+}
+.lib-search:focus-visible, .lib-tab:focus-visible, .lib-cost:focus-visible, .lib-card:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.lib-costs { display: flex; gap: 6px; flex-wrap: wrap; }
+.lib-cost {
+  min-width: 34px; height: 34px; padding: 0 10px; border-radius: 999px; cursor: pointer; font-weight: 800;
+  border: 2px solid #3d4f68; background: #1a2230; color: #cfe5ff;
+}
+.lib-cost.gem { padding: 0; width: 34px; }
+.lib-cost.active { background: radial-gradient(circle at 35% 30%, #7cc0ff, var(--mana) 60%, #123c7a); border-color: #cfe5ff; color: #fff; }
+.lib-tokens { display: flex; align-items: center; gap: 6px; color: var(--muted); cursor: pointer; user-select: none; }
+
+.lib-results { display: flex; flex-direction: column; gap: 22px; }
+.lib-group-title {
+  display: flex; align-items: center; gap: 10px; margin: 0 0 10px; padding-bottom: 6px;
+  font-family: Cinzel, serif; font-size: 20px; border-bottom: 2px solid color-mix(in srgb, var(--cls) 55%, transparent);
+}
+.lib-group-title small { color: var(--muted); font-family: Inter, sans-serif; font-size: 13px; }
+.lib-grid {
+  --card-w: clamp(118px, 13vw, 158px);
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--card-w) + 18px), 1fr));
+  gap: 22px 10px; justify-items: center;
+}
+.lib-card { position: relative; padding: 10px 8px 12px; border: 0; background: none; cursor: pointer; border-radius: 14px; transition: transform .15s; }
+.lib-card:hover { transform: translateY(-4px) scale(1.04); }
+.lib-card:hover .card { box-shadow: 0 0 0 2px var(--gold), 0 10px 22px #000c; }
+.lib-token-tag {
+  position: absolute; top: 2px; right: 4px; z-index: 3; font-size: 11px; font-weight: 800; letter-spacing: .04em;
+  padding: 2px 7px; border-radius: 999px; background: #3a2d20; border: 1px solid var(--gold); color: var(--gold);
+}
+.lib-empty { color: var(--muted); text-align: center; padding: 40px 0; }
+
+.lib-inspect { position: fixed; inset: 0; z-index: 72; background: #000b; display: grid; place-items: center; padding: 16px; }
+.lib-inspect-box {
+  position: relative; display: flex; align-items: center; gap: 28px; flex-wrap: wrap; justify-content: center;
+  max-width: 720px; width: 100%; padding: 28px 56px; border-radius: 18px;
+  background: linear-gradient(#3a2b1d, #1d1610); border: 2px solid color-mix(in srgb, var(--cls) 60%, var(--gold));
+}
+.lib-inspect-card { --card-w: clamp(170px, 30vw, 240px); }
+.lib-inspect-info { flex: 1 1 220px; min-width: 0; }
+.lib-inspect-info h3 { font-family: Cinzel, serif; font-size: 26px; margin: 0 0 6px; }
+.lib-meta { margin: 0 0 8px; color: var(--muted); text-transform: capitalize; }
+.lib-pos { color: var(--muted); font-size: 12px; margin: 12px 0 0; }
+.lib-note { color: var(--muted); margin: 0; }
+.lib-inspect .kw-help { font-size: 13px; }
+.lib-close { position: absolute; top: 10px; right: 12px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid #6b5536; background: #1d1610; cursor: pointer; }
+.lib-nav {
+  position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 56px; border-radius: 10px;
+  border: 1px solid #6b5536; background: #1d1610cc; font-size: 30px; cursor: pointer;
+}
+.lib-prev { left: 8px; }
+.lib-next { right: 8px; }
+.lib-close:hover, .lib-nav:hover { filter: brightness(1.4); }
+
+@media (max-width: 640px) {
+  .lib-wrap { padding-top: 60px; }  /* clear the fixed sound button */
+  .lib-inspect-box { padding: 44px 16px 20px; gap: 16px; }
+  .lib-nav { top: 22px; transform: none; width: 34px; height: 34px; font-size: 22px; }
+  .lib-prev { left: 12px; }
+  .lib-next { left: 54px; right: auto; }
+}
