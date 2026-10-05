@@ -82,3 +82,9 @@ test('artHTML uses a sprite when there is one and falls back to the emoji', () =
   assert.equal(artHTML({ sprite: 'missing', emoji: '🐉' }), '<span class="emoji-art">🐉</span>');
   assert.equal(artHTML({ emoji: '<b>' }), '<span class="emoji-art">&lt;b&gt;</span>');
 });
+
+test('card art wave 1: every Vanguard card and token has pixel art', () => {
+  const vanguard = Object.values(CARDS).filter(c => c.cls === 'vanguard');
+  assert.ok(vanguard.length >= 9);
+  for (const card of vanguard) assert.ok(hasSprite(card.sprite), `${card.id} has no sprite`);
+});

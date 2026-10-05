@@ -3,5 +3,7 @@
 
 import { defineSprites } from '../pixelart.js';
 import heroes from './heroes.js';
+import vanguard from './vanguard.js';
 
 defineSprites(heroes);
+defineSprites(vanguard);
