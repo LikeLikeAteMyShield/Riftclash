@@ -60,3 +60,110 @@ export const PYROMANCER = {
   w: '#f5efe6', // parchment
   W: '#d8cdb4', // parchment shadow
 };
+
+/** Warlord: iron, blood red, leather, fur and earth. */
+export const WARLORD = {
+  i: '#8f98a3', // iron
+  I: '#5b636e', // iron shadow
+  l: '#c9d1d9', // steel highlight
+  r: '#b53b3b', // red
+  R: '#7a1f1a', // red shadow
+  x: '#e8462e', // rage red
+  c: '#7a5a3a', // leather
+  C: '#4f3a26', // leather shadow
+  u: '#8a6a50', // fur
+  U: '#5a4434', // fur shadow
+  g: '#d9a441', // gold
+  G: '#9a6e22', // gold shadow
+  h: '#3a2a20', // dark hair
+  b: '#b0602a', // ginger
+  B: '#6e3818', // ginger shadow
+  n: '#7d6e62', // stone
+  N: '#4e443c', // stone shadow
+  d: '#8a6a4a', // earth
+  D: '#5c4430', // earth shadow
+  y: '#e8d9b0', // dust
+  K: '#24191c', // black hood
+  w: '#f0e6d2', // bone
+};
+
+/** Stalker: forest green, leather, wolf grey, plumage and storm. */
+export const STALKER = {
+  v: '#3f7a3a', // forest green
+  V: '#26502a', // green shadow
+  q: '#6fa64a', // leaf
+  c: '#7a5230', // leather
+  C: '#4a3220', // leather shadow
+  b: '#9a6a3a', // plumage
+  B: '#5e3f22', // plumage shadow
+  o: '#e8a83a', // amber
+  x: '#e8e0c4', // pale feather
+  z: '#c23b2b', // red fletching
+  g: '#5a8a3a', // croc green
+  G: '#36572a', // croc shadow
+  j: '#b5cf7a', // croc belly
+  w: '#f5efe6', // teeth
+  f: '#8a8f9a', // wolf grey
+  F: '#565b66', // wolf shadow
+  J: '#c4c8d0', // wolf light
+  d: '#a06a3a', // stag brown
+  D: '#6a4426', // stag shadow
+  a: '#e8d9b0', // antler
+  A: '#b7a98a', // antler shadow
+  y: '#fff3a0', // spark
+  Y: '#ffd451', // lightning
+  i: '#a7b0bb', // steel
+  l: '#e3e8ee', // steel highlight
+  M: '#f3ecd0', // moon
+  N: '#cfc6a2', // moon shadow
+};
+
+/** Oracle: white, gold, candlelight, violet and carved stone. */
+export const ORACLE = {
+  w: '#f2ede1', // white
+  W: '#c9c1ae', // white shadow
+  g: '#e6b54a', // gold
+  G: '#a5741f', // gold shadow
+  a: '#fff1b8', // holy light
+  A: '#f5c84a', // halo
+  j: '#5ec8e8', // gem
+  c: '#f2e6c8', // wax
+  o: '#ffb43a', // flame
+  O: '#ffe27a', // flame light
+  v: '#9a6ae0', // violet
+  V: '#5a3a9a', // violet shadow
+  q: '#9aa0a8', // stone
+  Q: '#5d636b', // stone shadow
+  u: '#c4c9cf', // stone highlight
+  n: '#6b4a2e', // robe brown
+  N: '#4a3220', // robe shadow
+  i: '#d8dde3', // steel
+  I: '#9aa3ad', // steel shadow
+  b: '#8fc7f0', // sky
+};
+
+/** Shade: violet, shadow, steel, poison green and parchment. */
+export const SHADE = {
+  v: '#4a2f6b', // violet
+  V: '#2e1c45', // violet shadow
+  q: '#6d4a9a', // violet light
+  N: '#2a1c38', // deep shadow
+  x: '#c58cff', // glow
+  X: '#f4e2ff', // bright glow
+  d: '#d5dbe2', // steel
+  D: '#7d8794', // steel shadow
+  p: '#7ad14a', // poison
+  P: '#3e7a22', // poison shadow
+  g: '#d9b44a', // gold
+  G: '#8a6c2a', // gold shadow
+  c: '#6b4a2e', // leather
+  C: '#45301e', // leather shadow
+  u: '#6b5a7a', // smoke
+  U: '#45384f', // smoke shadow
+  w: '#efe6d2', // parchment
+  W: '#c9bd9c', // parchment shadow
+  r: '#b02a2a', // wax red
+  R: '#6e1616', // wax shadow
+  a: '#b8e6d8', // glass
+  A: '#7fb5a6', // glass shadow
+};
