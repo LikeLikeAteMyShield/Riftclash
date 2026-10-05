@@ -600,3 +600,10 @@ body.has-backdrop .midline { border-top-color: #ffffff18; }
 @media (max-width: 640px) {
   .db-grid { --card-w: clamp(96px, 28vw, 130px); gap: 14px 6px; }
 }
+
+/* ---------------------------------------------------------------- silence */
+
+.unit.silenced .unit-art { filter: grayscale(.7) brightness(.85); }
+.float.silence { color: #d9d3f2; font-size: 1.1em; }
+/* A silenced minion's card (in the hover preview) shows its text struck out. */
+.card.silenced .text span { text-decoration: line-through; text-decoration-color: #d9d3f2; opacity: .55; }

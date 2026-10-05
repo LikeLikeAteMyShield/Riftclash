@@ -1,7 +1,7 @@
 // Browser UI for Riftclash. The human is always player 0; the AI is player 1.
 
 import { Game, MAX_MANA } from './engine.js';
-import { CARDS, CLASSES } from './cards.js';
+import { CARDS, CLASSES, KEYWORD_HELP } from './cards.js';
 import { nextAction, applyAction, mulliganChoice } from './ai.js';
 import * as fx from './fx.js';
 import { sfx, unlock, isMuted, setMuted } from './sfx.js';
@@ -187,20 +187,22 @@ function targetSet() {
 }
 
 function minionHTML(m, targets) {
-  const def = CARDS[m.cardId];
   const g = ui.game;
+  const def = g.minionText(m);
   const myTurn = g.current === HUMAN && !ui.busy;
   const cls = ['unit'];
   if (m.keywords.taunt) cls.push('taunt');
   if (m.keywords.divineShield) cls.push('shielded');
   if (m.keywords.stealth) cls.push('stealthed');
   if (m.frozen) cls.push('frozen');
+  if (m.silenced) cls.push('silenced');
   if (m.owner === HUMAN && myTurn && g.canAttack(m.uid)) cls.push('ready');
   if (ui.selection?.uid === m.uid && ui.selection.type === 'attacker') cls.push('selected');
   if (targets.has(m.uid)) cls.push('targetable');
   const hpCls = m.health < m.maxHealth ? 'damaged' : m.maxHealth > def.health ? 'buffed' : '';
   const atkCls = m.attack > def.attack ? 'buffed' : m.attack < def.attack ? 'damaged' : '';
   const icons = [
+    m.silenced ? '<span title="Silenced">🔇</span>' : '',
     def.deathrattle ? '<span title="Deathrattle">💀</span>' : '',
     def.endOfTurn || def.onDamaged || def.onFriendlySpell ? '<span title="Triggered effect">⚡</span>' : '',
     def.adjacentAura ? '<span title="Aura: affects adjacent minions">✨</span>' : '',
@@ -415,7 +417,7 @@ function floatText(uid, text, kind) {
 // sees cards fly, attacks land and minions shatter in order, then renders the
 // final state.
 
-const EFFECT_EVENTS = new Set(['damage', 'heal', 'freeze', 'buff', 'shield', 'destroy', 'bounce']);
+const EFFECT_EVENTS = new Set(['damage', 'heal', 'freeze', 'buff', 'shield', 'destroy', 'bounce', 'silence']);
 const nodeOf = uid => document.querySelector(`#table [data-uid="${uid}"]`);
 const tableEl = () => $('#table');
 
@@ -430,6 +432,7 @@ function effectColor(ev) {
     case 'heal': return '#8dff8d';
     case 'buff': return '#ffe27a';
     case 'destroy': return '#b16cff';
+    case 'silence': return '#d9d3f2';
     case 'bounce': return '#c9a8ff';
     default: return ev.spell ? classColor(ev.cardId) : '#ff8a3c';
   }
@@ -546,6 +549,14 @@ function landEffect(ev, { combat = false } = {}) {
       node?.classList.add('frozen');
       fx.burst(node, { color: ['#bff3ff', '#7fd8ff', '#ffffff'], count: 26, speed: 5, shape: 'shard', gravity: 0.15 });
       sfx.freeze();
+      break;
+    case 'silence':
+      floatText(ev.uid, 'Silenced', 'silence');
+      node?.classList.remove('taunt', 'shielded', 'stealthed', 'frozen');
+      node?.classList.add('silenced');
+      fx.ring(node, { color: '#d9d3f2', maxR: 70, width: 5, life: 700 });
+      fx.sparkle(node, { color: ['#d9d3f2', '#8f88b0'], count: 12 });
+      sfx.silence();
       break;
     case 'destroy':
       fx.burst(node, { color: ['#b16cff', '#6a2bbf', '#f0d8ff'], count: 30, speed: 6 });
@@ -969,7 +980,9 @@ document.addEventListener('mouseover', e => {
     html = `<div class="power-tip"><span class="power-tip-icon">${powerArt(hp)}</span><span><b>${hp.name}</b> (${hp.cost} mana)<br>${esc(hp.text)}</span></div>`;
   } else {
     const card = CARDS[el.dataset.card];
-    html = cardHTML(card.id) + keywordHelpHTML(card);
+    const silenced = el.classList.contains('silenced');
+    html = cardHTML(card.id, { extraClass: silenced ? 'silenced' : '' }) +
+      (silenced ? `<div class="kw-help"><b>Silenced</b>: ${KEYWORD_HELP.silence}</div>` : keywordHelpHTML(card));
   }
   tip.innerHTML = html;
   const r = el.getBoundingClientRect();

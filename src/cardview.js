@@ -8,7 +8,7 @@ export const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': 
 /** Card text with keywords in bold. */
 export function formatText(text) {
   let t = esc(text);
-  for (const w of ['Battlecry', 'Deathrattle', 'Combo', 'Freeze', ...Object.values(KEYWORD_LABELS), 'Spell Damage']) {
+  for (const w of ['Battlecry', 'Deathrattle', 'Combo', 'Freeze', 'Silence', ...Object.values(KEYWORD_LABELS), 'Spell Damage']) {
     t = t.replace(new RegExp(`\\b${w}\\b`, 'g'), `<b>${w}</b>`);
   }
   return t;
@@ -43,6 +43,7 @@ export function cardKeywords(card) {
     ...(card.deathrattle ? ['deathrattle'] : []),
     ...(card.combo ? ['combo'] : []),
     ...(card.effects?.some(e => e.type === 'freeze') ? ['freeze'] : []),
+    ...([...(card.effects ?? []), ...(card.battlecry ?? [])].some(e => e.type === 'silence') ? ['silence'] : []),
     ...(/adjacent/i.test(card.text ?? '') ? ['adjacent'] : []),
   ];
 }
