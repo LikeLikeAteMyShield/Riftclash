@@ -69,7 +69,8 @@ button { font: inherit; color: inherit; }
 }
 .class-name { font-family: Cinzel, serif; font-size: 20px; font-weight: 800; }
 .class-hero { color: var(--muted); font-size: 13px; }
-.class-power { font-size: 13px; margin-top: 4px; }
+.class-power { font-size: 13px; margin-top: 4px; display: flex; align-items: center; gap: 8px; }
+.class-power-icon { flex: none; width: 26px; height: 26px; border-radius: 50%; padding: 2px; background: #0005; }
 .opponent-pick { display: flex; gap: 10px; align-items: center; }
 .opponent-pick select { background: #2a2119; color: var(--ink); border: 1px solid #6b5536; border-radius: 8px; padding: 6px 10px; font: inherit; }
 
@@ -172,6 +173,12 @@ body.in-game #table { padding-right: 16px; }
   background: radial-gradient(circle at 35% 30%, #7cc0ff, var(--mana) 60%, #123c7a); font-weight: 800; font-size: 1.2em;
 }
 .hero-power .hp-name { font-weight: 700; font-size: .95em; margin-top: 18%; text-shadow: 0 1px 2px #000; }
+.hero-power .hp-art { width: 64%; height: 64%; margin-top: 12%; display: grid; place-items: center; }
+.hero-power .hp-art .pixel-art { filter: drop-shadow(0 1px 1px #000a); }
+.hero-power .hp-caption {
+  position: absolute; bottom: -28%; left: 50%; transform: translateX(-50%); white-space: nowrap; pointer-events: none;
+  font-size: .78em; font-weight: 600; color: var(--muted);
+}
 .hero-power.used { filter: grayscale(1) brightness(.5); }
 .hero-power.usable { box-shadow: 0 0 0 3px var(--good), 0 0 14px var(--good); }
 .hero-row.foe .hero-power { cursor: default; }
@@ -264,7 +271,8 @@ body.in-game #table { padding-right: 16px; }
 
 #tooltip { position: fixed; z-index: 50; pointer-events: none; width: 220px; --card-w: 200px; }
 .kw-help { margin-top: 8px; background: #1d1712ee; border: 1px solid #6b5536; border-radius: 8px; padding: 6px 8px; font-size: 12px; }
-.power-tip { background: #1d1712ee; border: 1px solid #6b5536; border-radius: 8px; padding: 10px; font-size: 13px; }
+.power-tip { background: #1d1712ee; border: 1px solid #6b5536; border-radius: 8px; padding: 10px; font-size: 13px; display: flex; gap: 10px; align-items: center; }
+.power-tip-icon { flex: none; width: 40px; height: 40px; }
 
 #toast {
   position: fixed; left: 50%; top: 46%; transform: translateX(-50%); z-index: 60;

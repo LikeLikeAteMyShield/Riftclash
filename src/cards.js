@@ -21,32 +21,32 @@
 export const CLASSES = {
   pyromancer: {
     name: 'Pyromancer', hero: 'Ignatia the Kindled', emoji: '🔥', color: '#e2603a', portrait: 'hero_pyromancer',
-    heroPower: { name: 'Spark', cost: 2, text: 'Deal 1 damage.', target: 'any',
+    heroPower: { name: 'Spark', cost: 2, sprite: 'power_pyromancer', text: 'Deal 1 damage.', target: 'any',
       effects: [{ type: 'damage', amount: 1, to: 'target' }] },
   },
   warlord: {
     name: 'Warlord', hero: 'Brakka Ironjaw', emoji: '🪓', color: '#b53b3b', portrait: 'hero_warlord',
-    heroPower: { name: 'Brace', cost: 2, text: 'Gain 2 Armor.',
+    heroPower: { name: 'Brace', cost: 2, sprite: 'power_warlord', text: 'Gain 2 Armor.',
       effects: [{ type: 'armor', amount: 2 }] },
   },
   stalker: {
     name: 'Stalker', hero: 'Wren Duskmantle', emoji: '🏹', color: '#4f9a45', portrait: 'hero_stalker',
-    heroPower: { name: 'Volley', cost: 2, text: 'Deal 2 damage to the enemy hero.',
+    heroPower: { name: 'Volley', cost: 2, sprite: 'power_stalker', text: 'Deal 2 damage to the enemy hero.',
       effects: [{ type: 'damage', amount: 2, to: 'enemyHero' }] },
   },
   oracle: {
     name: 'Oracle', hero: 'Sister Lumen', emoji: '🕯️', color: '#d9cf9a', portrait: 'hero_oracle',
-    heroPower: { name: 'Mend', cost: 2, text: 'Restore 2 Health.', target: 'any',
+    heroPower: { name: 'Mend', cost: 2, sprite: 'power_oracle', text: 'Restore 2 Health.', target: 'any',
       effects: [{ type: 'heal', amount: 2, to: 'target' }] },
   },
   vanguard: {
     name: 'Vanguard', hero: 'Commander Hale', emoji: '🛡️', color: '#e0b23c', portrait: 'hero_vanguard',
-    heroPower: { name: 'Muster', cost: 2, text: 'Summon a 1/1 Recruit.',
+    heroPower: { name: 'Muster', cost: 2, sprite: 'power_vanguard', text: 'Summon a 1/1 Recruit.',
       effects: [{ type: 'summon', card: 't_recruit' }] },
   },
   shade: {
     name: 'Shade', hero: 'Vex the Unseen', emoji: '🗡️', color: '#6b5a8e', portrait: 'hero_shade',
-    heroPower: { name: 'Blade Kit', cost: 2, text: 'Equip a 1/2 Shiv.',
+    heroPower: { name: 'Blade Kit', cost: 2, sprite: 'power_shade', text: 'Equip a 1/2 Shiv.',
       effects: [{ type: 'weapon', card: 't_shiv' }] },
   },
 };

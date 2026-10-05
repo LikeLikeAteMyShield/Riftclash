@@ -5,7 +5,7 @@ import { CARDS, CLASSES } from './cards.js';
 import { nextAction, applyAction, mulliganChoice } from './ai.js';
 import * as fx from './fx.js';
 import { sfx, unlock, isMuted, setMuted } from './sfx.js';
-import { artHTML } from './pixelart.js';
+import { artHTML, hasSprite, spriteSVG } from './pixelart.js';
 import { cardHTML, keywordHelpHTML, esc } from './cardview.js';
 import { mountLibrary } from './library.js';
 import { playTrack, startMusic, isMusicOn, setMusicOn } from './music.js';
@@ -33,6 +33,9 @@ const ui = {
 
 // ------------------------------------------------------------------ menu
 
+/** A hero power's icon, or its name if it has no sprite. */
+const powerArt = hp => (hasSprite(hp.sprite) ? spriteSVG(hp.sprite) : `<span class="hp-name">${esc(hp.name)}</span>`);
+
 /** A class's hero portrait (pixel art, or its emoji if no sprite exists). */
 const heroArt = c => artHTML({ sprite: c.portrait, emoji: c.emoji }, { title: c.hero });
 
@@ -42,7 +45,7 @@ function renderMenu() {
       <span class="class-portrait">${heroArt(c)}</span>
       <span class="class-name">${c.name}</span>
       <span class="class-hero">${esc(c.hero)}</span>
-      <span class="class-power"><b>${c.heroPower.name}</b> (${c.heroPower.cost}): ${esc(c.heroPower.text)}</span>
+      <span class="class-power"><span class="class-power-icon">${powerArt(c.heroPower)}</span><span><b>${c.heroPower.name}</b> (${c.heroPower.cost}): ${esc(c.heroPower.text)}</span></span>
     </button>`).join('');
   $('#opponent-select').innerHTML = `<option value="random">Random</option>` +
     Object.entries(CLASSES).map(([k, c]) => `<option value="${k}"${ui.aiClass === k ? ' selected' : ''}>${c.name}</option>`).join('');
@@ -202,9 +205,11 @@ function heroHTML(pid, targets) {
         ${h.armor > 0 ? `<span class="stat armor">${h.armor}</span>` : ''}
       </div>
       <button class="hero-power${p.heroPowerUsed ? ' used' : ''}${hpUsable ? ' usable' : ''}${ui.selection?.type === 'heroPower' && isHuman ? ' selected' : ''}"
-        ${isHuman ? 'data-action="hero-power"' : ''} data-hp="${p.heroClass}" style="--cls:${c.color}" ${isHuman ? '' : 'tabindex="-1"'}>
+        ${isHuman ? 'data-action="hero-power"' : ''} data-hp="${p.heroClass}" style="--cls:${c.color}" ${isHuman ? '' : 'tabindex="-1"'}
+        aria-label="${esc(`${hp.name} (${hp.cost} mana): ${hp.text}`)}">
+        <span class="hp-art">${powerArt(hp)}</span>
         <span class="cost">${hp.cost}</span>
-        <span class="hp-name">${hp.name}</span>
+        <span class="hp-caption">${esc(hp.name)}</span>
       </button>
       <div class="mana" title="Mana">
         <span class="mana-text">${p.mana}/${p.maxMana}</span>
@@ -911,7 +916,7 @@ document.addEventListener('mouseover', e => {
   let html;
   if (el.dataset.hp) {
     const hp = CLASSES[el.dataset.hp].heroPower;
-    html = `<div class="power-tip"><b>${hp.name}</b> (${hp.cost} mana)<br>${esc(hp.text)}</div>`;
+    html = `<div class="power-tip"><span class="power-tip-icon">${powerArt(hp)}</span><span><b>${hp.name}</b> (${hp.cost} mana)<br>${esc(hp.text)}</span></div>`;
   } else {
     const card = CARDS[el.dataset.card];
     html = cardHTML(card.id) + keywordHelpHTML(card);

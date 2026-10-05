@@ -78,7 +78,8 @@ src/sfx.js               synthesized sound effects and the mute setting
 src/songs.js             background music as data, and the song compiler
 src/music.js             chiptune music player: NES-style voices, looping, crossfades
 src/pixelart.js          pixel art format, sprite registry and SVG renderer
-src/sprites/             sprite data: palettes.js, heroes.js, one file per class plus neutral.js, index.js
+src/sprites/             sprite data: palettes.js, heroes.js, powers.js (hero power icons), one file per class
+                         plus neutral.js, index.js
 sprites.html             gallery of every sprite, for checking art while drawing it
 test/engine.test.js      node:test suite
 server.js                tiny static file server
@@ -104,7 +105,7 @@ The full list of selectors for `to` is at the top of `src/cards.js`.
 
 ### Adding pixel art
 
-Every hero and every card is pixel art. Each sprite is a text grid where every character is one pixel, looked up in a palette (`.` is transparent):
+Every hero, hero power and card is pixel art. Each sprite is a text grid where every character is one pixel, looked up in a palette (`.` is transparent):
 
 ```js
 // src/sprites/heroes.js (or a new file, e.g. src/sprites/cards.js)
@@ -124,7 +125,7 @@ export default {
 ```
 
 1. Put the sprite in a module under `src/sprites/` and register that module in `src/sprites/index.js`.
-2. Point the game data at it: `portrait: 'id'` on a class, or `sprite: 'id'` on a card. A card's `emoji` is the fallback if its sprite is missing, but `npm test` requires every card to have art, so new cards need a sprite too.
+2. Point the game data at it: `portrait: 'id'` on a class, `sprite: 'id'` on a hero power or a card. A card's `emoji` is the fallback if its sprite is missing, but `npm test` requires every card to have art, so new cards need a sprite too.
 3. Open `/sprites.html` to see every sprite at 1×, 2× and 4×. Mistakes like a short row or an unknown color are reported with the exact row and column, and `npm test` checks that every `sprite` and `portrait` reference exists.
 
 Sprites render to SVG, so they stay sharp at any size. They can also be built from `layers` (e.g. a shared card frame plus a creature), and `spriteSVG(id, { swap })` recolors one at render time.

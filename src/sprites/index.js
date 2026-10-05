@@ -3,6 +3,7 @@
 
 import { defineSprites } from '../pixelart.js';
 import heroes from './heroes.js';
+import powers from './powers.js';
 import vanguard from './vanguard.js';
 import pyromancer from './pyromancer.js';
 import warlord from './warlord.js';
@@ -12,6 +13,7 @@ import shade from './shade.js';
 import neutral from './neutral.js';
 
 defineSprites(heroes);
+defineSprites(powers);
 defineSprites(vanguard);
 defineSprites(pyromancer);
 defineSprites(warlord);
