@@ -29,6 +29,11 @@ function ensure() {
 /** Browsers only allow audio after a user gesture; call this from one. */
 export function unlock() { ensure(); }
 
+/** The shared context and master volume, for other audio such as music. Null if Web Audio is unavailable. */
+export function audioGraph() {
+  return ensure() ? { ctx, master } : null;
+}
+
 export function isMuted() { return muted; }
 
 export function setMuted(value) {

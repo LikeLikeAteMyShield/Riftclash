@@ -435,3 +435,15 @@ body.busy .end-turn { opacity: .55; cursor: default; }
   .lib-prev { left: 12px; }
   .lib-next { left: 54px; right: auto; }
 }
+
+/* ---------------------------------------------------------------- music toggle */
+
+.music-btn { left: 58px; }
+.music-btn.off { opacity: .45; }
+.music-btn.off::after {
+  content: ''; position: absolute; width: 26px; height: 2px; background: #e9d9bd; transform: rotate(-45deg); border-radius: 2px;
+}
+@media (max-width: 640px) {
+  .sound-btn { width: 34px; height: 34px; font-size: 15px; top: 6px; left: 6px; }
+  .music-btn { left: 46px; }
+}
