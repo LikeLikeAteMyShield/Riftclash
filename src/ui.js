@@ -1,18 +1,19 @@
 // Browser UI for Riftclash. The human is always player 0; the AI is player 1.
 
 import { Game, MAX_MANA } from './engine.js';
-import { CARDS, CLASSES, KEYWORD_LABELS, KEYWORD_HELP, cardText } from './cards.js';
+import { CARDS, CLASSES } from './cards.js';
 import { nextAction, applyAction, mulliganChoice } from './ai.js';
 import * as fx from './fx.js';
 import { sfx, unlock, isMuted, setMuted } from './sfx.js';
 import { artHTML } from './pixelart.js';
+import { cardHTML, keywordHelpHTML, esc } from './cardview.js';
+import { mountLibrary } from './library.js';
 import './sprites/index.js';
 
 const HUMAN = 0;
 const AI = 1;
 const $ = sel => document.querySelector(sel);
 const sleep = fx.sleep;
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 /** While effects play, input is ignored; the body class lets CSS show it. */
 function setBusy(value) {
@@ -55,6 +56,13 @@ $('#class-grid').addEventListener('click', e => {
 });
 $('#opponent-select').addEventListener('change', e => { ui.aiClass = e.target.value; });
 $('#start-btn').addEventListener('click', startGame);
+
+let openLibrary = null;
+$('#library-btn').addEventListener('click', () => {
+  openLibrary ??= mountLibrary($('#library'), { onBack: () => showScreen('menu') });
+  showScreen('library');
+  openLibrary();
+});
 $('#again-btn').addEventListener('click', startGame);
 $('#menu-btn').addEventListener('click', () => {
   $('#overlay').classList.add('hidden');
@@ -62,7 +70,7 @@ $('#menu-btn').addEventListener('click', () => {
 });
 
 function showScreen(id) {
-  for (const s of ['menu', 'mulligan', 'table']) $('#' + s).classList.toggle('hidden', s !== id);
+  for (const s of ['menu', 'library', 'mulligan', 'table']) $('#' + s).classList.toggle('hidden', s !== id);
   document.body.classList.toggle('in-game', id === 'table');
 }
 
@@ -110,32 +118,7 @@ $('#mulligan-btn').addEventListener('click', async () => {
 
 // ------------------------------------------------------------------ rendering
 
-function cardHTML(cardId, { cost, extraClass = '' } = {}) {
-  const c = CARDS[cardId];
-  const color = CLASSES[c.cls]?.color ?? '#8a8f98';
-  const stats = c.type === 'minion'
-    ? `<span class="stat atk">${c.attack}</span><span class="stat hp">${c.health}</span>`
-    : c.type === 'weapon'
-      ? `<span class="stat atk">${c.attack}</span><span class="stat dur">${c.durability}</span>`
-      : '';
-  return `
-    <div class="card ${c.type} ${extraClass}" style="--cls:${color}">
-      <span class="cost">${cost ?? c.cost}</span>
-      <div class="art">${artHTML(c)}</div>
-      <div class="name">${esc(c.name)}</div>
-      <div class="text"><span>${formatText(cardText(c))}</span></div>
-      <div class="type-line">${c.cls === 'neutral' ? '' : CLASSES[c.cls].name + ' '}${c.type}</div>
-      ${stats}
-    </div>`;
-}
 
-function formatText(text) {
-  let t = esc(text);
-  for (const w of ['Battlecry', 'Deathrattle', 'Combo', 'Freeze', ...Object.values(KEYWORD_LABELS), 'Spell Damage']) {
-    t = t.replace(new RegExp(`\\b${w}\\b`, 'g'), `<b>${w}</b>`);
-  }
-  return t;
-}
 
 function targetSet() {
   const g = ui.game;
@@ -929,11 +912,7 @@ document.addEventListener('mouseover', e => {
     html = `<div class="power-tip"><b>${hp.name}</b> (${hp.cost} mana)<br>${esc(hp.text)}</div>`;
   } else {
     const card = CARDS[el.dataset.card];
-    const kws = [...Object.keys(card.keywords).filter(k => card.keywords[k]),
-      ...(card.spellDamage ? ['spellDamage'] : []), ...(card.battlecry ? ['battlecry'] : []),
-      ...(card.deathrattle ? ['deathrattle'] : []), ...(card.combo ? ['combo'] : []),
-      ...(/adjacent/i.test(card.text ?? '') ? ['adjacent'] : [])];
-    html = cardHTML(card.id) + kws.map(k => `<div class="kw-help"><b>${KEYWORD_LABELS[k] ?? k[0].toUpperCase() + k.slice(1).replace('Damage', ' Damage')}</b>: ${KEYWORD_HELP[k]}</div>`).join('');
+    html = cardHTML(card.id) + keywordHelpHTML(card);
   }
   tip.innerHTML = html;
   const r = el.getBoundingClientRect();
