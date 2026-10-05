@@ -83,10 +83,7 @@ test('artHTML uses a sprite when there is one and falls back to the emoji', () =
   assert.equal(artHTML({ emoji: '<b>' }), '<span class="emoji-art">&lt;b&gt;</span>');
 });
 
-test('every class card and class token has pixel art (neutral cards come later)', () => {
-  for (const cls of Object.keys(CLASSES)) {
-    const cards = Object.values(CARDS).filter(c => c.cls === cls);
-    assert.ok(cards.length >= 8, cls);
-    for (const card of cards) assert.ok(hasSprite(card.sprite), `${card.id} has no sprite`);
-  }
+test('every card, including tokens, has pixel art', () => {
+  const missing = Object.values(CARDS).filter(c => !hasSprite(c.sprite)).map(c => c.id);
+  assert.deepEqual(missing, [], `cards without art: ${missing.join(', ')}`);
 });
