@@ -9,6 +9,7 @@ import { artHTML, hasSprite, spriteSVG } from './pixelart.js';
 import { cardHTML, keywordHelpHTML, esc } from './cardview.js';
 import { mountLibrary } from './library.js';
 import { playTrack, startMusic, isMusicOn, setMusicOn } from './music.js';
+import { mountBackdrop, newBackdrop, showBackdrop } from './backdrop.js';
 import './sprites/index.js';
 
 const HUMAN = 0;
@@ -76,6 +77,7 @@ $('#menu-btn').addEventListener('click', () => {
 function showScreen(id) {
   for (const s of ['menu', 'library', 'mulligan', 'table']) $('#' + s).classList.toggle('hidden', s !== id);
   document.body.classList.toggle('in-game', id === 'table');
+  showBackdrop(id === 'mulligan' || id === 'table');
   playTrack(id === 'menu' ? 'menu' : id === 'library' ? 'library' : 'battle');
 }
 
@@ -88,7 +90,9 @@ function startGame() {
   ui.selection = null;
   setBusy(false);
   ui.mulliganPicks = new Set();
-  $('#log').innerHTML = '';
+  const place = newBackdrop();
+  $('#battlefield').textContent = `Battlefield: ${place}`;
+  $('#log').innerHTML = `<li>The battle is joined at ${esc(place)}.</li>`;
   $('#overlay').classList.add('hidden');
   ui.game.mulligan(AI, mulliganChoice(ui.game, AI));
   renderMulligan();
@@ -998,6 +1002,7 @@ const onGesture = () => { unlock(); startMusic(); };
 document.addEventListener('pointerdown', onGesture);
 document.addEventListener('keydown', onGesture);
 
+mountBackdrop($('#battle-bg'));
 renderSoundButton();
 renderMusicButton();
 renderMenu();

@@ -33,6 +33,12 @@ Played cards fly to the center of the table. Spells burst into particles and sho
 
 Every sound is synthesized live with the Web Audio API, so there are no audio files. Use the 🔊 button in the top-left corner to mute everything; the setting is remembered. With your system's "reduce motion" setting on, the game skips shake and flashes and shortens the animations.
 
+### Battlefields
+
+Each match is fought in front of a randomly chosen pixel art battlefield (never the same one twice in a row): *Dusk over Highkeep*, *The Frozen Pass*, *Field of Embers*, *Moonwood* and *The Riven Sanctum*. Each has subtle motion (drifting clouds, flickering castle windows, falling snow, rising embers, fireflies, a pulsing rift) and is dimmed so the board stays the focus; with "reduce motion" on, the scene holds still.
+
+Scenes are built from layers in `src/backgrounds.js` (sky gradients, mountain ridges, castles, trees, particles...). `npm test` checks every scene stays dark, calm and only gently animated, so new ones can't drown out the board.
+
 ### Music
 
 Chiptune background music in an 8-bit medieval style plays on every screen, synthesized live like the sound effects (two pulse-wave channels, a triangle bass and noise drums, as on the NES). Each screen has its own track and they crossfade as you move between them:
@@ -77,6 +83,8 @@ src/fx.js                canvas particles, projectiles, shockwaves, screen shake
 src/sfx.js               synthesized sound effects and the mute setting
 src/songs.js             background music as data, and the song compiler
 src/music.js             chiptune music player: NES-style voices, looping, crossfades
+src/backgrounds.js       battlefield scenes as layered data, and their pixel renderer
+src/backdrop.js          shows and animates the battlefield behind the board
 src/pixelart.js          pixel art format, sprite registry and SVG renderer
 src/sprites/             sprite data: palettes.js, heroes.js, powers.js (hero power icons), one file per class
                          plus neutral.js, index.js
@@ -134,6 +142,6 @@ Sprites render to SVG, so they stay sharp at any size. They can also be built fr
 
 - Deck builder and saved decks
 - Secrets, discover, silence, auras ("your other minions have +1 Attack")
-- Attack arrows, card back and board art
+- Attack arrows and card back art
 - Smarter AI (look-ahead search over the engine, which is already headless and seedable)
 - Online PvP: the engine is deterministic and could run server-authoritatively
