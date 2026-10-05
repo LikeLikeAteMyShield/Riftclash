@@ -76,6 +76,17 @@ export class Game {
   get active() { return this.players[this.current]; }
   opponentOf(id) { return this.players[1 - id]; }
   card(cardId) { return CARDS[cardId]; }
+
+  /**
+   * The card text a minion still has: its card, or nothing but its name, stats
+   * and art once it has been silenced. Use this (not CARDS) for anything a
+   * minion does: triggers, deathrattles and auras.
+   */
+  minionText(m) {
+    if (!m.silenced) return CARDS[m.cardId];
+    const { id, name, cls, type, cost, attack, health, emoji, sprite } = CARDS[m.cardId];
+    return { id, name, cls, type, cost, attack, health, emoji, sprite, keywords: {}, text: '' };
+  }
   heroPower(playerId) { return CLASSES[this.players[playerId].heroClass].heroPower; }
 
   getEntity(uid) {
@@ -239,7 +250,7 @@ export class Game {
       this.#runEffects(card.effects, { player: pid, source, target: targetEnt });
       if (comboActive && card.combo) this.#runEffects(card.combo, { player: pid, source, target: targetEnt });
       for (const m of [...p.board]) {
-        const def = CARDS[m.cardId];
+        const def = this.minionText(m);
         if (def.onFriendlySpell && m.health > 0) this.#runEffects(def.onFriendlySpell, { player: pid, source: m });
       }
     } else if (card.type === 'minion') {
@@ -308,7 +319,7 @@ export class Game {
     const pid = this.current;
     const p = this.players[pid];
     for (const m of [...p.board]) {
-      const def = CARDS[m.cardId];
+      const def = this.minionText(m);
       if (def.endOfTurn && m.health > 0 && !m.destroyed) this.#runEffects(def.endOfTurn, { player: pid, source: m });
     }
     this.#resolveDeaths();
@@ -381,7 +392,7 @@ export class Game {
       uid: this.nextUid++, kind: 'minion', cardId, owner: pid,
       attack: def.attack, health: def.health, maxHealth: def.health,
       keywords: { ...def.keywords }, spellDamage: def.spellDamage || 0,
-      sleeping: true, attacksThisTurn: 0, frozen: false, frozenTurn: -1, destroyed: false, aura: 0,
+      sleeping: true, attacksThisTurn: 0, frozen: false, frozenTurn: -1, destroyed: false, aura: 0, silenced: false,
     };
     p.board.splice(index, 0, m);
     this.#refreshAuras();
@@ -427,7 +438,7 @@ export class Game {
       if (source.keywords.lifesteal) this.#heal(this.players[source.owner].hero, dealt, source);
     }
     if (target.kind === 'minion') {
-      const def = CARDS[target.cardId];
+      const def = this.minionText(target);
       if (def.onDamaged) this.#runEffects(def.onDamaged, { player: target.owner, source: target });
     }
     return dealt;
@@ -461,7 +472,7 @@ export class Game {
       if (dying.length) this.#refreshAuras();
       for (const m of dying) {
         this.#emit({ type: 'death', uid: m.uid });
-        const def = CARDS[m.cardId];
+        const def = this.minionText(m);
         if (def.deathrattle) this.#runEffects(def.deathrattle, { player: m.owner, source: m });
       }
       if (!dying.length) break;
@@ -483,7 +494,7 @@ export class Game {
       p.board.forEach((m, i) => {
         let bonus = 0;
         for (const n of [p.board[i - 1], p.board[i + 1]]) {
-          if (n && !(n.health <= 0 || n.destroyed)) bonus += CARDS[n.cardId].adjacentAura?.attack ?? 0;
+          if (n && !(n.health <= 0 || n.destroyed)) bonus += this.minionText(n).adjacentAura?.attack ?? 0;
         }
         if (bonus !== m.aura) {
           m.attack += bonus - m.aura;
@@ -494,6 +505,25 @@ export class Game {
   }
 
   #alive(e) { return e.health > 0 && !e.destroyed; }
+
+  /**
+   * Remove all card text from a minion, and everything other cards have done
+   * to it: buffs, granted keywords, Freeze. It keeps its damage (Health only
+   * drops if a buff was holding it above the printed value) and still gets
+   * Attack from a neighbour's aura. Buffs it receives afterwards apply normally.
+   */
+  #silence(m) {
+    const def = CARDS[m.cardId];
+    m.silenced = true;
+    m.keywords = {};
+    m.spellDamage = 0;
+    m.frozen = false;
+    m.attack = def.attack + m.aura;
+    m.maxHealth = def.health;
+    m.health = Math.min(m.health, m.maxHealth);
+    // Its own aura stops, so its neighbours lose that Attack.
+    this.#refreshAuras();
+  }
 
   #select(to, ctx) {
     const me = this.players[ctx.player];
@@ -601,6 +631,14 @@ export class Game {
           t.maxHealth += eff.health || 0;
           Object.assign(t.keywords, eff.keywords || {});
           this.#emit({ type: 'buff', uid: t.uid, ...this.#meta(ctx.source) });
+        }
+        break;
+      case 'silence':
+        for (const t of this.#select(eff.to, ctx)) {
+          if (t.kind !== 'minion' || !this.#alive(t)) continue;
+          this.#silence(t);
+          this.#emit({ type: 'silence', uid: t.uid, ...this.#meta(ctx.source) });
+          this.#log(`${this.#entName(t)} is silenced.`);
         }
         break;
       case 'destroy':

@@ -155,6 +155,11 @@ export const sfx = {
     tone(320, { type: 'triangle', to: 70, dur: 0.4, vol: 0.18 });
     noise({ freq: 1200, to: 300, dur: 0.35, vol: 0.18, q: 1 });
   },
+  // A hushed "shh": breathy noise falling away, under a soft low bell.
+  silence() {
+    noise({ type: 'bandpass', freq: 5200, to: 2400, dur: 0.6, vol: 0.14, q: 0.8, attack: 0.06 });
+    tone(392, { type: 'sine', to: 196, dur: 0.7, vol: 0.08, attack: 0.02 });
+  },
   bounce() { noise({ freq: 600, to: 4000, dur: 0.3, vol: 0.16, q: 2, attack: 0.08 }); },
   burn() { noise({ type: 'lowpass', freq: 3000, to: 400, dur: 0.6, vol: 0.2, attack: 0.05 }); },
 

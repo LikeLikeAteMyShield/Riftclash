@@ -11,6 +11,9 @@
 //   allFriendly, allOtherCharacters, randomEnemy, randomEnemyMinion,
 //   randomFriendlyMinion, adjacent (the minions on either side of this one)
 //
+// `{ type: 'silence' }` removes all card text from a minion and undoes what
+// other cards did to it (buffs, granted keywords, Freeze). See #silence in engine.js.
+//
 // `adjacentAura: { attack }` gives the minions on either side bonus Attack
 // for as long as they stay next to it.
 //
@@ -86,6 +89,8 @@ const RAW_CARDS = [
     keywords: { stealth: true } },
   { id: 'n_medic', name: 'Field Medic', type: 'minion', cost: 3, attack: 3, health: 2, emoji: '🩹', sprite: 'card_n_medic',
     text: 'Battlecry: Restore 4 Health to your hero.', battlecry: [{ type: 'heal', amount: 4, to: 'ownHero' }] },
+  { id: 'n_monk', name: 'Whispering Monk', type: 'minion', cost: 3, attack: 2, health: 1, emoji: '🤫', sprite: 'card_n_monk',
+    text: 'Battlecry: Silence a minion.', target: 'minion', battlecry: [{ type: 'silence', to: 'target' }] },
   { id: 'n_warhorn', name: 'Warhorn Totem', type: 'minion', cost: 2, attack: 0, health: 3, emoji: '📯', sprite: 'card_n_warhorn',
     text: 'Adjacent minions have +2 Attack.', adjacentAura: { attack: 2 } },
   { id: 'n_bannerbearer', name: 'Banner Bearer', type: 'minion', cost: 3, attack: 2, health: 3, emoji: '🎏', sprite: 'card_n_bannerbearer',
@@ -258,6 +263,7 @@ export const KEYWORD_HELP = {
   combo: 'Bonus if you already played a card this turn.',
   adjacent: 'The minions directly to the left and right.',
   freeze: "Frozen characters lose their next attack.",
+  silence: 'Remove all card text and enchantments from a minion: keywords, triggers, auras and any buffs.',
 };
 
 /** Full card text including keyword line, for display. */

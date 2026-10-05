@@ -67,6 +67,14 @@ Songs live in `src/songs.js` in a small tracker-style notation (one string per b
 
 Taunt, Charge, Rush, Divine Shield, Windfury, Stealth, Lifesteal, Poisonous, Spell Damage, Freeze, Battlecry, Deathrattle, Combo, plus triggered effects (end of turn, on damage, on casting a spell).
 
+**Silence** removes all card text from a minion: its keywords, Deathrattle, triggered effects, aura and Spell Damage. It also undoes everything other cards have done to the minion, such as buffs, granted keywords and Freeze, so the minion goes back to its printed Attack and Health.
+- Damage it has already taken stays.
+- Health only drops if a buff was holding it above its printed value, so Silence never kills a minion on its own.
+- A neighbour's aura still applies to a silenced minion.
+- Buffs it receives after being silenced work normally.
+
+The neutral **Whispering Monk** (3 mana, 2/1) has *Battlecry: Silence a minion.*
+
 ## Classes
 
 | Class | Plays like | Hero power |
@@ -118,7 +126,7 @@ Cards are plain data. Effects use a small vocabulary that the engine interprets:
   battlecry: [{ type: 'damage', amount: 2, to: 'allEnemyMinions' }] }
 ```
 
-- **Effect types:** `damage`, `heal`, `armor`, `draw`, `summon`, `buff`, `destroy`, `freeze`, `weapon`, `buffWeapon`, `mana`, `bounce`, `copyFromOpponentDeck`
+- **Effect types:** `damage`, `heal`, `armor`, `draw`, `summon`, `buff`, `destroy`, `freeze`, `weapon`, `buffWeapon`, `mana`, `bounce`, `silence`, `copyFromOpponentDeck`
 - **Hooks:** `effects` (spells), `battlecry`, `deathrattle`, `combo`, `endOfTurn`, `onDamaged`, `onFriendlySpell`
 - **Adjacency:** use `to: 'adjacent'` for the minions on either side, or `adjacentAura: { attack }` for an ongoing bonus to neighbours
 - **Targets** (`target`): `any`, `minion`, `enemyMinion`, `friendlyMinion`, `enemy`, `friendly`. Narrow them with `targetFilter: { maxAttack, minAttack, damaged, undamaged }`.

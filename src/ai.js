@@ -32,9 +32,41 @@ function aoeValue(game, pid, effects) {
   return value;
 }
 
+const KEYWORD_WORTH = { taunt: 3, divineShield: 3, poisonous: 3, windfury: 2, lifesteal: 2, stealth: 1, charge: 0, rush: 0 };
+
+/**
+ * How much a minion loses when silenced (bigger = better to silence an enemy):
+ * buffs above its printed stats, keywords, and text such as deathrattles and auras.
+ */
+export function silenceValue(game, m) {
+  if (m.silenced) return 0;
+  const def = CARDS[m.cardId];
+  let v = (m.attack - m.aura - def.attack) + (m.maxHealth - def.health) + m.spellDamage * 2 + (m.frozen ? -2 : 0);
+  for (const [k, on] of Object.entries(m.keywords)) if (on) v += KEYWORD_WORTH[k] ?? 1;
+  if (def.deathrattle) v += 3;
+  if (def.endOfTurn || def.onDamaged || def.onFriendlySpell) v += 3;
+  if (def.adjacentAura) v += 2 * (def.adjacentAura.attack ?? 0);
+  return v;
+}
+
+/** Silence the enemy minion that loses the most; failing that, whichever minion it hurts least. */
+function chooseSilenceTarget(game, pid, card, targets) {
+  const scored = targets.filter(t => t.kind === 'minion')
+    .map(t => ({ t, score: (t.owner === pid ? -1 : 1) * silenceValue(game, t) }))
+    .sort((a, b) => b.score - a.score);
+  const best = scored[0];
+  if (!best) return { ok: true, target: null };
+  // A silence spell is only worth casting on something; a minion's body is worth playing anyway,
+  // unless the only targets are our own minions that would lose a lot.
+  if (card.type === 'spell' && best.score < 3) return { ok: false };
+  if (best.score < -2) return { ok: false };
+  return { ok: true, target: best.t.uid };
+}
+
 function chooseTarget(game, pid, card, targets) {
   if (!targets.length) return { ok: true, target: null };
   const effects = card.type === 'spell' ? card.effects : card.battlecry;
+  if (effects.some(e => e.type === 'silence' && e.to === 'target')) return chooseSilenceTarget(game, pid, card, targets);
   const intent = targetIntent(effects);
   const enemies = targets.filter(t => t.owner !== pid);
   const friends = targets.filter(t => t.owner === pid);
@@ -93,7 +125,7 @@ export function choosePosition(game, pid, card) {
   }
   // Anything that attacks wants to stand next to an aura minion.
   if (card.attack > 0) {
-    const totem = board.findIndex(m => CARDS[m.cardId].adjacentAura);
+    const totem = board.findIndex(m => game.minionText(m).adjacentAura);
     if (totem >= 0) return board[totem + 1] && !board[totem - 1] ? totem : totem + 1;
   }
   return board.length;
