@@ -1,0 +1,236 @@
+// Background music, written as data in a small tracker-style notation.
+//
+// A song has channels (lead, harmony, bass, drums...). Each channel is a list
+// of bars, and each bar is a string of space-separated steps (16 per 4/4 bar):
+//
+//   D5   start a note (name + octave; sharps like C#5, flats like Bb4)
+//   -    hold the previous note for another step
+//   .    rest
+//   k s h  drum hits on a 'noise' channel: kick, snare, hi-hat
+//
+// Helpers below (arp, bass, repeat) build the repetitive parts so the
+// melodies stay readable. compileSong() validates everything and turns a song
+// into timed note events; it has no browser dependency, so tests can run it.
+
+const NOTE_INDEX = { C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11 };
+const NAMES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+
+export function noteToMidi(name) {
+  const m = /^([A-G](?:#|b)?)(-?\d)$/.exec(name);
+  if (!m || !(m[1] in NOTE_INDEX)) return null;
+  return (Number(m[2]) + 1) * 12 + NOTE_INDEX[m[1]];
+}
+const midiToNote = midi => NAMES[midi % 12] + (Math.floor(midi / 12) - 1);
+export const midiToFreq = midi => 440 * 2 ** ((midi - 69) / 12);
+
+const CHORD_SHAPES = { '': [0, 4, 7], m: [0, 3, 7], sus: [0, 5, 7] };
+
+/** Chord tones from a name like 'Dm', 'Bb', 'A', 'Gsus' at a given octave. */
+export function chord(name, octave = 4) {
+  const m = /^([A-G](?:#|b)?)(m|sus)?$/.exec(name);
+  if (!m) throw new Error(`Unknown chord ${name}`);
+  const root = noteToMidi(m[1] + octave);
+  return CHORD_SHAPES[m[2] ?? ''].map(i => midiToNote(root + i));
+}
+
+/**
+ * An arpeggio filling one bar. `order` indexes into the chord tones (an index
+ * of 3 means the root an octave up); `every` spaces the notes out, holding each.
+ */
+export function arp(name, { octave = 4, order = [0, 1, 2, 1], every = 1, steps = 16 } = {}) {
+  const tones = chord(name, octave);
+  const up = midiToNote(noteToMidi(tones[0]) + 12);
+  const pool = [...tones, up];
+  const out = [];
+  for (let i = 0; out.length < steps; i++) {
+    out.push(pool[order[i % order.length]]);
+    for (let h = 1; h < every && out.length < steps; h++) out.push('-');
+  }
+  return out.join(' ');
+}
+
+/** Bass for one bar from a chord root. Styles: pump (octave eighths), whole, halves (root then fifth). */
+export function bass(name, style = 'pump', octave = 2) {
+  const root = noteToMidi(/^([A-G](?:#|b)?)/.exec(name)[1] + octave);
+  const r = midiToNote(root), o = midiToNote(root + 12), f = midiToNote(root + 7);
+  if (style === 'pump') return `${r} - ${o} - ${r} - ${o} - ${r} - ${o} - ${r} - ${o} -`;
+  if (style === 'whole') return `${r} ${'- '.repeat(15).trim()}`;
+  if (style === 'halves') return `${r} - - - - - - - ${f} - - - - - - -`;
+  throw new Error(`Unknown bass style ${style}`);
+}
+
+export const repeat = (bar, n) => Array(n).fill(bar);
+const REST = '. . . . . . . . . . . . . . . .';
+
+// ---------------------------------------------------------------- songs
+
+const MENU_CHORDS = ['Dm', 'Bb', 'C', 'Dm', 'Dm', 'Bb', 'C', 'A', 'F', 'C', 'Bb', 'C', 'Dm', 'Bb', 'A', 'Dm'];
+const BATTLE_CHORDS = ['Am', 'F', 'G', 'Em', 'Am', 'Dm', 'Em', 'Am', 'F', 'C', 'G', 'Em', 'F', 'Dm', 'Em', 'Am'];
+const LIBRARY_CHORDS = ['C', 'Am', 'F', 'G', 'C', 'Em', 'F', 'G', 'F', 'G', 'Em', 'Am', 'Dm', 'G', 'C', 'C'];
+
+export const SONGS = {
+  // Main menu: a bright, marching heroic theme in D minor.
+  menu: {
+    title: 'Banners of the Rift',
+    bpm: 140,
+    volume: 1,
+    channels: {
+      lead: {
+        wave: 'pulse25', volume: 0.2, env: { a: 0.005, d: 0.1, s: 0.55, r: 0.05 }, vibrato: { rate: 6, depth: 4, delay: 0.12 },
+        bars: [
+          'D5 - - - A4 - D5 - F5 - - - E5 - D5 -',
+          'C5 - - - Bb4 - - - A4 - Bb4 - C5 - - -',
+          'E5 - - - D5 - C5 - G5 - - - E5 - C5 -',
+          'D5 - - - - - - - A4 - D5 - F5 - A5 -',
+          'D6 - - - C6 - A5 - F5 - - - G5 - A5 -',
+          'Bb5 - - - A5 - G5 - F5 - - - D5 - F5 -',
+          'G5 - - - F5 - E5 - C5 - - - E5 - G5 -',
+          'A5 - - - - - G5 - F5 - E5 - C#5 - - -',
+          'A5 - - - - - C6 - A5 - - - F5 - - -',
+          'G5 - - - - - E5 - C5 - - - E5 - G5 -',
+          'F5 - - - - - D5 - Bb4 - - - D5 - F5 -',
+          'E5 - - - - - G5 - C6 - - - Bb5 - G5 -',
+          'A5 - - - F5 - A5 - D6 - - - C6 - A5 -',
+          'Bb5 - - - A5 - G5 - F5 - G5 - A5 - - -',
+          'E5 - - - C#5 - E5 - A5 - - - G5 - E5 -',
+          'D5 - - - - - - - - - - - . . . .',
+        ],
+      },
+      harmony: {
+        wave: 'pulse12', volume: 0.07, env: { a: 0.002, d: 0.06, s: 0.3, r: 0.03 },
+        bars: MENU_CHORDS.map(c => arp(c, { octave: 4, order: [0, 1, 2, 1] })),
+      },
+      bass: {
+        wave: 'triangle', volume: 0.32, env: { a: 0.002, d: 0.05, s: 0.8, r: 0.02 },
+        bars: MENU_CHORDS.map(c => bass(c, 'pump')),
+      },
+      drums: {
+        wave: 'noise', volume: 0.16,
+        bars: MENU_CHORDS.map((_, i) => (i % 8 === 7
+          ? 'k . h . s . h . s s s . s s s s'
+          : 'k . h . s . h . k . k . s . h h')),
+      },
+    },
+  },
+
+  // Battle: slow and spacious so it can loop for a whole game without wearing thin.
+  battle: {
+    title: 'Embers Between Turns',
+    bpm: 72,
+    volume: 0.7,
+    channels: {
+      pad: {
+        wave: 'pulse50', volume: 0.05, filter: 900, env: { a: 0.08, d: 0.4, s: 0.5, r: 0.6 },
+        bars: BATTLE_CHORDS.map(c => arp(c, { octave: 3, order: [0, 1, 2, 3, 2, 1], every: 2 })),
+      },
+      lead: {
+        wave: 'pulse25', volume: 0.075, filter: 1800, env: { a: 0.06, d: 0.3, s: 0.6, r: 0.8 }, vibrato: { rate: 4.5, depth: 5, delay: 0.3 },
+        bars: [
+          REST, REST,
+          'B4 - - - - - - - D5 - - - - - - -',
+          'E5 - - - - - - - - - - - . . . .',
+          REST, REST,
+          'G4 - - - - - - - B4 - - - A4 - - -',
+          'A4 - - - - - - - - - - - . . . .',
+          REST, REST,
+          'D5 - - - C5 - - - B4 - - - - - - -',
+          'G4 - - - - - - - - - - - . . . .',
+          REST, REST,
+          'E5 - - - D5 - - - B4 - - - G4 - - -',
+          'A4 - - - - - - - - - - - . . . .',
+        ],
+      },
+      bass: {
+        wave: 'triangle', volume: 0.26, env: { a: 0.05, d: 0.3, s: 0.7, r: 0.5 },
+        bars: BATTLE_CHORDS.map(c => bass(c, 'whole')),
+      },
+      drums: {
+        wave: 'noise', volume: 0.05,
+        bars: BATTLE_CHORDS.map(() => 'k . . . . . . . k . . . . . . .'),
+      },
+    },
+  },
+
+  // Card library: a warm, lute-like study piece in C major. No drums.
+  library: {
+    title: 'The Archivist\'s Lute',
+    bpm: 84,
+    volume: 0.75,
+    channels: {
+      lute: {
+        wave: 'pulse12', volume: 0.06, filter: 2400, env: { a: 0.003, d: 0.25, s: 0, r: 0.2 },
+        bars: LIBRARY_CHORDS.map(c => arp(c, { octave: 4, order: [0, 1, 2, 3] })),
+      },
+      lead: {
+        wave: 'pulse50', volume: 0.06, filter: 1600, env: { a: 0.04, d: 0.4, s: 0.5, r: 0.7 }, vibrato: { rate: 5, depth: 4, delay: 0.25 },
+        bars: [
+          'E5 - - - - - - - G5 - - - - - - -',
+          'A5 - - - - - - - G5 - - - E5 - - -',
+          'F5 - - - - - - - A5 - - - - - - -',
+          'G5 - - - - - - - - - - - D5 - - -',
+          'E5 - - - - - G5 - C6 - - - - - - -',
+          'B5 - - - - - - - G5 - - - E5 - - -',
+          'A5 - - - - - - - C6 - - - A5 - - -',
+          'G5 - - - - - - - - - - - . . . .',
+          'C6 - - - - - - - A5 - - - - - - -',
+          'B5 - - - - - - - D6 - - - - - - -',
+          'G5 - - - - - - - E5 - - - - - - -',
+          'A5 - - - - - - - C6 - - - B5 - A5 -',
+          'F5 - - - - - - - A5 - - - - - - -',
+          'G5 - - - - - - - B5 - - - D6 - - -',
+          'C6 - - - - - - - - - - - G5 - - -',
+          'E5 - - - - - - - - - - - . . . .',
+        ],
+      },
+      bass: {
+        wave: 'triangle', volume: 0.24, env: { a: 0.02, d: 0.3, s: 0.6, r: 0.3 },
+        bars: LIBRARY_CHORDS.map(c => bass(c, 'halves')),
+      },
+    },
+  },
+};
+
+export const WAVES = ['pulse12', 'pulse25', 'pulse50', 'triangle', 'noise'];
+const DRUMS = new Set(['k', 's', 'h']);
+export const STEPS_PER_BAR = 16;
+export const STEPS_PER_BEAT = 4;
+
+/**
+ * Validate a song and turn it into events:
+ * { stepDur, length, events: [{ step, channel, midi | drum, steps }] } sorted by step.
+ * Throws a descriptive error for any malformed bar or note.
+ */
+export function compileSong(id, song = SONGS[id]) {
+  if (!song) throw new Error(`Unknown song "${id}"`);
+  const events = [];
+  let length = null;
+  for (const [name, ch] of Object.entries(song.channels)) {
+    if (!WAVES.includes(ch.wave)) throw new Error(`${id}.${name}: unknown wave "${ch.wave}"`);
+    const tokens = [];
+    ch.bars.forEach((bar, b) => {
+      const t = bar.trim().split(/\s+/);
+      if (t.length !== STEPS_PER_BAR) throw new Error(`${id}.${name} bar ${b + 1}: ${t.length} steps, expected ${STEPS_PER_BAR}`);
+      tokens.push(...t);
+    });
+    if (length !== null && tokens.length !== length) throw new Error(`${id}.${name}: ${tokens.length} steps, other channels have ${length}`);
+    length = tokens.length;
+    tokens.forEach((tok, step) => {
+      if (tok === '.' || tok === '-') {
+        if (tok === '-' && step === 0) throw new Error(`${id}.${name}: a song can't start with a hold`);
+        return;
+      }
+      let steps = 1;
+      while (tokens[step + steps] === '-') steps++;
+      if (ch.wave === 'noise') {
+        if (!DRUMS.has(tok)) throw new Error(`${id}.${name} step ${step}: "${tok}" is not a drum (k, s, h)`);
+        events.push({ step, channel: name, drum: tok, steps });
+      } else {
+        const midi = noteToMidi(tok);
+        if (midi === null) throw new Error(`${id}.${name} step ${step}: "${tok}" is not a note`);
+        events.push({ step, channel: name, midi, steps });
+      }
+    });
+  }
+  events.sort((a, b) => a.step - b.step);
+  return { stepDur: 60 / song.bpm / STEPS_PER_BEAT, length, events };
+}

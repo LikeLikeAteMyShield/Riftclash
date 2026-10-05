@@ -31,7 +31,19 @@ Open **Card Library** from the main menu to browse every card. Filter by class w
 
 Played cards fly to the center of the table. Spells burst into particles and shoot projectiles at their targets, and area spells send out a shockwave. Attacks wind up and lunge with an impact flash and screen shake. Minions slam onto the board and shatter when they die.
 
-Every sound is synthesized live with the Web Audio API, so there are no audio files. Use the 🔊 button in the top-left corner to mute; the setting is remembered. With your system's "reduce motion" setting on, the game skips shake and flashes and shortens the animations.
+Every sound is synthesized live with the Web Audio API, so there are no audio files. Use the 🔊 button in the top-left corner to mute everything; the setting is remembered. With your system's "reduce motion" setting on, the game skips shake and flashes and shortens the animations.
+
+### Music
+
+Chiptune background music in an 8-bit medieval style plays on every screen, synthesized live like the sound effects (two pulse-wave channels, a triangle bass and noise drums, as on the NES). Each screen has its own track and they crossfade as you move between them:
+
+- **Main menu:** *Banners of the Rift*, an energetic, marching theme
+- **Battle:** *Embers Between Turns*, slow and spacious so it stays in the background through long games
+- **Card library:** *The Archivist's Lute*, gentle plucked arpeggios
+
+The 🎵 button turns music on or off (remembered between visits); 🔊 mutes music and effects together. Music pauses while the tab is in the background.
+
+Songs live in `src/songs.js` in a small tracker-style notation (one string per bar, `D5` starts a note, `-` holds, `.` rests, `k`/`s`/`h` are drums), and `npm test` checks every song is well formed.
 
 ### Keywords
 
@@ -63,6 +75,8 @@ src/ui.js                rendering, input, AI turn pacing, and the animation dir
                          that replays engine events as effects
 src/fx.js                canvas particles, projectiles, shockwaves, screen shake
 src/sfx.js               synthesized sound effects and the mute setting
+src/songs.js             background music as data, and the song compiler
+src/music.js             chiptune music player: NES-style voices, looping, crossfades
 src/pixelart.js          pixel art format, sprite registry and SVG renderer
 src/sprites/             sprite data: palettes.js, heroes.js, one file per class plus neutral.js, index.js
 sprites.html             gallery of every sprite, for checking art while drawing it

@@ -8,6 +8,7 @@ import { sfx, unlock, isMuted, setMuted } from './sfx.js';
 import { artHTML } from './pixelart.js';
 import { cardHTML, keywordHelpHTML, esc } from './cardview.js';
 import { mountLibrary } from './library.js';
+import { playTrack, startMusic, isMusicOn, setMusicOn } from './music.js';
 import './sprites/index.js';
 
 const HUMAN = 0;
@@ -72,6 +73,7 @@ $('#menu-btn').addEventListener('click', () => {
 function showScreen(id) {
   for (const s of ['menu', 'library', 'mulligan', 'table']) $('#' + s).classList.toggle('hidden', s !== id);
   document.body.classList.toggle('in-game', id === 'table');
+  playTrack(id === 'menu' ? 'menu' : id === 'library' ? 'library' : 'battle');
 }
 
 // ------------------------------------------------------------------ setup
@@ -974,9 +976,24 @@ $('#sound-btn').addEventListener('click', () => {
   renderSoundButton();
   sfx.click();
 });
+function renderMusicButton() {
+  const b = $('#music-btn');
+  b.classList.toggle('off', !isMusicOn());
+  b.setAttribute('aria-pressed', String(isMusicOn()));
+  b.title = isMusicOn() ? 'Music on' : 'Music off';
+}
+$('#music-btn').addEventListener('click', () => {
+  setMusicOn(!isMusicOn());
+  renderMusicButton();
+  sfx.click();
+});
+
 // Browsers only start audio after a user gesture.
-document.addEventListener('pointerdown', unlock);
-document.addEventListener('keydown', unlock);
+const onGesture = () => { unlock(); startMusic(); };
+document.addEventListener('pointerdown', onGesture);
+document.addEventListener('keydown', onGesture);
 
 renderSoundButton();
+renderMusicButton();
 renderMenu();
+playTrack('menu');
