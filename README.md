@@ -58,7 +58,7 @@ src/ui.js                rendering, input, AI turn pacing, and the animation dir
 src/fx.js                canvas particles, projectiles, shockwaves, screen shake
 src/sfx.js               synthesized sound effects and the mute setting
 src/pixelart.js          pixel art format, sprite registry and SVG renderer
-src/sprites/             sprite data: palettes.js, heroes.js, vanguard.js, index.js (registers them all)
+src/sprites/             sprite data: palettes.js, heroes.js, one file per class (vanguard.js, ...), index.js
 sprites.html             gallery of every sprite, for checking art while drawing it
 test/engine.test.js      node:test suite
 server.js                tiny static file server
@@ -84,7 +84,7 @@ The full list of selectors for `to` is at the top of `src/cards.js`.
 
 ### Adding pixel art
 
-Hero portraits and the Vanguard cards are pixel art; other cards still use emoji until their wave of art lands. Each sprite is a text grid where every character is one pixel, looked up in a palette (`.` is transparent):
+Hero portraits and the Vanguard and Pyromancer cards are pixel art; other cards still use emoji until their wave of art lands. Each sprite is a text grid where every character is one pixel, looked up in a palette (`.` is transparent):
 
 ```js
 // src/sprites/heroes.js (or a new file, e.g. src/sprites/cards.js)
@@ -113,6 +113,6 @@ Sprites render to SVG, so they stay sharp at any size. They can also be built fr
 
 - Deck builder and saved decks
 - Secrets, discover, silence, auras ("your other minions have +1 Attack")
-- Pixel art for the remaining classes and neutral cards (Vanguard is done), attack arrows
+- Pixel art for the remaining classes and neutral cards (Vanguard and Pyromancer are done), attack arrows
 - Smarter AI (look-ahead search over the engine, which is already headless and seedable)
 - Online PvP: the engine is deterministic and could run server-authoritatively
