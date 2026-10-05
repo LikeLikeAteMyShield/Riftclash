@@ -9,6 +9,9 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <canvas id="battle-bg" aria-hidden="true"></canvas>
+  <div id="battle-dim" aria-hidden="true"></div>
+
   <main id="app">
     <section id="menu" class="screen">
       <h1 class="logo">Riftclash</h1>
@@ -28,6 +31,7 @@
 
     <section id="mulligan" class="screen hidden">
       <h2 id="mulligan-title">Starting hand</h2>
+      <p id="battlefield" class="battlefield"></p>
       <p class="hint">Click cards to replace them, then confirm.</p>
       <div id="mulligan-cards" class="mulligan-cards"></div>
       <button id="mulligan-btn" class="btn primary">Confirm</button>
