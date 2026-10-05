@@ -23,6 +23,18 @@ It has no dependencies and no build step. ES modules don't load over `file://`, 
 - Position matters: some minions affect the minions **adjacent** to them. Tokens from a Battlecry appear to the minion's right, and Deathrattle tokens take the dead minion's spot.
 - Boards hold 7 minions (extra summons are lost) and hands hold 10 cards; a card drawn into a full hand is burned. Drawing from an empty deck deals growing fatigue damage.
 
+### Deck builder
+
+Open **Deck Builder** from the main menu to make your own decks. Each deck has a name and belongs to one class. It holds exactly 30 cards, drawn from that class's cards and the neutral cards, with at most 2 copies of each.
+
+- **New deck**: pick a class, then type a name.
+- **Adding and removing cards**: click a card to add it. Right-click it, or click its row in the deck list, to take one out. Hover a row to see the full card.
+- **Mana curve**: the bars above the list show how many cards you have at each cost.
+- **Auto-fill**: tops the deck up to 30 cards. The class's own cards go in first, then neutrals chosen to round out the curve. **Clear** empties the deck (click twice).
+- **Saving**: changes save as you go, in your browser's local storage. Decks stay on this browser only, and clearing site data deletes them.
+
+Back on the main menu, the **Deck** dropdown lists the standard deck plus your finished decks for the chosen class. The menu remembers the last deck you picked for each class. Unfinished decks are listed but can't be selected until they have 30 cards. **Play** on a finished deck jumps back to the menu with it selected. The AI always uses a standard deck.
+
 ### Card library
 
 Open **Card Library** from the main menu to browse every card. Filter by class with the tabs (All, each class, Neutral), narrow by mana cost or by searching names and rules text, and tick **Show tokens** to include cards that only appear in play. Click any card for a closer look with its keywords explained; use the arrow keys to flip through and Esc to close.
@@ -66,7 +78,7 @@ Taunt, Charge, Rush, Divine Shield, Windfury, Stealth, Lifesteal, Poisonous, Spe
 | Vanguard | tokens, buffs, divine shields | **Muster**: summon a 1/1 Recruit |
 | Shade | cheap tricks, combos, daggers | **Blade Kit**: equip a 1/2 Shiv |
 
-Each deck is 2 copies of the class's 8 cards plus 7 pairs of neutral cards chosen to give a sensible mana curve.
+Each class's standard deck is 2 copies of its 8 class cards plus 7 pairs of neutral cards chosen to give a sensible mana curve.
 
 ## Code layout
 
@@ -77,6 +89,8 @@ src/engine.js            rules engine (no DOM); deterministic given a seed
 src/ai.js                greedy AI: removal/trades, lethal check, curve play
 src/cardview.js          card faces and keyword help, shared by the game and the library
 src/library.js           the card library screen and its filters
+src/decks.js             deck rules (30 cards, 2 copies, class + neutral), auto-fill, saving to localStorage
+src/deckbuilder.js       the deck builder screen
 src/ui.js                rendering, input, AI turn pacing, and the animation director
                          that replays engine events as effects
 src/fx.js                canvas particles, projectiles, shockwaves, screen shake
@@ -89,7 +103,7 @@ src/pixelart.js          pixel art format, sprite registry and SVG renderer
 src/sprites/             sprite data: palettes.js, heroes.js, powers.js (hero power icons), one file per class
                          plus neutral.js, index.js
 sprites.html             gallery of every sprite, for checking art while drawing it
-test/engine.test.js      node:test suite
+test/*.test.js           node:test suites (engine, decks, library, songs, sprites, backgrounds)
 server.js                tiny static file server
 ```
 
@@ -140,7 +154,6 @@ Sprites render to SVG, so they stay sharp at any size. They can also be built fr
 
 ## Ideas for next steps
 
-- Deck builder and saved decks
 - Secrets, discover, silence, auras ("your other minions have +1 Attack")
 - Attack arrows and card back art
 - Smarter AI (look-ahead search over the engine, which is already headless and seedable)

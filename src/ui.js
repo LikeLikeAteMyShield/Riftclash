@@ -8,6 +8,8 @@ import { sfx, unlock, isMuted, setMuted } from './sfx.js';
 import { artHTML, hasSprite, spriteSVG } from './pixelart.js';
 import { cardHTML, keywordHelpHTML, esc } from './cardview.js';
 import { mountLibrary } from './library.js';
+import { mountDeckBuilder } from './deckbuilder.js';
+import { STANDARD_DECK, loadDecks, isPlayable, loadDeckChoice, saveDeckChoice } from './decks.js';
 import { playTrack, startMusic, isMusicOn, setMusicOn } from './music.js';
 import { mountBackdrop, newBackdrop, showBackdrop } from './backdrop.js';
 import './sprites/index.js';
@@ -48,10 +50,38 @@ function renderMenu() {
       <span class="class-hero">${esc(c.hero)}</span>
       <span class="class-power"><span class="class-power-icon">${powerArt(c.heroPower)}</span><span><b>${c.heroPower.name}</b> (${c.heroPower.cost}): ${esc(c.heroPower.text)}</span></span>
     </button>`).join('');
+  renderDeckSelect();
   $('#opponent-select').innerHTML = `<option value="random">Random</option>` +
     Object.entries(CLASSES).map(([k, c]) => `<option value="${k}"${ui.aiClass === k ? ' selected' : ''}>${c.name}</option>`).join('');
   $('#start-btn').disabled = !ui.playerClass;
 }
+
+/** The chosen class's decks: the standard deck plus its custom decks (unfinished ones can't be picked). */
+function renderDeckSelect() {
+  const sel = $('#deck-select');
+  if (!ui.playerClass) {
+    sel.innerHTML = '<option>Choose a class first</option>';
+    sel.disabled = true;
+    return;
+  }
+  const decks = loadDecks().filter(d => d.cls === ui.playerClass).sort((a, b) => a.name.localeCompare(b.name));
+  const choice = loadDeckChoice()[ui.playerClass];
+  const chosen = decks.find(d => d.id === choice && isPlayable(d))?.id ?? STANDARD_DECK;
+  sel.innerHTML = `<option value="${STANDARD_DECK}">Standard deck</option>` + decks.map(d => {
+    const ok = isPlayable(d);
+    return `<option value="${d.id}"${ok ? '' : ' disabled'}${d.id === chosen ? ' selected' : ''}>${esc(d.name)}${ok ? '' : ` (${d.cards.length}/30, unfinished)`}</option>`;
+  }).join('');
+  sel.disabled = false;
+}
+
+/** Card ids of the player's chosen custom deck, or undefined for the standard deck. */
+function chosenDeck() {
+  const id = loadDeckChoice()[ui.playerClass];
+  const deck = loadDecks().find(d => d.id === id && d.cls === ui.playerClass);
+  return deck && isPlayable(deck) ? deck.cards : undefined;
+}
+
+$('#deck-select').addEventListener('change', e => saveDeckChoice(ui.playerClass, e.target.value));
 
 $('#class-grid').addEventListener('click', e => {
   const tile = e.target.closest('[data-class]');
@@ -68,6 +98,22 @@ $('#library-btn').addEventListener('click', () => {
   showScreen('library');
   openLibrary();
 });
+let openDecks = null;
+$('#decks-btn').addEventListener('click', () => {
+  openDecks ??= mountDeckBuilder($('#decks'), {
+    onBack: () => { renderMenu(); showScreen('menu'); },
+    onUse: (cls, deckId) => {
+      ui.playerClass = cls;
+      saveDeckChoice(cls, deckId);
+      renderMenu();
+      showScreen('menu');
+    },
+    notify: toast,
+    sounds: { add: () => sfx.draw(), remove: () => sfx.click() },
+  });
+  showScreen('decks');
+  openDecks();
+});
 $('#again-btn').addEventListener('click', startGame);
 $('#menu-btn').addEventListener('click', () => {
   $('#overlay').classList.add('hidden');
@@ -75,10 +121,10 @@ $('#menu-btn').addEventListener('click', () => {
 });
 
 function showScreen(id) {
-  for (const s of ['menu', 'library', 'mulligan', 'table']) $('#' + s).classList.toggle('hidden', s !== id);
+  for (const s of ['menu', 'library', 'decks', 'mulligan', 'table']) $('#' + s).classList.toggle('hidden', s !== id);
   document.body.classList.toggle('in-game', id === 'table');
   showBackdrop(id === 'mulligan' || id === 'table');
-  playTrack(id === 'menu' ? 'menu' : id === 'library' ? 'library' : 'battle');
+  playTrack(id === 'menu' ? 'menu' : id === 'library' || id === 'decks' ? 'library' : 'battle');
 }
 
 // ------------------------------------------------------------------ setup
@@ -86,7 +132,7 @@ function showScreen(id) {
 function startGame() {
   const keys = Object.keys(CLASSES);
   const aiClass = ui.aiClass === 'random' ? keys[Math.floor(Math.random() * keys.length)] : ui.aiClass;
-  ui.game = new Game({ classes: [ui.playerClass, aiClass], seed: Date.now() });
+  ui.game = new Game({ classes: [ui.playerClass, aiClass], decks: [chosenDeck()], seed: Date.now() });
   ui.selection = null;
   setBusy(false);
   ui.mulliganPicks = new Set();
