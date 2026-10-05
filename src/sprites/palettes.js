@@ -167,3 +167,39 @@ export const SHADE = {
   a: '#b8e6d8', // glass
   A: '#7fb5a6', // glass shadow
 };
+
+/** Neutral: a broad set for creatures and people of every kind. */
+export const NEUTRAL = {
+  g: '#5fae4a', // leaf green
+  G: '#3c7a32', // green shadow
+  V: '#2f5a48', // swamp water
+  b: '#8a5a32', // brown
+  B: '#5a3a20', // brown shadow
+  t: '#c8946a', // tan
+  T: '#8a5f40', // tan shadow
+  i: '#a7b0bb', // iron
+  I: '#6b7480', // iron shadow
+  l: '#e3e8ee', // steel highlight
+  y: '#ffd451', // gold
+  Y: '#d99a2a', // gold shadow
+  o: '#f28a26', // orange
+  r: '#c0392b', // red
+  R: '#7a1f1a', // red shadow
+  u: '#4a7ee0', // blue
+  U: '#24479a', // blue shadow
+  p: '#9a6ae0', // violet
+  P: '#5a3a9a', // violet shadow
+  c: '#9fe7ff', // crystal
+  C: '#4fb3e0', // crystal shadow
+  w: '#f5efe6', // white
+  W: '#c9c1ae', // white shadow
+  n: '#8a8f9a', // grey
+  N: '#4c505a', // grey shadow
+  q: '#8a7d72', // stone
+  Q: '#55493f', // stone shadow
+  a: '#e8d9b0', // bone
+  A: '#b7a98a', // bone shadow
+  d: '#3a2a20', // dark hair
+  x: '#f4e2ff', // sparkle
+  z: '#22182a', // void
+};

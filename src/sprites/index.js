@@ -9,6 +9,7 @@ import warlord from './warlord.js';
 import stalker from './stalker.js';
 import oracle from './oracle.js';
 import shade from './shade.js';
+import neutral from './neutral.js';
 
 defineSprites(heroes);
 defineSprites(vanguard);
@@ -17,3 +18,4 @@ defineSprites(warlord);
 defineSprites(stalker);
 defineSprites(oracle);
 defineSprites(shade);
+defineSprites(neutral);
