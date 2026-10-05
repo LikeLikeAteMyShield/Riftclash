@@ -87,3 +87,10 @@ test('every card, including tokens, has pixel art', () => {
   const missing = Object.values(CARDS).filter(c => !hasSprite(c.sprite)).map(c => c.id);
   assert.deepEqual(missing, [], `cards without art: ${missing.join(', ')}`);
 });
+
+test('every hero power has a pixel art icon', () => {
+  for (const [key, c] of Object.entries(CLASSES)) {
+    assert.ok(hasSprite(c.heroPower.sprite), `${key} hero power "${c.heroPower.name}" has no icon`);
+    assert.equal(getSprite(c.heroPower.sprite).width, 24, key);
+  }
+});
