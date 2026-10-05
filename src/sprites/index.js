@@ -4,6 +4,8 @@
 import { defineSprites } from '../pixelart.js';
 import heroes from './heroes.js';
 import vanguard from './vanguard.js';
+import pyromancer from './pyromancer.js';
 
 defineSprites(heroes);
 defineSprites(vanguard);
+defineSprites(pyromancer);
