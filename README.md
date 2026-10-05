@@ -1,6 +1,6 @@
 # Riftclash
 
-A browser-based card battle game in the style of Hearthstone, with six classes and an original set of 70+ cards. You play against an AI opponent.
+A browser-based card battle game, with six classes and an original set of 70+ cards. You play against an AI opponent.
 
 ## Running it
 
