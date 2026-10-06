@@ -203,3 +203,28 @@ export const NEUTRAL = {
   x: '#f4e2ff', // sparkle
   z: '#22182a', // void
 };
+
+/** Celestial: night sky, rift cyan, violet nebulae, starlight and gold. */
+export const CELESTIAL = {
+  n: '#1c2050', // night
+  N: '#11133a', // deep night
+  d: '#08081a', // void
+  i: '#3a44a0', // indigo
+  I: '#262d78', // indigo shadow
+  v: '#7a5ae0', // violet
+  V: '#4c3aa0', // violet shadow
+  c: '#8fe0ff', // rift cyan
+  C: '#3aa0e0', // cyan shadow
+  w: '#f4f6ff', // starlight
+  W: '#b8c4f0', // starlight shadow
+  g: '#f4cc4a', // gold
+  G: '#b08a2a', // gold shadow
+  p: '#ff7ad8', // nebula
+  P: '#b0409a', // nebula shadow
+  o: '#ff9a3a', // starfire
+  O: '#ffe08a', // white gold
+  a: '#c8ccdc', // silver
+  A: '#7a809c', // silver shadow
+  r: '#5a5f78', // stone
+  R: '#3a3d52', // stone shadow
+};

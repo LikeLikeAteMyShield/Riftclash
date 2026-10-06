@@ -2,6 +2,7 @@
 // filterCards/sortCards are pure (and unit tested); mountLibrary builds the screen.
 
 import { CARDS, CLASSES, cardText, classArt } from './cards.js';
+import { loadUnlocks, isVisible } from './unlocks.js';
 import { cardHTML, keywordHelpHTML, esc } from './cardview.js';
 import { artHTML } from './pixelart.js';
 
@@ -18,10 +19,12 @@ const className = cls => CLASSES[cls]?.name ?? 'Neutral';
  * @param {string} [f.query]   matched against name, rules text, type and class
  * @param {number|string|null} [f.cost]  exact cost, '7+', or null for any
  * @param {boolean} [f.tokens] include non-collectible tokens
+ * @param {object} [f.unlocks] unlocked hidden classes (see unlocks.js); locked hidden classes' cards never show
  */
-export function filterCards(cards, { cls = 'all', query = '', cost = null, tokens = false } = {}) {
+export function filterCards(cards, { cls = 'all', query = '', cost = null, tokens = false, unlocks = {} } = {}) {
   const q = query.trim().toLowerCase();
   return cards.filter(c =>
+    isVisible(c.cls, unlocks) &&
     (tokens || !c.token) &&
     (cls === 'all' || c.cls === cls) &&
     (cost == null || (cost === '7+' ? c.cost >= 7 : c.cost === cost)) &&
@@ -42,7 +45,7 @@ const STORE_KEY = 'riftclash-library-class';
  * @param {{ onBack: () => void }} opts
  */
 export function mountLibrary(root, { onBack }) {
-  const state = { cls: 'all', query: '', cost: null, tokens: false, list: [], open: -1 };
+  const state = { cls: 'all', query: '', cost: null, tokens: false, list: [], open: -1, unlocks: {} };
   try { state.cls = localStorage.getItem(STORE_KEY) || 'all'; } catch { /* storage unavailable */ }
   if (state.cls !== 'all' && !CLASS_ORDER.includes(state.cls)) state.cls = 'all';
 
@@ -59,11 +62,6 @@ export function mountLibrary(root, { onBack }) {
         <span class="lib-count" aria-live="polite"></span>
       </header>
       <div class="lib-tabs" role="tablist" aria-label="Filter by class">
-        <button class="lib-tab" role="tab" data-cls="all" type="button"><span class="lib-tab-icon lib-tab-icon-text">✦</span>All</button>
-        ${CLASS_ORDER.map(cls => `
-          <button class="lib-tab" role="tab" data-cls="${cls}" type="button" style="--cls:${CLASSES[cls]?.color ?? '#8a8f98'}">
-            ${tabIcon(cls)}${className(cls)}
-          </button>`).join('')}
       </div>
       <div class="lib-tools">
         <input class="lib-search" type="search" placeholder="Search name or text…" aria-label="Search cards">
@@ -89,6 +87,17 @@ export function mountLibrary(root, { onBack }) {
   const results = $('.lib-results');
   const inspect = $('.lib-inspect');
 
+  /** Class tabs: only classes the player can see. */
+  function renderTabs() {
+    const classes = CLASS_ORDER.filter(cls => isVisible(cls, state.unlocks));
+    $('.lib-tabs').innerHTML = `
+      <button class="lib-tab" role="tab" data-cls="all" type="button"><span class="lib-tab-icon lib-tab-icon-text">✦</span>All</button>
+      ${classes.map(cls => `
+        <button class="lib-tab" role="tab" data-cls="${cls}" type="button" style="--cls:${CLASSES[cls]?.color ?? '#8a8f98'}">
+          ${tabIcon(cls)}${className(cls)}
+        </button>`).join('')}`;
+  }
+
   function render() {
     state.list = sortCards(filterCards(all, state));
     root.querySelectorAll('.lib-tab').forEach(t => {
@@ -109,7 +118,7 @@ export function mountLibrary(root, { onBack }) {
       return;
     }
     // On "All", group cards under a heading per class.
-    const groups = state.cls === 'all' ? CLASS_ORDER : [state.cls];
+    const groups = state.cls === 'all' ? CLASS_ORDER.filter(cls => isVisible(cls, state.unlocks)) : [state.cls];
     results.innerHTML = groups.map(cls => {
       const cards = state.list.map((c, i) => [c, i]).filter(([c]) => c.cls === cls);
       if (!cards.length) return '';
@@ -180,5 +189,12 @@ export function mountLibrary(root, { onBack }) {
     else if (e.key === 'ArrowRight') showCard(state.open + 1);
   });
 
-  return () => { closeCard(); render(); };
+  return () => {
+    // Unlocks can change between visits (and a remembered tab may now be hidden).
+    state.unlocks = loadUnlocks();
+    if (state.cls !== 'all' && !isVisible(state.cls, state.unlocks)) state.cls = 'all';
+    closeCard();
+    renderTabs();
+    render();
+  };
 }

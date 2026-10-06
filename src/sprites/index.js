@@ -12,6 +12,7 @@ import oracle from './oracle.js';
 import shade from './shade.js';
 import neutral from './neutral.js';
 import champions from './champions.js';
+import celestial from './celestial.js';
 
 defineSprites(heroes);
 defineSprites(powers);
@@ -23,3 +24,4 @@ defineSprites(oracle);
 defineSprites(shade);
 defineSprites(neutral);
 defineSprites(champions);
+defineSprites(celestial);

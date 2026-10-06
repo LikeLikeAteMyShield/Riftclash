@@ -332,5 +332,5 @@ test('AI vs AI games finish for every class pairing', () => {
       }
     }
   }
-  assert.equal(games, 108);
+  assert.equal(games, classes.length ** 2 * 3);
 });

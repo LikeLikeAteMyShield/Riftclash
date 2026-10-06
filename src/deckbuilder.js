@@ -4,6 +4,7 @@
 // Deck rows carry data-card, so the game's hover preview (ui.js) shows the full card.
 
 import { CARDS, CLASSES, classArt, defaultHero } from './cards.js';
+import { loadUnlocks, isVisible } from './unlocks.js';
 import { cardHTML, esc } from './cardview.js';
 import { artHTML } from './pixelart.js';
 import { filterCards, sortCards, CLASS_ORDER, COST_FILTERS } from './library.js';
@@ -50,7 +51,8 @@ export function mountDeckBuilder(root, { onBack, onUse, notify, sounds = {} }) {
   // ---------------------------------------------------------- deck list
 
   function renderList() {
-    const decks = [...state.decks].sort((a, b) =>
+    // Decks for a hidden class stay saved, but only show while it's unlocked.
+    const decks = state.decks.filter(d => isVisible(d.cls, state.unlocks)).sort((a, b) =>
       CLASS_ORDER.indexOf(a.cls) - CLASS_ORDER.indexOf(b.cls) || b.updated - a.updated);
     wrap.innerHTML = `
       <header class="lib-head">
@@ -100,7 +102,7 @@ export function mountDeckBuilder(root, { onBack, onUse, notify, sounds = {} }) {
       </header>
       <p class="db-intro">Choose a class. A deck can use that class's cards and neutral cards.</p>
       <div class="db-classes">
-        ${Object.entries(CLASSES).map(([key, c]) => `
+        ${Object.entries(CLASSES).filter(([key]) => isVisible(key, state.unlocks)).map(([key, c]) => `
           <button class="db-class" data-act="create" data-cls="${key}" type="button" style="--cls:${c.color}">
             ${portrait(key)}<span class="db-class-name">${c.name}</span><span class="db-class-hero">${esc(defaultHero(key).name)}</span>
           </button>`).join('')}
@@ -164,7 +166,7 @@ export function mountDeckBuilder(root, { onBack, onUse, notify, sounds = {} }) {
   function renderCollection() {
     const d = state.deck;
     const cls = state.tab === 'class' ? d.cls : 'neutral';
-    const cards = sortCards(filterCards(Object.values(CARDS), { cls, query: state.query, cost: state.cost }));
+    const cards = sortCards(filterCards(Object.values(CARDS), { cls, query: state.query, cost: state.cost, unlocks: state.unlocks }));
     const counts = countCards(d.cards);
     const full = d.cards.length >= DECK_SIZE;
     wrap.querySelectorAll('.lib-tab').forEach(t => {
@@ -351,6 +353,7 @@ export function mountDeckBuilder(root, { onBack, onUse, notify, sounds = {} }) {
   /** Show the deck list, or open one deck straight away. */
   return ({ editId } = {}) => {
     state.decks = loadDecks();
+    state.unlocks = loadUnlocks();
     state.confirmDelete = null;
     if (editId && state.decks.some(d => d.id === editId)) return edit(editId);
     state.view = 'list';
