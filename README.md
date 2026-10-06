@@ -44,6 +44,22 @@ While the forge music plays, the hammer lands on every anvil strike in the song 
 
 Like the archive, it's painted into a pixel buffer (`src/forge.js`), so `npm test` checks it stays dark enough to work over and never flashes the room.
 
+### Quests
+
+Quests are goals that track your progress across games, like achievements. Every finished game is added to your record, and a quest is marked complete (for good) once its goal is met. To start with there is one quest: **Proven in Battle**, *win 5 games*.
+
+- **Quests** on the main menu opens the Quest Board. Each quest is a parchment notice pinned to the board, showing your progress and a "Complete" stamp with the date once you've done it.
+- Beside the board, the **Adventurer's Record** shows your games, wins, losses, draws, win rate and best win streak, plus wins and losses for each champion you've played.
+- The victory and defeat screen shows your record and your progress on any open quest. When a game completes a quest, it says so and plays a fanfare. The menu's Quests button then shows a "new" badge until you look.
+- Stats and quests are saved in your browser's local storage.
+
+The board hangs in an adventurers' guild at first light, painted in pixel art like the other screens:
+- Papers crowd the board, including a wanted poster and a route map marked with an X, and a few corners flutter in the breeze.
+- Dawn glows through a window, where clouds and birds drift by, and a warm sunbeam full of dust slants across the room.
+- Lanterns flicker either side, and a packed rucksack, rope and rolled map wait on the bench below.
+
+Quests are defined in `src/progress.js`. Adding one is a single entry: an id, a title, a description, a goal, and a function that reads its progress from the stats.
+
 ### Card library
 
 Open **Card Library** from the main menu to browse every card. Filter by class with the tabs (All, each class, Neutral), narrow by mana cost or by searching names and rules text, and tick **Show tokens** to include cards that only appear in play. Click any card for a closer look with its keywords explained; use the arrow keys to flip through and Esc to close.
@@ -93,6 +109,7 @@ Chiptune background music in an 8-bit medieval style plays on every screen, synt
 - **Main menu:** *Banners of the Rift*, an energetic, marching theme
 - **Battle:** *Embers Between Turns*, slow and spacious so it stays in the background through long games
 - **Card library:** *The Archivist's Lute*, gentle plucked arpeggios
+- **Quests:** *The Road Ahead*, mellow but hopeful, like the night before setting out: picked arpeggios, a climbing melody and a light marching step
 - **Deck builder:** *Hammer and Hearth*, a low drone with an anvil ringing on every bar, the hammer bouncing in two lighter taps, and the bellows breathing every other bar
 
 The 🎵 button turns music on or off (remembered between visits); 🔊 mutes music and effects together. Music pauses while the tab is in the background.
@@ -135,6 +152,9 @@ src/cardview.js          card faces and keyword help, shared by the game and the
 src/library.js           the card library screen and its filters
 src/archive.js           the card library's archive backdrop, painted into a pixel buffer
 src/forge.js             the deck builder's forge backdrop, painted into a pixel buffer
+src/progress.js          win/loss stats and quests: recording games, quest progress, saving
+src/questscreen.js       the quest screen and the quest notices shown after a game
+src/questboard.js        the quest screen's guild-hall backdrop, painted into a pixel buffer
 src/pixelbuf.js          drawing helpers shared by the archive and forge scenes
 src/sceneview.js         shows and animates a pixel-buffer scene behind a screen
 src/decks.js             deck rules (30 cards, 2 copies, class + neutral), auto-fill, saving to localStorage
@@ -153,7 +173,7 @@ src/pixelart.js          pixel art format, sprite registry and SVG renderer
 src/sprites/             sprite data: palettes.js, heroes.js, powers.js (hero power icons), one file per class
                          plus neutral.js, index.js
 sprites.html             gallery of every sprite, for checking art while drawing it
-test/*.test.js           node:test suites (engine, decks, library, songs, sprites, backgrounds)
+test/*.test.js           node:test suites (engine, decks, progress, library, songs, sprites, scenes)
 server.js                tiny static file server
 ```
 

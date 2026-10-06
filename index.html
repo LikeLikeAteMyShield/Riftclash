@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <canvas id="quests-bg" aria-hidden="true"></canvas>
+  <div id="quests-dim" aria-hidden="true"></div>
   <canvas id="decks-bg" aria-hidden="true"></canvas>
   <div id="decks-dim" aria-hidden="true"></div>
   <canvas id="library-bg" aria-hidden="true"></canvas>
@@ -37,10 +39,12 @@
         <button id="start-btn" class="btn primary" disabled>Enter the Rift</button>
         <button id="decks-btn" class="btn">Deck Builder</button>
         <button id="library-btn" class="btn">Card Library</button>
+        <button id="quests-btn" class="btn">Quests <span id="quests-badge" class="q-badge hidden"></span></button>
       </div>
     </section>
 
     <section id="library" class="screen hidden" aria-label="Card library"></section>
+    <section id="quests" class="screen hidden" aria-label="Quests"></section>
     <section id="decks" class="screen hidden" aria-label="Deck builder"></section>
 
     <section id="mulligan" class="screen hidden">
@@ -69,6 +73,7 @@
   <div id="overlay" class="hidden">
     <div class="overlay-box">
       <h2 id="result-title"></h2>
+      <div id="result-quests"></div>
       <div class="overlay-actions">
         <button id="again-btn" class="btn primary">Rematch</button>
         <button id="menu-btn" class="btn">Change class</button>

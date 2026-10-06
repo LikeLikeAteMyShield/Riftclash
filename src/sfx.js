@@ -160,6 +160,11 @@ export const sfx = {
     noise({ type: 'bandpass', freq: 5200, to: 2400, dur: 0.6, vol: 0.14, q: 0.8, attack: 0.06 });
     tone(392, { type: 'sine', to: 196, dur: 0.7, vol: 0.08, attack: 0.02 });
   },
+  // A bright rising fanfare for completing a quest.
+  questComplete() {
+    [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, { type: 'triangle', dur: 0.5, vol: 0.1, attack: 0.01, delay: 0.25 + i * 0.09 }));
+    tone(1568, { type: 'sine', dur: 0.9, vol: 0.06, attack: 0.02, delay: 0.25 + 5 * 0.09 });
+  },
   bounce() { noise({ freq: 600, to: 4000, dur: 0.3, vol: 0.16, q: 2, attack: 0.08 }); },
   burn() { noise({ type: 'lowpass', freq: 3000, to: 400, dur: 0.6, vol: 0.2, attack: 0.05 }); },
 

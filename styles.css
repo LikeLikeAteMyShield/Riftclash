@@ -664,3 +664,91 @@ body.in-forge .lib-head h2, body.in-forge .lib-count, body.in-forge .db-intro, b
 body.in-forge .db-saved { text-shadow: 0 1px 3px #000, 0 0 8px #000; }
 body.in-forge .db-intro, body.in-forge .db-hint { color: var(--ink); }
 body.in-forge .db-new { background: #1b1510d9; }
+
+/* ---------------------------------------------------------------- quests */
+
+#quests { align-items: stretch; padding: 0; }
+#quests-bg {
+  position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated;
+  pointer-events: none; z-index: 0; opacity: 0; transition: opacity .8s ease;
+}
+#quests-bg.visible { opacity: 1; }
+#quests-dim {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0; transition: opacity .8s ease;
+  background: linear-gradient(to right, #0002 0%, #0005 25%, #0006 50%, #0005 75%, #0002 100%);
+}
+body.on-board #quests-dim { opacity: 1; }
+body.on-board .lib-head h2, body.on-board .lib-count { text-shadow: 0 1px 3px #000, 0 0 8px #000; }
+
+.q-badge {
+  margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 12px; font-weight: 800;
+  background: var(--gold); color: #2a1a08; vertical-align: 1px;
+}
+.q-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 22px; align-items: start; }
+.q-board { display: flex; flex-wrap: wrap; gap: 22px; align-content: flex-start; justify-content: center; padding: 40px 4px 8px; }
+
+/* A quest is a parchment notice pinned to the board. */
+.q-note {
+  position: relative; width: min(300px, 100%); padding: 22px 20px 18px; color: #2a1e12;
+  background: linear-gradient(170deg, #efe2bf, #d9c69c 70%, #c9b386);
+  border-radius: 3px 3px 2px 2px; box-shadow: 0 10px 22px #000a, inset 0 0 18px #a8905e66;
+  clip-path: polygon(0 0, 100% 0, 100% 96%, 92% 100%, 80% 97%, 64% 100%, 47% 97%, 30% 100%, 14% 97%, 0 100%);
+  transform: rotate(-1.2deg);
+}
+.q-note:nth-child(even) { transform: rotate(1deg); }
+.q-pin {
+  position: absolute; top: 7px; left: 30%; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff8a7a, #c0392b 55%, #6e1616); box-shadow: 0 2px 3px #0008;
+}
+.q-note h3 { font-family: Cinzel, serif; font-size: 21px; margin: 4px 0 4px; color: #3a2210; }
+.q-text { margin: 0 0 12px; font-size: 15px; }
+.q-bar { height: 12px; border-radius: 999px; background: #8a744a55; box-shadow: inset 0 1px 3px #0005; overflow: hidden; }
+.q-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(#e6b54a, #a5741f); transition: width .6s ease; }
+.q-count { margin: 6px 0 0; font-weight: 800; font-size: 14px; color: #5a4220; }
+.q-note.done .q-bar span { background: linear-gradient(#8dd86a, #3e8a22); }
+.q-stamp {
+  position: absolute; right: 10px; top: 12px; padding: 3px 10px 2px; transform: rotate(10deg);
+  border: 3px double #3e7a22; border-radius: 6px; color: #3e7a22; font-family: Cinzel, serif; font-weight: 800;
+  font-size: 14px; letter-spacing: .08em; text-transform: uppercase; text-align: center; line-height: 1.1; opacity: .9;
+}
+.q-stamp small { display: block; font-family: Inter, sans-serif; font-size: 10px; letter-spacing: 0; text-transform: none; }
+.q-note.fresh { animation: q-arrive .7s ease-out both; }
+.q-note.fresh .q-stamp { animation: q-stamp .45s .45s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes q-arrive { from { transform: translateY(-30px) rotate(-6deg); opacity: 0; } }
+@keyframes q-stamp { from { transform: rotate(10deg) scale(2.4); opacity: 0; } }
+
+.q-ledger {
+  padding: 18px 20px; border-radius: 12px; border: 2px solid #6b5536;
+  background: linear-gradient(#2e2216ee, #1d1610f2); box-shadow: 0 10px 24px #000a;
+}
+.q-ledger h3 { font-family: Cinzel, serif; color: var(--gold); margin: 0 0 12px; font-size: 20px; }
+.q-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0 0 16px; }
+.q-stats div { padding: 8px 6px; border-radius: 8px; background: #0004; text-align: center; }
+.q-stats dt { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.q-stats dd { margin: 2px 0 0; font-size: 22px; font-weight: 800; }
+.q-stats dd.w { color: var(--good); }
+.q-stats dd.l { color: #ff8a7a; }
+.q-classes { width: 100%; border-collapse: collapse; font-size: 14px; }
+.q-classes th { text-align: left; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 0 4px 6px; }
+.q-classes th:not(:first-child), .q-classes td:not(:first-child) { text-align: right; }
+.q-classes td { padding: 5px 4px; border-top: 1px solid #ffffff12; }
+.q-classes td:first-child { display: flex; align-items: center; gap: 8px; font-weight: 700; color: color-mix(in srgb, var(--cls) 60%, #fff); }
+.q-portrait { width: 26px; height: 26px; border-radius: 6px; overflow: hidden; display: grid; place-items: center; background: #0006; }
+.q-portrait .pixel-art { width: 100%; height: 100%; }
+.q-empty { color: var(--muted); margin: 0; }
+
+/* Quest progress on the victory / defeat screen. */
+#result-quests { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: -6px 0 18px; }
+.result-record { margin: 0; color: var(--muted); font-weight: 600; }
+.result-quest-done { margin: 0; font-family: Cinzel, serif; font-weight: 800; font-size: 20px; color: #8dff8d; text-shadow: 0 0 12px #3e8a22; }
+.q-note.compact { width: 280px; padding: 12px 16px 14px; text-align: left; transform: none; }
+.q-note.compact h3 { font-size: 16px; margin: 0; }
+.q-note.compact .q-text { margin: 0 0 8px; font-size: 13px; }
+.q-note.compact .q-stamp { font-size: 11px; right: 8px; top: 8px; }
+.q-note.done h3 { padding-right: 100px; }
+.q-note.compact.done h3 { padding-right: 84px; }
+
+@media (max-width: 860px) {
+  .q-layout { grid-template-columns: 1fr; }
+  .q-board { padding-top: 12px; }
+}
