@@ -23,8 +23,10 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
 - `src/engine.js` (`Game`) holds all game rules and has no DOM. It is deterministic for a given `seed` (mulberry32), which is why tests can run full AI games.
 - The human is always player 0 and the AI is player 1. The UI never changes game state directly; it calls `playCard` / `attack` / `useHeroPower` / `endTurn` / `mulligan`.
 
-### Cards are data
-- `src/cards.js` holds `CLASSES` and `CARDS`. Effects are small objects (`{ type: 'damage', amount, to: 'target' }`) that the engine interprets in `#runEffects` / `#resolveEffect`.
+### Classes, heroes and cards are data
+- `src/cards.js` holds `CLASSES`, `HEROES` and `CARDS`.
+- **Classes and heroes are separate.** A class is a card pool, colour and `defaultHero`. A hero (`HEROES`) has a name, a `portrait`, a `cls` and its own `heroPower`. Several heroes can share a class (planned: Riftkin bosses all using the Celestial class, one with its own hero power).
+- `new Game({ heroes: [id, id] })` takes hero ids. `classes: [...]` still works and means each class's default hero. Players carry both `heroId` (portrait, hero power) and `heroClass` (deck, colours, stats). Use `game.heroPower(pid)`, `defaultHero(cls)` and `classArt(cls)` rather than reading hero fields off a class. Effects are small objects (`{ type: 'damage', amount, to: 'target' }`) that the engine interprets in `#runEffects` / `#resolveEffect`.
 - Hooks: `effects`, `battlecry`, `deathrattle`, `combo`, `endOfTurn`, `onDamaged`, `onFriendlySpell`, `adjacentAura`.
 - Target selectors are listed at the top of `cards.js`.
 - A new mechanic usually means a new effect `type` in the engine, plus AI handling in `src/ai.js`, plus a UI event handler.
@@ -61,7 +63,7 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
 ### Pixel art
 - `src/pixelart.js` defines sprites as text grids plus palettes, rendered to SVG with optional auto-outline and layers.
 - Sprite modules live in `src/sprites/`, use the shared class palettes in `palettes.js`, and are registered in `src/sprites/index.js`.
-- Cards and hero powers point at their art with `sprite: 'id'`; classes use `portrait`. A card's `emoji` is the fallback.
+- Cards and hero powers point at their art with `sprite: 'id'`; heroes use `portrait`. A card's `emoji` is the fallback.
 - `test/pixelart.test.js` requires every card (including tokens) and every hero power to have a registered sprite, so a new card needs art.
 
 ### Screen backdrops

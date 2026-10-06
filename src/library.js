@@ -1,7 +1,7 @@
 // Card library: browse every card, filtered by class, mana cost and text.
 // filterCards/sortCards are pure (and unit tested); mountLibrary builds the screen.
 
-import { CARDS, CLASSES, cardText } from './cards.js';
+import { CARDS, CLASSES, cardText, classArt } from './cards.js';
 import { cardHTML, keywordHelpHTML, esc } from './cardview.js';
 import { artHTML } from './pixelart.js';
 
@@ -48,7 +48,7 @@ export function mountLibrary(root, { onBack }) {
 
   const all = Object.values(CARDS);
   const tabIcon = cls => CLASSES[cls]
-    ? `<span class="lib-tab-icon">${artHTML({ sprite: CLASSES[cls].portrait, emoji: CLASSES[cls].emoji })}</span>`
+    ? `<span class="lib-tab-icon">${artHTML(classArt(cls))}</span>`
     : '<span class="lib-tab-icon lib-tab-icon-text">◇</span>';
 
   root.innerHTML = `

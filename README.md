@@ -139,6 +139,8 @@ The neutral **Whispering Monk** (3 mana, 2/1) has *Battlecry: Silence a minion.*
 | Vanguard | tokens, buffs, divine shields | **Muster**: summon a 1/1 Recruit |
 | Shade | cheap tricks, combos, daggers | **Blade Kit**: equip a 1/2 Shiv |
 
+Classes and heroes are separate in the data (`CLASSES` and `HEROES` in `src/cards.js`). The class decides the cards and colours; the hero decides the name, portrait and hero power. Each class has a default hero, the one you play on the menu, and more than one hero can share a class.
+
 Each class's standard deck is 2 copies of its 8 class cards plus 7 pairs of neutral cards chosen to give a sensible mana curve.
 
 ## Code layout
@@ -217,7 +219,7 @@ export default {
 ```
 
 1. Put the sprite in a module under `src/sprites/` and register that module in `src/sprites/index.js`.
-2. Point the game data at it: `portrait: 'id'` on a class, `sprite: 'id'` on a hero power or a card. A card's `emoji` is the fallback if its sprite is missing, but `npm test` requires every card to have art, so new cards need a sprite too.
+2. Point the game data at it: `portrait: 'id'` on a hero, `sprite: 'id'` on a hero power or a card. A card's `emoji` is the fallback if its sprite is missing, but `npm test` requires every card to have art, so new cards need a sprite too.
 3. Open `/sprites.html` to see every sprite at 1×, 2× and 4×. Mistakes like a short row or an unknown color are reported with the exact row and column, and `npm test` checks that every `sprite` and `portrait` reference exists.
 
 Sprites render to SVG, so they stay sharp at any size. They can also be built from `layers` (e.g. a shared card frame plus a creature), and `spriteSVG(id, { swap })` recolors one at render time.

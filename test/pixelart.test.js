@@ -2,14 +2,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { defineSprite, defineSprites, getSprite, hasSprite, listSprites, spriteSVG, spriteDataURL, artHTML } from '../src/pixelart.js';
 import '../src/sprites/index.js';
-import { CARDS, CLASSES } from '../src/cards.js';
+import { CARDS, HEROES } from '../src/cards.js';
 
 const RED = '#ff0000', BLUE = '#0000ff';
 
-test('every class has a registered 32x32 portrait', () => {
-  for (const [key, c] of Object.entries(CLASSES)) {
-    assert.ok(hasSprite(c.portrait), `${key} portrait "${c.portrait}" is not registered`);
-    const s = getSprite(c.portrait);
+test('every hero has a registered 32x32 portrait', () => {
+  for (const [key, h] of Object.entries(HEROES)) {
+    assert.ok(hasSprite(h.portrait), `${key} portrait "${h.portrait}" is not registered`);
+    const s = getSprite(h.portrait);
     assert.equal(s.width, 32, key);
     assert.equal(s.height, 32, key);
   }
@@ -89,8 +89,8 @@ test('every card, including tokens, has pixel art', () => {
 });
 
 test('every hero power has a pixel art icon', () => {
-  for (const [key, c] of Object.entries(CLASSES)) {
-    assert.ok(hasSprite(c.heroPower.sprite), `${key} hero power "${c.heroPower.name}" has no icon`);
-    assert.equal(getSprite(c.heroPower.sprite).width, 24, key);
+  for (const [key, h] of Object.entries(HEROES)) {
+    assert.ok(hasSprite(h.heroPower.sprite), `${key} hero power "${h.heroPower.name}" has no icon`);
+    assert.equal(getSprite(h.heroPower.sprite).width, 24, key);
   }
 });

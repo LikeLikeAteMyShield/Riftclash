@@ -2,7 +2,7 @@
 // progress, beside the player's record of wins and losses. Data comes from
 // progress.js; this file only builds the screen.
 
-import { CLASSES } from './cards.js';
+import { CLASSES, classArt } from './cards.js';
 import { esc } from './cardview.js';
 import { artHTML } from './pixelart.js';
 import { loadProgress, questStatus, winRate } from './progress.js';
@@ -83,7 +83,7 @@ export function mountQuests(root, { onBack }) {
                 ${classes.map(([cls, c]) => {
                   const r = s.byClass[cls];
                   return `<tr style="--cls:${c.color}">
-                    <td><span class="q-portrait">${artHTML({ sprite: c.portrait, emoji: c.emoji })}</span>${c.name}</td>
+                    <td><span class="q-portrait">${artHTML(classArt(cls))}</span>${c.name}</td>
                     <td>${r.wins}</td><td>${r.losses}</td><td>${winRate(r)}%</td></tr>`;
                 }).join('')}
               </tbody>
