@@ -8,6 +8,9 @@ import { sfx, unlock, isMuted, setMuted } from './sfx.js';
 import { artHTML, hasSprite, spriteSVG } from './pixelart.js';
 import { cardHTML, keywordHelpHTML, esc } from './cardview.js';
 import { mountLibrary } from './library.js';
+import { mountQuests, questNoticeHTML, unseenCompleted } from './questscreen.js';
+import { recordGame, questStatus, loadProgress } from './progress.js';
+import { createQuestBoard, questBoardWidth } from './questboard.js';
 import { mountDeckBuilder } from './deckbuilder.js';
 import { STANDARD_DECK, loadDecks, isPlayable, loadDeckChoice, saveDeckChoice } from './decks.js';
 import { playTrack, startMusic, isMusicOn, setMusicOn, beatClock } from './music.js';
@@ -102,6 +105,21 @@ $('#library-btn').addEventListener('click', () => {
   showScreen('library');
   openLibrary();
 });
+let openQuests = null;
+$('#quests-btn').addEventListener('click', () => {
+  openQuests ??= mountQuests($('#quests'), { onBack: () => { renderQuestBadge(); showScreen('menu'); } });
+  showScreen('quests');
+  openQuests();
+});
+
+/** The menu's Quests button shows how many quests were completed since the player last looked. */
+function renderQuestBadge() {
+  const n = unseenCompleted().length;
+  const b = $('#quests-badge');
+  b.textContent = n ? `${n} new` : '';
+  b.classList.toggle('hidden', !n);
+}
+
 let openDecks = null;
 $('#decks-btn').addEventListener('click', () => {
   openDecks ??= mountDeckBuilder($('#decks'), {
@@ -124,19 +142,21 @@ $('#menu-btn').addEventListener('click', () => {
   showScreen('menu');
 });
 
-let menuScene = null, archive = null, forge = null;
+let menuScene = null, archive = null, forge = null, questBoard = null;
 
 function showScreen(id) {
-  for (const s of ['menu', 'library', 'decks', 'mulligan', 'table']) $('#' + s).classList.toggle('hidden', s !== id);
+  for (const s of ['menu', 'library', 'decks', 'quests', 'mulligan', 'table']) $('#' + s).classList.toggle('hidden', s !== id);
   document.body.classList.toggle('in-game', id === 'table');
   showBackdrop(id === 'mulligan' || id === 'table');
   menuScene?.show(id === 'menu');
   archive?.show(id === 'library');
   forge?.show(id === 'decks');
+  questBoard?.show(id === 'quests');
+  document.body.classList.toggle('on-board', id === 'quests');
   document.body.classList.toggle('in-forge', id === 'decks');
   document.body.classList.toggle('in-archive', id === 'library');
   document.body.classList.toggle('on-menu', id === 'menu');
-  playTrack({ menu: 'menu', library: 'library', decks: 'forge' }[id] ?? 'battle');
+  playTrack({ menu: 'menu', library: 'library', decks: 'forge', quests: 'quests' }[id] ?? 'battle');
 }
 
 // ------------------------------------------------------------------ setup
@@ -833,12 +853,33 @@ async function gameOverFx() {
   } else {
     sfx.defeat();
   }
-  showResult();
+  const completed = recordFinishedGame();
+  showResult(completed);
+  if (completed.length) setTimeout(() => sfx.questComplete(), 600);
 }
 
-function showResult() {
+/** Add the finished game to the player's stats (once per game) and return any quests it completed. */
+function recordFinishedGame() {
+  const g = ui.game;
+  if (g.recorded) return [];
+  g.recorded = true;
+  const result = g.winner === 'draw' ? 'draw' : g.winner === HUMAN ? 'win' : 'loss';
+  return recordGame({ cls: g.players[HUMAN].heroClass, result }).completed;
+}
+
+function showResult(completed = []) {
   const w = ui.game.winner;
   $('#result-title').textContent = w === 'draw' ? 'Draw' : w === HUMAN ? 'Victory!' : 'Defeat';
+  // Quest progress after this game: quests just completed first, then any still open.
+  const progress = loadProgress();
+  const just = new Set(completed.map(q => q.id));
+  const shown = questStatus(progress).filter(q => just.has(q.id) || !q.done);
+  const s = progress.stats;
+  $('#result-quests').innerHTML = `
+    <p class="result-record">Record: ${s.wins} W · ${s.losses} L${s.draws ? ` · ${s.draws} D` : ''}</p>
+    ${completed.length ? `<p class="result-quest-done">Quest complete!</p>` : ''}
+    ${shown.map(q => questNoticeHTML(q, { compact: true, fresh: just.has(q.id) })).join('')}`;
+  renderQuestBadge();
   $('#overlay').classList.remove('hidden');
 }
 
@@ -1078,10 +1119,12 @@ menuScene = mountMenuScene($('#menu-bg'));
 archive = mountScene($('#library-bg'), { width: archiveWidth, create: createArchive });
 // The forge's hammer and bellows keep time with the forge music while it plays.
 const forgeTime = () => { const c = beatClock(); return c?.id === 'forge' ? c.beat * 60 / c.bpm + MUSIC_OFFSET : null; };
+questBoard = mountScene($('#quests-bg'), { width: questBoardWidth, create: createQuestBoard, fps: 20, stillAt: 3 });
 forge = mountScene($('#decks-bg'), { width: forgeWidth, create: createForge, fps: 24, stillAt: 2.95, time: forgeTime });
 menuScene.show(true);
 document.body.classList.add('on-menu');
 renderSoundButton();
 renderMusicButton();
 renderMenu();
+renderQuestBadge();
 playTrack('menu');

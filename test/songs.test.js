@@ -14,7 +14,7 @@ test('every song compiles, with all channels the same length', () => {
 });
 
 test('each screen has its own track', () => {
-  assert.deepEqual(Object.keys(SONGS).sort(), ['battle', 'forge', 'library', 'menu']);
+  assert.deepEqual(Object.keys(SONGS).sort(), ['battle', 'forge', 'library', 'menu', 'quests']);
 });
 
 test('battle, library and forge are calmer than the menu theme', () => {
@@ -63,4 +63,20 @@ test('the forge rings an anvil on every bar, in time with the forge scene\'s ham
   const breaths = s.events.filter(e => e.drum === 'b').map(e => e.step);
   assert.deepEqual(breaths, Array.from({ length: s.length / 32 }, (_, i) => i * 32), 'a bellows breath every other bar');
   assert.ok(s.events.some(e => e.drum === 't'), 'lighter taps between strikes');
+});
+
+test('the quest theme sits between the library and the menu: brighter than one, gentler than the other', () => {
+  const density = id => { const s = compileSong(id); return s.events.length / (s.length * s.stepDur); };
+  const q = SONGS.quests;
+  for (const calm of ['library', 'forge', 'battle']) {
+    assert.ok(q.bpm > SONGS[calm].bpm, `faster than ${calm}`);
+    assert.ok(density('quests') > density(calm), `busier than ${calm}`);
+  }
+  assert.ok(q.bpm < SONGS.menu.bpm, 'slower than the menu');
+  assert.ok(q.volume < SONGS.menu.volume, 'quieter than the menu');
+  assert.ok(density('quests') < density('menu'), 'sparser than the menu');
+  // Hopeful: a major key, so the lead's notes come from G major.
+  const gMajor = new Set([7, 9, 11, 0, 2, 4, 6]);
+  const lead = compileSong('quests').events.filter(e => e.channel === 'lead');
+  assert.ok(lead.every(e => gMajor.has(e.midi % 12)), 'lead stays in G major');
 });

@@ -68,6 +68,7 @@ const REST = '. . . . . . . . . . . . . . . .';
 const MENU_CHORDS = ['Dm', 'Bb', 'C', 'Dm', 'Dm', 'Bb', 'C', 'A', 'F', 'C', 'Bb', 'C', 'Dm', 'Bb', 'A', 'Dm'];
 const BATTLE_CHORDS = ['Am', 'F', 'G', 'Em', 'Am', 'Dm', 'Em', 'Am', 'F', 'C', 'G', 'Em', 'F', 'Dm', 'Em', 'Am'];
 const LIBRARY_CHORDS = ['C', 'Am', 'F', 'G', 'C', 'Em', 'F', 'G', 'F', 'G', 'Em', 'Am', 'Dm', 'G', 'C', 'C'];
+const QUEST_CHORDS = ['G', 'D', 'Em', 'C', 'G', 'D', 'C', 'D', 'Em', 'C', 'G', 'D', 'C', 'D', 'G', 'G'];
 const FORGE_CHORDS = ['Dm', 'Dm', 'Bb', 'C', 'Dm', 'Dm', 'Gm', 'A', 'Dm', 'F', 'C', 'Gm', 'Bb', 'C', 'A', 'Dm'];
 
 export const SONGS = {
@@ -233,6 +234,49 @@ export const SONGS = {
       bellows: {
         wave: 'noise', volume: 0.08,
         bars: FORGE_CHORDS.map((_, i) => (i % 2 ? REST : 'b . . . . . . . . . . . . . . .')),
+      },
+    },
+  },
+
+  // Quests: mellow but hopeful, the night before setting out. Brighter and
+  // busier than the library, gentler than the menu's march.
+  quests: {
+    title: 'The Road Ahead',
+    bpm: 100,
+    volume: 0.8,
+    channels: {
+      lute: {
+        wave: 'pulse12', volume: 0.055, filter: 2600, env: { a: 0.003, d: 0.2, s: 0.1, r: 0.15 },
+        bars: QUEST_CHORDS.map(c => arp(c, { octave: 4, order: [0, 1, 2, 1, 3, 1, 2, 1], every: 2 })),
+      },
+      lead: {
+        wave: 'pulse50', volume: 0.065, filter: 2000, env: { a: 0.03, d: 0.3, s: 0.6, r: 0.5 }, vibrato: { rate: 5, depth: 4, delay: 0.2 },
+        bars: [
+          'D5 - - - B4 - - - G4 - - - B4 - D5 -',
+          'F#5 - - - - - - - E5 - - - D5 - - -',
+          'E5 - - - G5 - - - B4 - - - - - - -',
+          'C5 - - - E5 - - - G5 - - - - - . .',
+          'G5 - - - F#5 - - - D5 - - - B4 - - -',
+          'A4 - - - D5 - - - F#5 - - - A5 - - -',
+          'G5 - - - E5 - - - C5 - - - E5 - - -',
+          'D5 - - - - - - - - - - - . . . .',
+          'B4 - - - E5 - - - G5 - - - B5 - - -',
+          'A5 - - - G5 - - - E5 - - - C5 - - -',
+          'D5 - - - G5 - - - B5 - - - D6 - - -',
+          'A5 - - - - - - - F#5 - - - A5 - - -',
+          'G5 - - - - - - - E5 - - - G5 - - -',
+          'F#5 - - - - - - - A5 - - - - - - -',
+          'G5 - - - - - - - - - - - - - - -',
+          '. . . . D5 - - - B4 - - - A4 - - -',
+        ],
+      },
+      bass: {
+        wave: 'triangle', volume: 0.26, env: { a: 0.01, d: 0.2, s: 0.7, r: 0.2 },
+        bars: QUEST_CHORDS.map(c => bass(c, 'halves')),
+      },
+      drums: {
+        wave: 'noise', volume: 0.06,
+        bars: QUEST_CHORDS.map((_, i) => (i % 4 === 3 ? 'k . . . h . . . k . k . h . h .' : 'k . . . h . . . k . . . h . . .')),
       },
     },
   },
