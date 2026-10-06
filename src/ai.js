@@ -143,6 +143,16 @@ function planCardPlay(game, pid) {
       if (unlocks) options.push({ inst, score: 1, target: null });
       continue;
     }
+    // Never play a card whose battlecry would kill our own hero (e.g. Unstable Nucleus).
+    const selfHarm = (card.battlecry ?? []).filter(e => e.type === 'damage' && e.to === 'ownHero').reduce((n, e) => n + e.amount, 0);
+    if (selfHarm && selfHarm >= p.hero.health + p.hero.armor - 2) continue;
+    if (card.type === 'spell' && !card.target && card.effects.some(e => e.type === 'destroy' && e.to === 'allMinions')) {
+      // A board wipe (Oblivion) only when we lose much less than they do.
+      const worth = m => m.attack + m.health;
+      const swing = game.opponentOf(pid).board.reduce((n, m) => n + worth(m), 0) - p.board.reduce((n, m) => n + worth(m), 0);
+      if (swing >= 10) options.push({ inst, score: card.cost * 10 + swing, target: null });
+      continue;
+    }
     if (card.type === 'spell' && !card.target) {
       const aoe = aoeValue(game, pid, card.effects);
       const hasAoe = card.effects.some(e => e.type === 'damage' && e.to !== 'target' && !e.to.startsWith('random'));
@@ -172,6 +182,12 @@ function planHeroPower(game, pid) {
   const p = game.players[pid];
   if (!hp.target) {
     if (hp.effects.some(e => e.type === 'weapon') && p.weapon) return null;
+    // Extra hero Attack this turn is only worth it if the hero can swing right now.
+    if (hp.effects.some(e => e.type === 'heroAttack')) {
+      const h = p.hero;
+      const canSwing = !h.frozen && h.attacksThisTurn < game.maxAttacks(h) && game.attackTargets(h.uid).length > 0;
+      if (!canSwing) return null;
+    }
     return { type: 'heroPower', target: null };
   }
   const targets = game.validTargets(pid, hp.target);

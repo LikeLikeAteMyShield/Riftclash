@@ -3,7 +3,10 @@ import assert from 'node:assert/strict';
 import {
   SCENE_H, CYCLE, FIG, GROUND, sceneWidth, layoutHeroes, SCHEDULE, eventsBetween, poseAt,
 } from '../src/menuplan.js';
-import { CLASSES } from '../src/cards.js';
+import { CLASSES as ALL_CLASSES } from '../src/cards.js';
+
+// The menu battle shows the classes players can see; hidden ones (Celestial) aren't in it.
+const CLASSES = Object.fromEntries(Object.entries(ALL_CLASSES).filter(([, c]) => !c.hidden));
 import { getSprite } from '../src/pixelart.js';
 import '../src/sprites/index.js';
 

@@ -6,6 +6,7 @@ import { CLASSES, classArt } from './cards.js';
 import { esc } from './cardview.js';
 import { artHTML } from './pixelart.js';
 import { loadProgress, questStatus, winRate } from './progress.js';
+import { loadUnlocks, isVisible } from './unlocks.js';
 
 const SEEN_KEY = 'riftclash-quests-seen';
 
@@ -55,7 +56,8 @@ export function mountQuests(root, { onBack }) {
     const fresh = new Set(unseenCompleted(progress).map(q => q.id));
     const s = progress.stats;
     const rate = winRate(s);
-    const classes = Object.entries(CLASSES).filter(([cls]) => s.byClass[cls]?.played);
+    const unlocks = loadUnlocks();
+    const classes = Object.entries(CLASSES).filter(([cls]) => s.byClass[cls]?.played && isVisible(cls, unlocks));
     wrap.innerHTML = `
       <header class="lib-head">
         <button class="btn lib-back" data-act="menu" type="button">← Menu</button>

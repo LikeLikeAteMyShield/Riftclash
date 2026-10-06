@@ -30,6 +30,12 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
 - Hooks: `effects`, `battlecry`, `deathrattle`, `combo`, `endOfTurn`, `onDamaged`, `onFriendlySpell`, `adjacentAura`.
 - Target selectors are listed at the top of `cards.js`.
 - A new mechanic usually means a new effect `type` in the engine, plus AI handling in `src/ai.js`, plus a UI event handler.
+- Hero Attack is `weapon attack + hero.bonusAttack` (the `heroAttack` effect; the bonus clears at end of turn). Always change it through `#syncHeroAttack`, never by assigning `hero.attack` directly.
+
+### Hidden classes
+- A class with `hidden: true` (Celestial) must not appear anywhere until it's unlocked. `src/unlocks.js` holds the unlock state (`riftclash-unlocks`). Any UI that lists classes or cards must filter with `isVisible(cls, unlocks)` / `visibleClasses()`, and `filterCards` takes `unlocks`.
+- For play-testing there's a secret code typed on the main menu (see `SECRET_CODE` in `unlocks.js`). Don't document it in the README, which is public. Boss battles will unlock the class for real through `setUnlocked`.
+- `buildDeck` uses a random 8 of a class's cards when it has more than 8, so every deck stays 30 cards.
 - Whenever the engine needs a minion's behaviour, look it up through `game.minionText(m)`, never `CARDS[m.cardId]`. A silenced minion returns text-less data, so this is what keeps Silence working.
 
 ### Engine events drive the animations
@@ -40,7 +46,7 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
 ### AI
 - `src/ai.js` is a greedy AI. `nextAction` returns one action at a time so the UI can animate the AI's turn.
 - `playTurn` runs a whole turn, and is used in tests.
-- `engine.test.js` runs 108 AI-vs-AI games across every class pairing, so engine or AI changes that hang or crash games fail the tests.
+- `engine.test.js` runs AI-vs-AI games across every class pairing (hidden classes included), so engine or AI changes that hang or crash games fail the tests.
 
 ### `src/ui.js` is the app shell
 - It renders the board, handles input (drag and click placement), and directs the animations.

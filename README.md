@@ -6,7 +6,7 @@ A browser-based card battle game, with six classes and an original set of 70+ ca
 
 ```bash
 npm start        # serves the game at http://localhost:8080 (PORT=xxxx to change)
-npm test         # rules-engine tests + 108 full AI-vs-AI games
+npm test         # rules-engine tests + full AI-vs-AI games for every class pairing
 ```
 
 It has no dependencies and no build step. ES modules don't load over `file://`, so the page needs a server. Any static host works, including GitHub Pages.
@@ -190,8 +190,8 @@ Cards are plain data. Effects use a small vocabulary that the engine interprets:
   battlecry: [{ type: 'damage', amount: 2, to: 'allEnemyMinions' }] }
 ```
 
-- **Effect types:** `damage`, `heal`, `armor`, `draw`, `summon`, `buff`, `destroy`, `freeze`, `weapon`, `buffWeapon`, `mana`, `bounce`, `silence`, `copyFromOpponentDeck`
-- **Hooks:** `effects` (spells), `battlecry`, `deathrattle`, `combo`, `endOfTurn`, `onDamaged`, `onFriendlySpell`
+- **Effect types:** `damage`, `heal`, `armor`, `draw`, `summon`, `buff`, `destroy`, `freeze`, `weapon`, `buffWeapon`, `heroAttack` (hero Attack this turn), `mana`, `bounce`, `silence`, `copyFromOpponentDeck`
+- **Hooks:** `effects` (spells), `battlecry`, `deathrattle`, `combo`, `endOfTurn`, `onDamaged`, `onFriendlySpell`, `onHeroAttack` (whenever your hero attacks), and on weapons `afterFirstStrike`. Weapons can have `keywords: { windfury: true }` to let the hero attack twice.
 - **Adjacency:** use `to: 'adjacent'` for the minions on either side, or `adjacentAura: { attack }` for an ongoing bonus to neighbours
 - **Targets** (`target`): `any`, `minion`, `enemyMinion`, `friendlyMinion`, `enemy`, `friendly`. Narrow them with `targetFilter: { maxAttack, minAttack, damaged, undamaged }`.
 

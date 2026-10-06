@@ -64,7 +64,7 @@ export class Game {
       // The hero decides the portrait and hero power; the class decides the cards.
       id, heroId, heroClass: HEROES[heroId].cls,
       hero: { uid: this.nextUid++, kind: 'hero', owner: id, health: STARTING_HEALTH, maxHealth: STARTING_HEALTH,
-        armor: 0, attack: 0, attacksThisTurn: 0, frozen: false, frozenTurn: -1 },
+        armor: 0, attack: 0, bonusAttack: 0, attacksThisTurn: 0, frozen: false, frozenTurn: -1 },
       weapon: null,
       mana: 0, maxMana: 0,
       deck, hand: [], board: [],
@@ -179,7 +179,11 @@ export class Game {
     return true;
   }
 
-  maxAttacks(e) { return e.kind === 'minion' && e.keywords.windfury ? 2 : 1; }
+  maxAttacks(e) {
+    if (e.kind === 'minion') return e.keywords.windfury ? 2 : 1;
+    const w = this.players[e.owner].weapon;
+    return w && CARDS[w.cardId].keywords?.windfury ? 2 : 1;   // a Windfury weapon lets the hero swing twice
+  }
 
   canAttack(uid) {
     const e = this.getEntity(uid);
@@ -312,10 +316,21 @@ export class Game {
     this.combat = false;
 
     if (attacker.kind === 'hero') {
-      const w = this.players[attacker.owner].weapon;
+      const p = this.players[attacker.owner];
+      const w = p.weapon;
       if (w) {
+        w.strikes++;
         w.durability--;
         if (w.durability <= 0) this.#destroyWeapon(attacker.owner);
+        else if (w.strikes === 1 && CARDS[w.cardId].afterFirstStrike) {
+          // e.g. Glaive of the Rift: hits harder once it has drawn blood.
+          this.#runEffects(CARDS[w.cardId].afterFirstStrike, { player: p.id, source: p.hero });
+        }
+      }
+      // Minions that respond to their hero attacking (e.g. Revenant).
+      for (const m of [...p.board]) {
+        const def = this.minionText(m);
+        if (def.onHeroAttack && this.#alive(m)) this.#runEffects(def.onHeroAttack, { player: p.id, source: m });
       }
     }
     this.#resolveDeaths();
@@ -332,6 +347,7 @@ export class Game {
     }
     this.#resolveDeaths();
     if (this.winner !== null) return true;
+    if (p.hero.bonusAttack) { p.hero.bonusAttack = 0; this.#syncHeroAttack(p); }   // "this turn" buffs wear off
     for (const e of [p.hero, ...p.board]) {
       if (e.frozen && e.frozenTurn !== this.turn) e.frozen = false;
     }
@@ -412,15 +428,20 @@ export class Game {
     const p = this.players[pid];
     if (p.weapon) this.#destroyWeapon(pid);
     const def = CARDS[cardId];
-    p.weapon = { cardId, attack: def.attack, durability: def.durability };
-    p.hero.attack = def.attack;
+    p.weapon = { cardId, attack: def.attack, durability: def.durability, strikes: 0 };
+    this.#syncHeroAttack(p);
     this.#emit({ type: 'equip', player: pid, uid: p.hero.uid, cardId });
   }
 
   #destroyWeapon(pid) {
     const p = this.players[pid];
     p.weapon = null;
-    p.hero.attack = 0;
+    this.#syncHeroAttack(p);
+  }
+
+  /** A hero's Attack is its weapon's plus any bonus it has this turn. */
+  #syncHeroAttack(p) {
+    p.hero.attack = (p.weapon?.attack ?? 0) + p.hero.bonusAttack;
   }
 
   /** Deal damage; returns the amount actually dealt. */
@@ -668,7 +689,17 @@ export class Game {
         this.#equip(ctx.player, eff.card);
         break;
       case 'buffWeapon':
-        if (me.weapon) { me.weapon.attack += eff.attack; me.hero.attack = me.weapon.attack; }
+        if (me.weapon) {
+          me.weapon.attack += eff.attack;
+          this.#syncHeroAttack(me);
+          this.#emit({ type: 'buff', uid: me.hero.uid, ...this.#meta(ctx.source) });
+        }
+        break;
+      case 'heroAttack':
+        // The hero gains Attack until the end of the turn, armed or not.
+        me.hero.bonusAttack += eff.amount;
+        this.#syncHeroAttack(me);
+        this.#emit({ type: 'buff', uid: me.hero.uid, ...this.#meta(ctx.source) });
         break;
       case 'mana':
         me.mana = Math.min(MAX_MANA, me.mana + eff.amount);

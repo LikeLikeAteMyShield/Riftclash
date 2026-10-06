@@ -33,6 +33,8 @@ export const CLASSES = {
   oracle: { name: 'Oracle', emoji: '🕯️', color: '#d9cf9a', defaultHero: 'lumen' },
   vanguard: { name: 'Vanguard', emoji: '🛡️', color: '#e0b23c', defaultHero: 'hale' },
   shade: { name: 'Shade', emoji: '🗡️', color: '#6b5a8e', defaultHero: 'vex' },
+  // Hidden: players can't see or pick it until it's unlocked (src/unlocks.js).
+  celestial: { name: 'Celestial', emoji: '🌌', color: '#6f7fe8', defaultHero: 'aurion', hidden: true },
 };
 
 export const HEROES = {
@@ -60,6 +62,11 @@ export const HEROES = {
     name: 'Commander Hale', cls: 'vanguard', emoji: '🛡️', portrait: 'hero_vanguard',
     heroPower: { name: 'Muster', cost: 2, sprite: 'power_vanguard', text: 'Summon a 1/1 Recruit.',
       effects: [{ type: 'summon', card: 't_recruit' }] },
+  },
+  aurion: {
+    name: 'Aurion, Lord of the Stars', cls: 'celestial', emoji: '🌌', portrait: 'hero_celestial',
+    heroPower: { name: 'Rift Grant Me Strength', cost: 2, sprite: 'power_celestial', text: 'Your hero gains +2 Attack this turn.',
+      effects: [{ type: 'heroAttack', amount: 2 }] },
   },
   vex: {
     name: 'Vex the Unseen', cls: 'shade', emoji: '🗡️', portrait: 'hero_shade',
@@ -262,6 +269,35 @@ const RAW_CARDS = [
     text: 'Combo: Gain +2/+2 and Stealth.', combo: [{ type: 'buff', attack: 2, health: 2, keywords: { stealth: true }, to: 'self' }] },
   { id: 'r_contract', cls: 'shade', name: 'Silent Contract', type: 'spell', cost: 4, emoji: '📃', sprite: 'card_r_contract',
     text: 'Destroy an enemy minion.', target: 'enemyMinion', effects: [{ type: 'destroy', to: 'target' }] },
+
+  // ---------- Celestial (hidden until unlocked: see src/unlocks.js) ----------
+  // Time and space: the power of the Rift itself. Played by Aurion, and by the Riftkin bosses.
+  { id: 'c_acolyte', cls: 'celestial', name: 'Chrono Acolyte', type: 'minion', cost: 2, attack: 2, health: 2, emoji: '⏳', sprite: 'card_c_acolyte',
+    text: 'Battlecry: Gain 1 Mana Crystal this turn only.', battlecry: [{ type: 'mana', amount: 1 }] },
+  { id: 'c_wraith', cls: 'celestial', name: 'Cosmic Wraith', type: 'minion', cost: 3, attack: 3, health: 2, emoji: '👻', sprite: 'card_c_wraith' },
+  { id: 'c_nucleus', cls: 'celestial', name: 'Unstable Nucleus', type: 'minion', cost: 3, attack: 4, health: 2, emoji: '⚛️', sprite: 'card_c_nucleus',
+    keywords: { windfury: true }, text: 'Battlecry: Deal 3 damage to your hero.', battlecry: [{ type: 'damage', amount: 3, to: 'ownHero' }] },
+  { id: 'c_seer', cls: 'celestial', name: 'Starborn Seer', type: 'minion', cost: 4, attack: 3, health: 4, emoji: '🔭', sprite: 'card_c_seer',
+    spellDamage: 1, text: 'Battlecry: Draw a card.', battlecry: [{ type: 'draw', count: 1 }] },
+  { id: 'c_revenant', cls: 'celestial', name: 'Revenant', type: 'minion', cost: 5, attack: 2, health: 3, emoji: '💀', sprite: 'card_c_revenant',
+    text: 'Whenever your hero attacks, gain +1 Attack.', onHeroAttack: [{ type: 'buff', attack: 1, to: 'self' }] },
+  { id: 'c_comet', cls: 'celestial', name: 'Comet Rider', type: 'minion', cost: 6, attack: 5, health: 4, emoji: '☄️', sprite: 'card_c_comet',
+    keywords: { rush: true }, text: 'Battlecry: Deal 2 damage to a random enemy.', battlecry: [{ type: 'damage', amount: 2, to: 'randomEnemy' }] },
+  { id: 'c_sentinel', cls: 'celestial', name: 'Skybridge Sentinel', type: 'minion', cost: 9, attack: 8, health: 10, emoji: '🌉', sprite: 'card_c_sentinel',
+    keywords: { taunt: true } },
+  { id: 'c_horizon', cls: 'celestial', name: 'Event Horizon', type: 'spell', cost: 2, emoji: '⭕', sprite: 'card_c_horizon',
+    text: 'Freeze a character. Draw a card.', target: 'any', effects: [{ type: 'freeze', to: 'target' }, { type: 'draw', count: 1 }] },
+  { id: 'c_starfire', cls: 'celestial', name: 'Starfire Bolt', type: 'spell', cost: 3, emoji: '🌟', sprite: 'card_c_starfire',
+    text: 'Deal 5 damage.', target: 'any', effects: [{ type: 'damage', amount: 5, to: 'target' }] },
+  { id: 'c_gravity', cls: 'celestial', name: 'Gravity Well', type: 'spell', cost: 4, emoji: '🌀', sprite: 'card_c_gravity',
+    text: 'Deal 2 damage to all enemy minions and Freeze them.',
+    effects: [{ type: 'damage', amount: 2, to: 'allEnemyMinions' }, { type: 'freeze', to: 'allEnemyMinions' }] },
+  { id: 'c_oblivion', cls: 'celestial', name: 'Oblivion', type: 'spell', cost: 8, emoji: '🕳️', sprite: 'card_c_oblivion',
+    text: 'Destroy all minions.', effects: [{ type: 'destroy', to: 'allMinions' }] },
+  { id: 'c_glaive', cls: 'celestial', name: 'Glaive of the Rift', type: 'weapon', cost: 3, attack: 3, durability: 2, emoji: '⚔️', sprite: 'card_c_glaive',
+    text: 'After your hero first attacks with this, it gains +2 Attack.', afterFirstStrike: [{ type: 'buffWeapon', attack: 2 }] },
+  { id: 'c_bow', cls: 'celestial', name: 'Lightshard Bow', type: 'weapon', cost: 4, attack: 2, durability: 4, emoji: '🏹', sprite: 'card_c_bow',
+    keywords: { windfury: true } },
 ];
 
 export const CARDS = Object.fromEntries(RAW_CARDS.map(c => [c.id, { cls: 'neutral', keywords: {}, ...c }]));
@@ -300,12 +336,15 @@ export function collectibleCards(cls) {
   return Object.values(CARDS).filter(c => !c.token && (c.cls === cls || c.cls === 'neutral'));
 }
 
+const CLASS_PAIRS = 8;
+
 /**
  * Build a 30-card deck: two copies of each class card (16) plus seven
  * neutral pairs (14) picked to give a reasonable mana curve.
  */
+
 export function buildDeck(cls, rand = Math.random) {
-  const classCards = Object.values(CARDS).filter(c => !c.token && c.cls === cls);
+  let classCards = Object.values(CARDS).filter(c => !c.token && c.cls === cls);
   const neutrals = Object.values(CARDS).filter(c => !c.token && c.cls === 'neutral');
   const pick = (pool, n) => {
     const copy = [...pool];
@@ -313,6 +352,8 @@ export function buildDeck(cls, rand = Math.random) {
     while (out.length < n && copy.length) out.push(copy.splice(Math.floor(rand() * copy.length), 1)[0]);
     return out;
   };
+  // Classes with more than eight cards get a random eight (pairs of each), so every deck is 30.
+  if (classCards.length > CLASS_PAIRS) classCards = pick(classCards, CLASS_PAIRS);
   const chosen = [
     ...pick(neutrals.filter(c => c.cost <= 2), 2),
     ...pick(neutrals.filter(c => c.cost >= 3 && c.cost <= 4), 3),

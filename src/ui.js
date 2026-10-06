@@ -10,6 +10,7 @@ import { cardHTML, keywordHelpHTML, esc } from './cardview.js';
 import { mountLibrary } from './library.js';
 import { mountQuests, questNoticeHTML, unseenCompleted } from './questscreen.js';
 import { recordGame, questStatus, loadProgress } from './progress.js';
+import { visibleClasses, sequenceMatcher, SECRET_CODE, togglePlaytest } from './unlocks.js';
 import { createQuestBoard, questBoardWidth } from './questboard.js';
 import { mountDeckBuilder } from './deckbuilder.js';
 import { STANDARD_DECK, loadDecks, isPlayable, loadDeckChoice, saveDeckChoice } from './decks.js';
@@ -50,8 +51,12 @@ const powerArt = hp => (hasSprite(hp.sprite) ? spriteSVG(hp.sprite) : `<span cla
 const heroArt = hero => artHTML({ sprite: hero.portrait, emoji: hero.emoji }, { title: hero.name });
 
 function renderMenu() {
+  // Only classes the player can see (hidden ones stay out until unlocked).
+  const classes = visibleClasses();
+  if (ui.playerClass && !classes.includes(ui.playerClass)) ui.playerClass = null;
+  if (ui.aiClass !== 'random' && !classes.includes(ui.aiClass)) ui.aiClass = 'random';
   // Each class tile shows the hero the player plays it with.
-  $('#class-grid').innerHTML = Object.entries(CLASSES).map(([key, c]) => {
+  $('#class-grid').innerHTML = classes.map(key => [key, CLASSES[key]]).map(([key, c]) => {
     const hero = defaultHero(key), hp = hero.heroPower;
     return `
     <button class="class-tile${ui.playerClass === key ? ' chosen' : ''}" data-class="${key}" style="--cls:${c.color}">
@@ -63,7 +68,7 @@ function renderMenu() {
   }).join('');
   renderDeckSelect();
   $('#opponent-select').innerHTML = `<option value="random">Random</option>` +
-    Object.entries(CLASSES).map(([k, c]) => `<option value="${k}"${ui.aiClass === k ? ' selected' : ''}>${c.name}</option>`).join('');
+    classes.map(k => `<option value="${k}"${ui.aiClass === k ? ' selected' : ''}>${CLASSES[k].name}</option>`).join('');
   $('#start-btn').disabled = !ui.playerClass;
 }
 
@@ -109,6 +114,24 @@ $('#library-btn').addEventListener('click', () => {
   showScreen('library');
   openLibrary();
 });
+// The secret play-test code, typed on the main menu, unlocks the hidden
+// classes (and locks them again). See unlocks.js.
+const secret = sequenceMatcher(SECRET_CODE);
+document.addEventListener('keydown', e => {
+  if ($('#menu').classList.contains('hidden') || e.target.closest?.('input, select, textarea')) return;
+  if (!secret(e.key)) return;
+  const on = togglePlaytest();
+  renderMenu();
+  if (on) {
+    sfx.questComplete();
+    fx.flash('#c58cff', 600, 0.35);
+    toastMsg('The Rift answers. Celestial unlocked for play-testing.', 3000);
+  } else {
+    sfx.click();
+    toastMsg('The Rift falls silent. Celestial locked again.', 3000);
+  }
+});
+
 let openQuests = null;
 $('#quests-btn').addEventListener('click', () => {
   openQuests ??= mountQuests($('#quests'), { onBack: () => { renderQuestBadge(); showScreen('menu'); } });
@@ -166,7 +189,7 @@ function showScreen(id) {
 // ------------------------------------------------------------------ setup
 
 function startGame() {
-  const keys = Object.keys(CLASSES);
+  const keys = visibleClasses();
   const aiClass = ui.aiClass === 'random' ? keys[Math.floor(Math.random() * keys.length)] : ui.aiClass;
   // Both sides play their class's default hero; the class decides the cards.
   const heroes = [CLASSES[ui.playerClass].defaultHero, CLASSES[aiClass].defaultHero];
@@ -425,11 +448,16 @@ function hasMovesLeft() {
 
 function toast(msg) {
   sfx.error();
+  toastMsg(msg);
+}
+
+/** Show a short message without the error sound. */
+function toastMsg(msg, ms = 1600) {
   const t = $('#toast');
   t.textContent = msg;
   t.classList.remove('hidden');
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => t.classList.add('hidden'), 1600);
+  toast.timer = setTimeout(() => t.classList.add('hidden'), ms);
 }
 
 async function banner(msg) {

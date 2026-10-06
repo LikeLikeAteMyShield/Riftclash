@@ -5,21 +5,23 @@ import { CARDS, CLASSES } from '../src/cards.js';
 
 const all = Object.values(CARDS);
 const collectible = all.filter(c => !c.token);
+// With every hidden class unlocked, the library shows every card (unlocks.test.js covers the locked view).
+const unlocks = Object.fromEntries(Object.keys(CLASSES).filter(c => CLASSES[c].hidden).map(c => [c, { how: 'test', at: 0 }]));
 
 test('default view shows every collectible card and hides tokens', () => {
-  const shown = filterCards(all);
+  const shown = filterCards(all, { unlocks });
   assert.equal(shown.length, collectible.length);
   assert.ok(shown.every(c => !c.token));
-  assert.equal(filterCards(all, { tokens: true }).length, all.length);
+  assert.equal(filterCards(all, { tokens: true, unlocks }).length, all.length);
 });
 
 test('class filter shows exactly that class', () => {
   for (const cls of CLASS_ORDER) {
-    const shown = filterCards(all, { cls });
+    const shown = filterCards(all, { cls, unlocks });
     assert.ok(shown.length >= 8, cls);
     assert.ok(shown.every(c => c.cls === cls), cls);
   }
-  const total = CLASS_ORDER.reduce((n, cls) => n + filterCards(all, { cls }).length, 0);
+  const total = CLASS_ORDER.reduce((n, cls) => n + filterCards(all, { cls, unlocks }).length, 0);
   assert.equal(total, collectible.length, 'tabs cover every card exactly once');
 });
 
