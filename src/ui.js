@@ -10,12 +10,12 @@ import { cardHTML, keywordHelpHTML, esc } from './cardview.js';
 import { mountLibrary } from './library.js';
 import { mountDeckBuilder } from './deckbuilder.js';
 import { STANDARD_DECK, loadDecks, isPlayable, loadDeckChoice, saveDeckChoice } from './decks.js';
-import { playTrack, startMusic, isMusicOn, setMusicOn } from './music.js';
+import { playTrack, startMusic, isMusicOn, setMusicOn, beatClock } from './music.js';
 import { mountBackdrop, newBackdrop, showBackdrop } from './backdrop.js';
 import { mountMenuScene } from './menuscene.js';
 import { mountScene } from './sceneview.js';
 import { createArchive, archiveWidth } from './archive.js';
-import { createForge, forgeWidth } from './forge.js';
+import { createForge, forgeWidth, MUSIC_OFFSET } from './forge.js';
 import './sprites/index.js';
 
 const HUMAN = 0;
@@ -136,7 +136,7 @@ function showScreen(id) {
   document.body.classList.toggle('in-forge', id === 'decks');
   document.body.classList.toggle('in-archive', id === 'library');
   document.body.classList.toggle('on-menu', id === 'menu');
-  playTrack(id === 'menu' ? 'menu' : id === 'library' || id === 'decks' ? 'library' : 'battle');
+  playTrack({ menu: 'menu', library: 'library', decks: 'forge' }[id] ?? 'battle');
 }
 
 // ------------------------------------------------------------------ setup
@@ -1076,7 +1076,9 @@ document.addEventListener('keydown', onGesture);
 mountBackdrop($('#battle-bg'));
 menuScene = mountMenuScene($('#menu-bg'));
 archive = mountScene($('#library-bg'), { width: archiveWidth, create: createArchive });
-forge = mountScene($('#decks-bg'), { width: forgeWidth, create: createForge, fps: 24, stillAt: 2.95 });
+// The forge's hammer and bellows keep time with the forge music while it plays.
+const forgeTime = () => { const c = beatClock(); return c?.id === 'forge' ? c.beat * 60 / c.bpm + MUSIC_OFFSET : null; };
+forge = mountScene($('#decks-bg'), { width: forgeWidth, create: createForge, fps: 24, stillAt: 2.95, time: forgeTime });
 menuScene.show(true);
 document.body.classList.add('on-menu');
 renderSoundButton();

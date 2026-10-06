@@ -10,9 +10,16 @@
 import { Canvas, BAYER, clamp, hex, rng, hash3 } from './pixelbuf.js';
 
 export const FORGE_H = 160;
-export const BELLOWS_PERIOD = 5;    // seconds per pump
-export const HAMMER_PERIOD = 3;     // seconds per hammer blow
+export const BELLOWS_PERIOD = 6;    // seconds per pump: every other bar of the forge music
+export const HAMMER_PERIOD = 3;     // seconds per hammer blow: one bar of the forge music (80 BPM)
 export const HAMMER_STRIKE = 0.86;  // when in its cycle the hammer lands (0..1)
+/**
+ * Scene time at the start of the forge music: with it, the hammer lands on the
+ * first beat of every bar (the anvil in the song) and the bellows press as
+ * the song's bellows breathe.
+ */
+export const MUSIC_OFFSET = HAMMER_STRIKE * HAMMER_PERIOD;
+const pumpPhase = t => ((((t - MUSIC_OFFSET) % BELLOWS_PERIOD) + BELLOWS_PERIOD) % BELLOWS_PERIOD) / BELLOWS_PERIOD;
 
 /** Width in low-res pixels for a viewport, so the scene fills it without much cropping. */
 export function forgeWidth(viewW, viewH) {
@@ -191,7 +198,7 @@ function paintBarrel(c, P) {
 
 /** Firelight, 0..1+: a restless flicker, swelling just after each pump of the bellows. */
 export function fireLevel(t) {
-  const p = (t % BELLOWS_PERIOD) / BELLOWS_PERIOD;
+  const p = pumpPhase(t);
   const boost = p < 0.25 ? 0 : 0.3 * Math.exp(-(p - 0.25) * 5);
   return 0.78 + Math.sin(t * 3.1) * 0.08 + Math.sin(t * 7.7 + 1) * 0.04 + boost;
 }
@@ -207,7 +214,7 @@ export function hammerLift(t) {
 
 function bellows(c, P, t) {
   const { x, y } = P.bellows;
-  const p = (t % BELLOWS_PERIOD) / BELLOWS_PERIOD;
+  const p = pumpPhase(t);
   const squeeze = p < 0.25 ? Math.sin(p / 0.25 * Math.PI) : 0;   // pressed down, then springs back
   const open = Math.round(7 - squeeze * 4);
   // Leather wedge between two boards, hinged at the nozzle.

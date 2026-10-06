@@ -11,9 +11,10 @@ import { reducedMotion } from './fx.js';
  * @param {(width: number) => { width: number, height: number, render(t: number): Uint8ClampedArray }} opts.create
  * @param {number} [opts.fps]      frames per second (calm scenes need few)
  * @param {number} [opts.stillAt]  the moment (seconds) shown under reduced motion
+ * @param {() => number|null} [opts.time]  scene time to show instead of the clock (e.g. locked to music); null = use the clock
  * @returns {{ show(on: boolean): void }}
  */
-export function mountScene(canvas, { width, create, fps = 20, stillAt = 4 }) {
+export function mountScene(canvas, { width, create, fps = 20, stillAt = 4, time = () => null }) {
   const g = canvas.getContext('2d');
   const frameMs = 1000 / fps;
   let scene = null, image = null, raf = null, shown = false, last = 0;
@@ -38,7 +39,7 @@ export function mountScene(canvas, { width, create, fps = 20, stillAt = 4 }) {
     raf = shown && !document.hidden ? requestAnimationFrame(tick) : null;
     if (now - last < frameMs) return;
     last = now;
-    draw((now - t0) / 1000);
+    draw(time() ?? (now - t0) / 1000);
   }
 
   function start() {

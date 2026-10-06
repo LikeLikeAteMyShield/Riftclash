@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  createForge, planForge, forgeWidth, fireLevel, hammerLift, FORGE_H as H, HAMMER_PERIOD, HAMMER_STRIKE, BELLOWS_PERIOD,
+  createForge, planForge, forgeWidth, fireLevel, hammerLift, FORGE_H as H, HAMMER_PERIOD, HAMMER_STRIKE, BELLOWS_PERIOD, MUSIC_OFFSET,
 } from '../src/forge.js';
 
 const WIDTHS = [120, 180, 256, 288, 360];
@@ -40,7 +40,7 @@ test('the hearth, anvil and barrel are on screen at every width, and weapons han
 test('the bellows make the fire swell, and the hammer rises and lands on the beat', () => {
   // In every pump cycle, the fire is brightest just after the bellows are pressed.
   for (let n = 0; n < 4; n++) {
-    const levels = Array.from({ length: 100 }, (_, i) => fireLevel((n + i / 100) * BELLOWS_PERIOD));
+    const levels = Array.from({ length: 100 }, (_, i) => fireLevel(MUSIC_OFFSET + (n + i / 100) * BELLOWS_PERIOD));
     const peak = levels.indexOf(Math.max(...levels)) / 100;
     assert.ok(peak >= 0.2 && peak < 0.45, `cycle ${n}: peak at ${peak}`);
   }
@@ -90,4 +90,13 @@ test('the fire flickers and the hammer moves, without flashing the whole room', 
 test('rendering is deterministic for a given width and time', () => {
   assert.deepEqual(createForge(200).render(7.25).slice(), createForge(200).render(7.25));
   assert.deepEqual(planForge(200), planForge(200));
+});
+
+test('in time with the music, the hammer lands on the first beat of every bar', () => {
+  // Scene time = seconds into the forge song + MUSIC_OFFSET (see ui.js).
+  for (let bar = 0; bar < 8; bar++) {
+    const t = bar * HAMMER_PERIOD + MUSIC_OFFSET;
+    assert.equal(hammerLift(t + 0.001), 0, `bar ${bar}: hammer down on the downbeat`);
+    assert.ok(hammerLift(t - 0.15) > 3, `bar ${bar}: hammer still falling just before`);
+  }
 });

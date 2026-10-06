@@ -7,6 +7,7 @@
 //   -    hold the previous note for another step
 //   .    rest
 //   k s h  drum hits on a 'noise' channel: kick, snare, hi-hat
+//   a t b  forge sounds on a 'noise' channel: anvil strike, hammer tap, bellows
 //
 // Helpers below (arp, bass, repeat) build the repetitive parts so the
 // melodies stay readable. compileSong() validates everything and turns a song
@@ -67,6 +68,7 @@ const REST = '. . . . . . . . . . . . . . . .';
 const MENU_CHORDS = ['Dm', 'Bb', 'C', 'Dm', 'Dm', 'Bb', 'C', 'A', 'F', 'C', 'Bb', 'C', 'Dm', 'Bb', 'A', 'Dm'];
 const BATTLE_CHORDS = ['Am', 'F', 'G', 'Em', 'Am', 'Dm', 'Em', 'Am', 'F', 'C', 'G', 'Em', 'F', 'Dm', 'Em', 'Am'];
 const LIBRARY_CHORDS = ['C', 'Am', 'F', 'G', 'C', 'Em', 'F', 'G', 'F', 'G', 'Em', 'Am', 'Dm', 'G', 'C', 'C'];
+const FORGE_CHORDS = ['Dm', 'Dm', 'Bb', 'C', 'Dm', 'Dm', 'Gm', 'A', 'Dm', 'F', 'C', 'Gm', 'Bb', 'C', 'A', 'Dm'];
 
 export const SONGS = {
   // Main menu: a bright, marching heroic theme in D minor.
@@ -188,10 +190,56 @@ export const SONGS = {
       },
     },
   },
+
+  // Deck builder: the forge. A slow, low drone with an anvil ringing on every
+  // bar (one bar is 3 seconds, the forge scene's hammer cycle), two lighter
+  // taps as the hammer bounces, and the bellows breathing every other bar.
+  forge: {
+    title: 'Hammer and Hearth',
+    bpm: 80,
+    volume: 0.7,
+    channels: {
+      drone: {
+        wave: 'triangle', volume: 0.26, env: { a: 0.3, d: 0.5, s: 0.8, r: 0.8 },
+        bars: FORGE_CHORDS.map(c => bass(c, 'whole')),
+      },
+      pad: {
+        wave: 'pulse50', volume: 0.045, filter: 700, env: { a: 0.4, d: 0.6, s: 0.6, r: 1 },
+        bars: FORGE_CHORDS.map(c => arp(c, { octave: 3, order: [0, 2, 1, 2], every: 4 })),
+      },
+      lead: {
+        wave: 'pulse25', volume: 0.06, filter: 1400, env: { a: 0.08, d: 0.4, s: 0.55, r: 0.9 }, vibrato: { rate: 4, depth: 5, delay: 0.35 },
+        bars: [
+          REST, REST, REST, REST,
+          'A4 - - - - - - - G4 - - - F4 - - -',
+          'E4 - - - - - - - D4 - - - - - - -',
+          'D4 - - - F4 - - - G4 - - - Bb4 - - -',
+          'A4 - - - - - - - - - - - . . . .',
+          REST, REST, REST, REST,
+          'F4 - - - - - - - G4 - - - A4 - - -',
+          'C5 - - - - - - - A4 - - - G4 - - -',
+          'E4 - - - - - - - C#5 - - - - - - -',
+          'D5 - - - - - - - - - - - . . . .',
+        ],
+      },
+      anvil: {
+        wave: 'noise', volume: 0.07,
+        bars: FORGE_CHORDS.map(() => 'a . . . . . t . . . t . . . . .'),
+      },
+      thud: {
+        wave: 'noise', volume: 0.05,
+        bars: FORGE_CHORDS.map(() => 'k . . . . . . . . . . . . . . .'),
+      },
+      bellows: {
+        wave: 'noise', volume: 0.08,
+        bars: FORGE_CHORDS.map((_, i) => (i % 2 ? REST : 'b . . . . . . . . . . . . . . .')),
+      },
+    },
+  },
 };
 
 export const WAVES = ['pulse12', 'pulse25', 'pulse50', 'triangle', 'noise'];
-const DRUMS = new Set(['k', 's', 'h']);
+const DRUMS = new Set(['k', 's', 'h', 'a', 't', 'b']);
 export const STEPS_PER_BAR = 16;
 export const STEPS_PER_BEAT = 4;
 
