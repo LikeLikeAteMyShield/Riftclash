@@ -40,6 +40,8 @@ The deck builder is set in a blacksmith's forge at night:
 - An enchanted hammer rises over the anvil by itself and rings down on a glowing blade in a shower of sparks.
 - Steam curls off the quench barrel, and swords, axes and shields on the walls catch the firelight.
 
+While the forge music plays, the hammer lands on every anvil strike in the song and the bellows pump as they breathe.
+
 Like the archive, it's painted into a pixel buffer (`src/forge.js`), so `npm test` checks it stays dark enough to work over and never flashes the room.
 
 ### Card library
@@ -91,10 +93,11 @@ Chiptune background music in an 8-bit medieval style plays on every screen, synt
 - **Main menu:** *Banners of the Rift*, an energetic, marching theme
 - **Battle:** *Embers Between Turns*, slow and spacious so it stays in the background through long games
 - **Card library:** *The Archivist's Lute*, gentle plucked arpeggios
+- **Deck builder:** *Hammer and Hearth*, a low drone with an anvil ringing on every bar, the hammer bouncing in two lighter taps, and the bellows breathing every other bar
 
 The 🎵 button turns music on or off (remembered between visits); 🔊 mutes music and effects together. Music pauses while the tab is in the background.
 
-Songs live in `src/songs.js` in a small tracker-style notation (one string per bar, `D5` starts a note, `-` holds, `.` rests, `k`/`s`/`h` are drums), and `npm test` checks every song is well formed.
+Songs live in `src/songs.js` in a small tracker-style notation (one string per bar, `D5` starts a note, `-` holds, `.` rests, `k`/`s`/`h` are drums, `a`/`t`/`b` are an anvil strike, a hammer tap and the bellows), and `npm test` checks every song is well formed.
 
 ### Keywords
 

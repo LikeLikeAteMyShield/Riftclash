@@ -208,7 +208,59 @@ function playEvent(ctx, dest, ch, ev, t, stepDur) {
   osc.stop(end + r + 0.05);
 }
 
+// An anvil's ring: a struck steel bar's partials are inharmonic (not whole-number
+// multiples), which is what makes it sound like metal rather than a note.
+const ANVIL_PARTIALS = [[1, 1, 1.6], [2.76, 0.55, 0.8], [5.4, 0.3, 0.45], [8.93, 0.16, 0.25]]; // [ratio, gain, decay s]
+
+function anvil(ctx, dest, t, vol, light) {
+  const base = light ? 1480 : 1180;
+  for (const [ratio, gain, decay] of ANVIL_PARTIALS) {
+    const osc = ctx.createOscillator();
+    osc.type = ratio === 1 ? 'triangle' : 'sine';
+    osc.frequency.value = base * ratio;
+    const g = ctx.createGain();
+    const len = decay * (light ? 0.35 : 1);
+    g.gain.setValueAtTime(vol * gain * (light ? 0.45 : 1), t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    osc.connect(g).connect(dest);
+    osc.start(t);
+    osc.stop(t + len + 0.02);
+  }
+  // The hammer's contact: a short, bright click of noise.
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuffer(ctx);
+  const f = ctx.createBiquadFilter();
+  f.type = 'bandpass'; f.frequency.value = 3200; f.Q.value = 1.2;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(vol * (light ? 0.6 : 1.4), t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+  src.connect(f).connect(g).connect(dest);
+  src.start(t, Math.random() * 0.5);
+  src.stop(t + 0.05);
+}
+
+function bellows(ctx, dest, t, vol) {
+  // A slow breath of low, filtered noise.
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuffer(ctx);
+  src.loop = true;
+  const f = ctx.createBiquadFilter();
+  f.type = 'lowpass'; f.Q.value = 0.8;
+  f.frequency.setValueAtTime(300, t);
+  f.frequency.linearRampToValueAtTime(900, t + 0.5);
+  f.frequency.linearRampToValueAtTime(250, t + 1.4);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.45);
+  g.gain.linearRampToValueAtTime(0, t + 1.4);
+  src.connect(f).connect(g).connect(dest);
+  src.start(t);
+  src.stop(t + 1.5);
+}
+
 function drum(ctx, dest, type, t, vol) {
+  if (type === 'a' || type === 't') return anvil(ctx, dest, t, vol, type === 't');
+  if (type === 'b') return bellows(ctx, dest, t, vol);
   const g = ctx.createGain();
   g.connect(dest);
   if (type === 'k') {

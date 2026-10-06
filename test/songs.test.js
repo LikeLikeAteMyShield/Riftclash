@@ -13,13 +13,13 @@ test('every song compiles, with all channels the same length', () => {
   }
 });
 
-test('the three screens each have a track', () => {
-  assert.deepEqual(Object.keys(SONGS).sort(), ['battle', 'library', 'menu']);
+test('each screen has its own track', () => {
+  assert.deepEqual(Object.keys(SONGS).sort(), ['battle', 'forge', 'library', 'menu']);
 });
 
-test('battle and library are calmer than the menu theme', () => {
+test('battle, library and forge are calmer than the menu theme', () => {
   const density = id => { const s = compileSong(id); return s.events.length / (s.length * s.stepDur); };
-  for (const calm of ['battle', 'library']) {
+  for (const calm of ['battle', 'library', 'forge']) {
     assert.ok(SONGS[calm].bpm < SONGS.menu.bpm, `${calm} slower`);
     assert.ok(SONGS[calm].volume < SONGS.menu.volume, `${calm} quieter`);
     assert.ok(density(calm) < density('menu') / 2, `${calm} sparser: ${density(calm).toFixed(1)} vs ${density('menu').toFixed(1)} notes/s`);
@@ -50,4 +50,17 @@ test('chord, arpeggio and bass helpers', () => {
   assert.equal(arp('Am', { octave: 3, every: 2, order: [0, 1] }).split(' ').length, 16);
   assert.equal(bass('Bb', 'pump').split(' ')[2], 'Bb3');
   assert.equal(noteToMidi('A4'), 69);
+});
+
+test('the forge rings an anvil on every bar, in time with the forge scene\'s hammer', async () => {
+  const { HAMMER_PERIOD, BELLOWS_PERIOD } = await import('../src/forge.js');
+  const s = compileSong('forge');
+  const barSeconds = 16 * s.stepDur;
+  assert.equal(barSeconds, HAMMER_PERIOD, 'one bar is one hammer blow');
+  assert.equal(BELLOWS_PERIOD, barSeconds * 2, 'the bellows pump every other bar');
+  const strikes = s.events.filter(e => e.drum === 'a').map(e => e.step);
+  assert.deepEqual(strikes, Array.from({ length: s.length / 16 }, (_, i) => i * 16), 'a strike on the first step of every bar');
+  const breaths = s.events.filter(e => e.drum === 'b').map(e => e.step);
+  assert.deepEqual(breaths, Array.from({ length: s.length / 32 }, (_, i) => i * 32), 'a bellows breath every other bar');
+  assert.ok(s.events.some(e => e.drum === 't'), 'lighter taps between strikes');
 });
