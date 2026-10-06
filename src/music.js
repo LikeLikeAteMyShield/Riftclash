@@ -4,7 +4,7 @@
 // tight even when the main thread is busy animating.
 
 import { audioGraph } from './sfx.js';
-import { SONGS, compileSong, midiToFreq } from './songs.js';
+import { SONGS, compileSong, midiToFreq, STEPS_PER_BEAT } from './songs.js';
 
 const LOOKAHEAD = 0.3;   // seconds of music scheduled in advance
 const TICK_MS = 60;
@@ -56,6 +56,17 @@ export function setMusicOn(value) {
 /** The track currently audible (for tests and debugging). */
 export const currentTrack = () => playing?.id ?? null;
 
+/**
+ * Where the playing track is, in beats since it started (fractional), so
+ * visuals can move in time with it. Null when nothing is playing.
+ */
+export function beatClock() {
+  if (!playing || !graph) return null;
+  const p = playing;
+  const steps = p.total - (p.time - graph.ctx.currentTime) / p.comp.stepDur;
+  return { id: p.id, bpm: p.song.bpm, beat: Math.max(0, steps) / STEPS_PER_BEAT };
+}
+
 // Pause in background tabs: timers are throttled there, which would make the
 // scheduler fall behind and stutter. Resume from the top when visible again.
 document.addEventListener('visibilitychange', () => {
@@ -84,7 +95,7 @@ function start(id) {
   gain.gain.setValueAtTime(0, ctx.currentTime);
   gain.gain.linearRampToValueAtTime(song.volume, ctx.currentTime + FADE_IN);
   gain.connect(musicGain);
-  playing = { id, song, comp: songData(id), gain, step: 0, time: ctx.currentTime + 0.1 };
+  playing = { id, song, comp: songData(id), gain, step: 0, total: 0, time: ctx.currentTime + 0.1 };
   timer ??= setInterval(tick, TICK_MS);
   tick();
 }
@@ -108,6 +119,7 @@ function tick() {
   while (p.time < ctx.currentTime + LOOKAHEAD) {
     for (const ev of p.comp.byStep[p.step]) playEvent(ctx, p.gain, p.song.channels[ev.channel], ev, p.time, p.comp.stepDur);
     p.step = (p.step + 1) % p.comp.length;
+    p.total++;
     p.time += p.comp.stepDur;
   }
 }
