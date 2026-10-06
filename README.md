@@ -35,6 +35,13 @@ Open **Deck Builder** from the main menu to make your own decks. Each deck has a
 
 Back on the main menu, the **Deck** dropdown lists the standard deck plus your finished decks for the chosen class. The menu remembers the last deck you picked for each class. Unfinished decks are listed but can't be selected until they have 30 cards. **Play** on a finished deck jumps back to the menu with it selected. The AI always uses a standard deck.
 
+The deck builder is set in a blacksmith's forge at night:
+- A brick hearth glows under its stone hood, swelling each time the bellows pump, with sparks flying up the chimney.
+- An enchanted hammer rises over the anvil by itself and rings down on a glowing blade in a shower of sparks.
+- Steam curls off the quench barrel, and swords, axes and shields on the walls catch the firelight.
+
+Like the archive, it's painted into a pixel buffer (`src/forge.js`), so `npm test` checks it stays dark enough to work over and never flashes the room.
+
 ### Card library
 
 Open **Card Library** from the main menu to browse every card. Filter by class with the tabs (All, each class, Neutral), narrow by mana cost or by searching names and rules text, and tick **Show tokens** to include cards that only appear in play. Click any card for a closer look with its keywords explained; use the arrow keys to flip through and Esc to close.
@@ -124,7 +131,9 @@ src/ai.js                greedy AI: removal/trades, lethal check, curve play
 src/cardview.js          card faces and keyword help, shared by the game and the library
 src/library.js           the card library screen and its filters
 src/archive.js           the card library's archive backdrop, painted into a pixel buffer
-src/archiveview.js       shows and animates the archive behind the library
+src/forge.js             the deck builder's forge backdrop, painted into a pixel buffer
+src/pixelbuf.js          drawing helpers shared by the archive and forge scenes
+src/sceneview.js         shows and animates a pixel-buffer scene behind a screen
 src/decks.js             deck rules (30 cards, 2 copies, class + neutral), auto-fill, saving to localStorage
 src/deckbuilder.js       the deck builder screen
 src/ui.js                rendering, input, AI turn pacing, and the animation director
