@@ -12,6 +12,7 @@ import { mountDeckBuilder } from './deckbuilder.js';
 import { STANDARD_DECK, loadDecks, isPlayable, loadDeckChoice, saveDeckChoice } from './decks.js';
 import { playTrack, startMusic, isMusicOn, setMusicOn } from './music.js';
 import { mountBackdrop, newBackdrop, showBackdrop } from './backdrop.js';
+import { mountMenuScene } from './menuscene.js';
 import './sprites/index.js';
 
 const HUMAN = 0;
@@ -120,10 +121,14 @@ $('#menu-btn').addEventListener('click', () => {
   showScreen('menu');
 });
 
+let menuScene = null;
+
 function showScreen(id) {
   for (const s of ['menu', 'library', 'decks', 'mulligan', 'table']) $('#' + s).classList.toggle('hidden', s !== id);
   document.body.classList.toggle('in-game', id === 'table');
   showBackdrop(id === 'mulligan' || id === 'table');
+  menuScene?.show(id === 'menu');
+  document.body.classList.toggle('on-menu', id === 'menu');
   playTrack(id === 'menu' ? 'menu' : id === 'library' || id === 'decks' ? 'library' : 'battle');
 }
 
@@ -1062,6 +1067,9 @@ document.addEventListener('pointerdown', onGesture);
 document.addEventListener('keydown', onGesture);
 
 mountBackdrop($('#battle-bg'));
+menuScene = mountMenuScene($('#menu-bg'));
+menuScene.show(true);
+document.body.classList.add('on-menu');
 renderSoundButton();
 renderMusicButton();
 renderMenu();

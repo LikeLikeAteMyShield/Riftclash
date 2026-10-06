@@ -11,6 +11,7 @@ import stalker from './stalker.js';
 import oracle from './oracle.js';
 import shade from './shade.js';
 import neutral from './neutral.js';
+import champions from './champions.js';
 
 defineSprites(heroes);
 defineSprites(powers);
@@ -21,3 +22,4 @@ defineSprites(stalker);
 defineSprites(oracle);
 defineSprites(shade);
 defineSprites(neutral);
+defineSprites(champions);

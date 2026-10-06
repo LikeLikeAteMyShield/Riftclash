@@ -45,6 +45,23 @@ Played cards fly to the center of the table. Spells burst into particles and sho
 
 Every sound is synthesized live with the Web Audio API, so there are no audio files. Use the 🔊 button in the top-left corner to mute everything; the setting is remembered. With your system's "reduce motion" setting on, the game skips shake and flashes and shortens the animations.
 
+### Main menu
+
+Behind the main menu, a pixel art battle plays out in time with the menu theme.
+- A storm sky is torn open by the Rift, which pulses on every beat and throws lightning every other bar.
+- Clouds are drawn into the Rift, a castle burns on the ridge, and two armies march to meet in the middle.
+- In front, the six heroes fight on a 16-beat loop:
+  - The **Pyromancer** hurls fireballs, which the **Oracle**'s light turns aside.
+  - The **Stalker**'s arrows glance off the **Vanguard**'s shield.
+  - The **Warlord** leaps into the middle and slams the ground.
+  - The **Shade** vanishes in smoke and dashes in to strike.
+
+When the music is playing, the scene locks onto its beat. With music off it keeps the same 140 BPM time.
+
+The scene is drawn at 180 pixels tall and as wide as your screen's shape needs. Narrower screens show fewer heroes (two pairs, then one), so no one is cut off. With "reduce motion" on, you get a single still frame. The scene pauses whenever you leave the menu or switch tabs.
+
+The hero figures are sprites in `src/sprites/champions.js`, two poses per hero. The choreography (lineup, poses, attack schedule) is plain data and functions in `src/menuplan.js`, and `npm test` checks it.
+
 ### Battlefields
 
 Each match is fought in front of a randomly chosen pixel art battlefield (never the same one twice in a row): *Dusk over Highkeep*, *The Frozen Pass*, *Field of Embers*, *Moonwood* and *The Riven Sanctum*. Each has subtle motion (drifting clouds, flickering castle windows, falling snow, rising embers, fireflies, a pulsing rift) and is dimmed so the board stays the focus; with "reduce motion" on, the scene holds still.
@@ -107,6 +124,8 @@ src/songs.js             background music as data, and the song compiler
 src/music.js             chiptune music player: NES-style voices, looping, crossfades
 src/backgrounds.js       battlefield scenes as layered data, and their pixel renderer
 src/backdrop.js          shows and animates the battlefield behind the board
+src/menuplan.js          the main menu battle's choreography: lineup, poses, attack schedule
+src/menuscene.js         draws and animates the main menu battle
 src/pixelart.js          pixel art format, sprite registry and SVG renderer
 src/sprites/             sprite data: palettes.js, heroes.js, powers.js (hero power icons), one file per class
                          plus neutral.js, index.js
