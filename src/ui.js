@@ -13,6 +13,7 @@ import { STANDARD_DECK, loadDecks, isPlayable, loadDeckChoice, saveDeckChoice } 
 import { playTrack, startMusic, isMusicOn, setMusicOn } from './music.js';
 import { mountBackdrop, newBackdrop, showBackdrop } from './backdrop.js';
 import { mountMenuScene } from './menuscene.js';
+import { mountArchive } from './archiveview.js';
 import './sprites/index.js';
 
 const HUMAN = 0;
@@ -121,13 +122,15 @@ $('#menu-btn').addEventListener('click', () => {
   showScreen('menu');
 });
 
-let menuScene = null;
+let menuScene = null, archive = null;
 
 function showScreen(id) {
   for (const s of ['menu', 'library', 'decks', 'mulligan', 'table']) $('#' + s).classList.toggle('hidden', s !== id);
   document.body.classList.toggle('in-game', id === 'table');
   showBackdrop(id === 'mulligan' || id === 'table');
   menuScene?.show(id === 'menu');
+  archive?.show(id === 'library');
+  document.body.classList.toggle('in-archive', id === 'library');
   document.body.classList.toggle('on-menu', id === 'menu');
   playTrack(id === 'menu' ? 'menu' : id === 'library' || id === 'decks' ? 'library' : 'battle');
 }
@@ -1068,6 +1071,7 @@ document.addEventListener('keydown', onGesture);
 
 mountBackdrop($('#battle-bg'));
 menuScene = mountMenuScene($('#menu-bg'));
+archive = mountArchive($('#library-bg'));
 menuScene.show(true);
 document.body.classList.add('on-menu');
 renderSoundButton();

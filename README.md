@@ -39,6 +39,15 @@ Back on the main menu, the **Deck** dropdown lists the standard deck plus your f
 
 Open **Card Library** from the main menu to browse every card. Filter by class with the tabs (All, each class, Neutral), narrow by mana cost or by searching names and rules text, and tick **Show tokens** to include cards that only appear in play. Click any card for a closer look with its keywords explained; use the arrow keys to flip through and Esc to close.
 
+The library is set in an ancient archive at night, painted in pixel art behind the cards and kept dim and slow-moving so the cards stay easy to read:
+- Towering bookshelves flank a tall lancet window, with the moon behind its leaded glass and a shaft of moonlight full of drifting dust.
+- Candles flicker on the shelves, on iron candelabras and floating in the air.
+- Runes glow faintly on the pillars.
+- A rune circle turns slowly on the floor beneath a floating tome, which sheds glowing glyphs.
+- Motes of teal, violet and gold magic drift upward.
+
+It's drawn by `src/archive.js` into a pixel buffer with no DOM, so `npm test` checks it stays dark, calm and deterministic. It pauses when you leave the library, and shows a still frame with "reduce motion" on.
+
 ### Effects and sound
 
 Played cards fly to the center of the table. Spells burst into particles and shoot projectiles at their targets, and area spells send out a shockwave. Attacks wind up and lunge with an impact flash and screen shake. Minions slam onto the board and shatter when they die.
@@ -114,6 +123,8 @@ src/engine.js            rules engine (no DOM); deterministic given a seed
 src/ai.js                greedy AI: removal/trades, lethal check, curve play
 src/cardview.js          card faces and keyword help, shared by the game and the library
 src/library.js           the card library screen and its filters
+src/archive.js           the card library's archive backdrop, painted into a pixel buffer
+src/archiveview.js       shows and animates the archive behind the library
 src/decks.js             deck rules (30 cards, 2 copies, class + neutral), auto-fill, saving to localStorage
 src/deckbuilder.js       the deck builder screen
 src/ui.js                rendering, input, AI turn pacing, and the animation director
