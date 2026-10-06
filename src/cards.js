@@ -1,6 +1,6 @@
 // Card and class data for Riftclash.
 //
-// Art: every hero and card has an `emoji`. Set `portrait` (classes) or
+// Art: every hero and card has an `emoji`. Set `portrait` (heroes) or
 // `sprite` (cards) to a pixel art sprite id from src/sprites/ to use pixel
 // art instead; the emoji remains the fallback.
 //
@@ -21,38 +21,61 @@
 //   any, minion, enemyMinion, friendlyMinion, enemy, friendly
 // Optional `targetFilter`: { maxAttack, minAttack, damaged, undamaged }
 
+// Classes and heroes are separate. A class is a card pool and colour; a hero
+// is who plays it: a name, a portrait and a hero power. Every class has a
+// default hero (the one the player gets), and any number of heroes can share
+// a class (for example, bosses using a class with their own hero power).
+
 export const CLASSES = {
-  pyromancer: {
-    name: 'Pyromancer', hero: 'Ignatia the Kindled', emoji: '🔥', color: '#e2603a', portrait: 'hero_pyromancer',
+  pyromancer: { name: 'Pyromancer', emoji: '🔥', color: '#e2603a', defaultHero: 'ignatia' },
+  warlord: { name: 'Warlord', emoji: '🪓', color: '#b53b3b', defaultHero: 'brakka' },
+  stalker: { name: 'Stalker', emoji: '🏹', color: '#4f9a45', defaultHero: 'wren' },
+  oracle: { name: 'Oracle', emoji: '🕯️', color: '#d9cf9a', defaultHero: 'lumen' },
+  vanguard: { name: 'Vanguard', emoji: '🛡️', color: '#e0b23c', defaultHero: 'hale' },
+  shade: { name: 'Shade', emoji: '🗡️', color: '#6b5a8e', defaultHero: 'vex' },
+};
+
+export const HEROES = {
+  ignatia: {
+    name: 'Ignatia the Kindled', cls: 'pyromancer', emoji: '🔥', portrait: 'hero_pyromancer',
     heroPower: { name: 'Spark', cost: 2, sprite: 'power_pyromancer', text: 'Deal 1 damage.', target: 'any',
       effects: [{ type: 'damage', amount: 1, to: 'target' }] },
   },
-  warlord: {
-    name: 'Warlord', hero: 'Brakka Ironjaw', emoji: '🪓', color: '#b53b3b', portrait: 'hero_warlord',
+  brakka: {
+    name: 'Brakka Ironjaw', cls: 'warlord', emoji: '🪓', portrait: 'hero_warlord',
     heroPower: { name: 'Brace', cost: 2, sprite: 'power_warlord', text: 'Gain 2 Armor.',
       effects: [{ type: 'armor', amount: 2 }] },
   },
-  stalker: {
-    name: 'Stalker', hero: 'Wren Duskmantle', emoji: '🏹', color: '#4f9a45', portrait: 'hero_stalker',
+  wren: {
+    name: 'Wren Duskmantle', cls: 'stalker', emoji: '🏹', portrait: 'hero_stalker',
     heroPower: { name: 'Volley', cost: 2, sprite: 'power_stalker', text: 'Deal 2 damage to the enemy hero.',
       effects: [{ type: 'damage', amount: 2, to: 'enemyHero' }] },
   },
-  oracle: {
-    name: 'Oracle', hero: 'Sister Lumen', emoji: '🕯️', color: '#d9cf9a', portrait: 'hero_oracle',
+  lumen: {
+    name: 'Sister Lumen', cls: 'oracle', emoji: '🕯️', portrait: 'hero_oracle',
     heroPower: { name: 'Mend', cost: 2, sprite: 'power_oracle', text: 'Restore 2 Health.', target: 'any',
       effects: [{ type: 'heal', amount: 2, to: 'target' }] },
   },
-  vanguard: {
-    name: 'Vanguard', hero: 'Commander Hale', emoji: '🛡️', color: '#e0b23c', portrait: 'hero_vanguard',
+  hale: {
+    name: 'Commander Hale', cls: 'vanguard', emoji: '🛡️', portrait: 'hero_vanguard',
     heroPower: { name: 'Muster', cost: 2, sprite: 'power_vanguard', text: 'Summon a 1/1 Recruit.',
       effects: [{ type: 'summon', card: 't_recruit' }] },
   },
-  shade: {
-    name: 'Shade', hero: 'Vex the Unseen', emoji: '🗡️', color: '#6b5a8e', portrait: 'hero_shade',
+  vex: {
+    name: 'Vex the Unseen', cls: 'shade', emoji: '🗡️', portrait: 'hero_shade',
     heroPower: { name: 'Blade Kit', cost: 2, sprite: 'power_shade', text: 'Equip a 1/2 Shiv.',
       effects: [{ type: 'weapon', card: 't_shiv' }] },
   },
 };
+
+/** The hero a class is played with by default (e.g. on the menu). */
+export const defaultHero = cls => HEROES[CLASSES[cls].defaultHero];
+
+/** Every hero who plays a class. */
+export const heroesOf = cls => Object.entries(HEROES).filter(([, h]) => h.cls === cls).map(([id, h]) => ({ id, ...h }));
+
+/** A class's icon: its default hero's portrait (for tabs, tiles and badges). */
+export const classArt = cls => ({ sprite: defaultHero(cls).portrait, emoji: CLASSES[cls].emoji });
 
 const RAW_CARDS = [
   // ---------- Tokens (not collectible) ----------

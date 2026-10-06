@@ -1,7 +1,7 @@
 // Browser UI for Riftclash. The human is always player 0; the AI is player 1.
 
 import { Game, MAX_MANA } from './engine.js';
-import { CARDS, CLASSES, KEYWORD_HELP } from './cards.js';
+import { CARDS, CLASSES, HEROES, KEYWORD_HELP, defaultHero } from './cards.js';
 import { nextAction, applyAction, mulliganChoice } from './ai.js';
 import * as fx from './fx.js';
 import { sfx, unlock, isMuted, setMuted } from './sfx.js';
@@ -46,17 +46,21 @@ const ui = {
 /** A hero power's icon, or its name if it has no sprite. */
 const powerArt = hp => (hasSprite(hp.sprite) ? spriteSVG(hp.sprite) : `<span class="hp-name">${esc(hp.name)}</span>`);
 
-/** A class's hero portrait (pixel art, or its emoji if no sprite exists). */
-const heroArt = c => artHTML({ sprite: c.portrait, emoji: c.emoji }, { title: c.hero });
+/** A hero's portrait (pixel art, or its emoji if no sprite exists). */
+const heroArt = hero => artHTML({ sprite: hero.portrait, emoji: hero.emoji }, { title: hero.name });
 
 function renderMenu() {
-  $('#class-grid').innerHTML = Object.entries(CLASSES).map(([key, c]) => `
+  // Each class tile shows the hero the player plays it with.
+  $('#class-grid').innerHTML = Object.entries(CLASSES).map(([key, c]) => {
+    const hero = defaultHero(key), hp = hero.heroPower;
+    return `
     <button class="class-tile${ui.playerClass === key ? ' chosen' : ''}" data-class="${key}" style="--cls:${c.color}">
-      <span class="class-portrait">${heroArt(c)}</span>
+      <span class="class-portrait">${heroArt(hero)}</span>
       <span class="class-name">${c.name}</span>
-      <span class="class-hero">${esc(c.hero)}</span>
-      <span class="class-power"><span class="class-power-icon">${powerArt(c.heroPower)}</span><span><b>${c.heroPower.name}</b> (${c.heroPower.cost}): ${esc(c.heroPower.text)}</span></span>
-    </button>`).join('');
+      <span class="class-hero">${esc(hero.name)}</span>
+      <span class="class-power"><span class="class-power-icon">${powerArt(hp)}</span><span><b>${hp.name}</b> (${hp.cost}): ${esc(hp.text)}</span></span>
+    </button>`;
+  }).join('');
   renderDeckSelect();
   $('#opponent-select').innerHTML = `<option value="random">Random</option>` +
     Object.entries(CLASSES).map(([k, c]) => `<option value="${k}"${ui.aiClass === k ? ' selected' : ''}>${c.name}</option>`).join('');
@@ -164,7 +168,9 @@ function showScreen(id) {
 function startGame() {
   const keys = Object.keys(CLASSES);
   const aiClass = ui.aiClass === 'random' ? keys[Math.floor(Math.random() * keys.length)] : ui.aiClass;
-  ui.game = new Game({ classes: [ui.playerClass, aiClass], decks: [chosenDeck()], seed: Date.now() });
+  // Both sides play their class's default hero; the class decides the cards.
+  const heroes = [CLASSES[ui.playerClass].defaultHero, CLASSES[aiClass].defaultHero];
+  ui.game = new Game({ heroes, decks: [chosenDeck()], seed: Date.now() });
   ui.selection = null;
   setBusy(false);
   ui.mulliganPicks = new Set();
@@ -257,8 +263,9 @@ function heroHTML(pid, targets) {
   const g = ui.game;
   const p = g.players[pid];
   const c = CLASSES[p.heroClass];
+  const hero = HEROES[p.heroId];
   const h = p.hero;
-  const hp = c.heroPower;
+  const hp = hero.heroPower;
   const isHuman = pid === HUMAN;
   const myTurn = g.current === HUMAN && !ui.busy;
   const cls = ['hero'];
@@ -282,14 +289,14 @@ function heroHTML(pid, targets) {
       </div>
       ${weapon}
       <div class="${cls.join(' ')}" data-uid="${h.uid}" style="--cls:${c.color}">
-        <div class="portrait">${heroArt(c)}</div>
-        <div class="hero-name">${esc(c.hero)}</div>
+        <div class="portrait">${heroArt(hero)}</div>
+        <div class="hero-name">${esc(hero.name)}</div>
         ${h.attack > 0 ? `<span class="stat atk">${h.attack}</span>` : ''}
         <span class="stat hp ${h.health < h.maxHealth ? 'damaged' : ''}">${h.health}</span>
         ${h.armor > 0 ? `<span class="stat armor">${h.armor}</span>` : ''}
       </div>
       <button class="hero-power${p.heroPowerUsed ? ' used' : ''}${hpUsable ? ' usable' : ''}${ui.selection?.type === 'heroPower' && isHuman ? ' selected' : ''}"
-        ${isHuman ? 'data-action="hero-power"' : ''} data-hp="${p.heroClass}" style="--cls:${c.color}" ${isHuman ? '' : 'tabindex="-1"'}
+        ${isHuman ? 'data-action="hero-power"' : ''} data-hp="${p.heroId}" style="--cls:${c.color}" ${isHuman ? '' : 'tabindex="-1"'}
         aria-label="${esc(`${hp.name} (${hp.cost} mana): ${hp.text}`)}">
         <span class="hp-art">${powerArt(hp)}</span>
         <span class="cost">${hp.cost}</span>
@@ -1029,7 +1036,7 @@ document.addEventListener('mouseover', e => {
   if (!el || el.closest('.hand-card') || el.closest('.mulligan-slot')) { tip.className = 'hidden'; return; }
   let html;
   if (el.dataset.hp) {
-    const hp = CLASSES[el.dataset.hp].heroPower;
+    const hp = HEROES[el.dataset.hp].heroPower;
     html = `<div class="power-tip"><span class="power-tip-icon">${powerArt(hp)}</span><span><b>${hp.name}</b> (${hp.cost} mana)<br>${esc(hp.text)}</span></div>`;
   } else {
     const card = CARDS[el.dataset.card];

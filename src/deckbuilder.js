@@ -3,7 +3,7 @@
 // Every change is saved straight away, so there is no "unsaved changes" state.
 // Deck rows carry data-card, so the game's hover preview (ui.js) shows the full card.
 
-import { CARDS, CLASSES } from './cards.js';
+import { CARDS, CLASSES, classArt, defaultHero } from './cards.js';
 import { cardHTML, esc } from './cardview.js';
 import { artHTML } from './pixelart.js';
 import { filterCards, sortCards, CLASS_ORDER, COST_FILTERS } from './library.js';
@@ -13,7 +13,7 @@ import {
 } from './decks.js';
 
 const classColor = cls => CLASSES[cls]?.color ?? '#8a8f98';
-const portrait = cls => `<span class="db-portrait" style="--cls:${classColor(cls)}">${artHTML({ sprite: CLASSES[cls].portrait, emoji: CLASSES[cls].emoji })}</span>`;
+const portrait = cls => `<span class="db-portrait" style="--cls:${classColor(cls)}">${artHTML(classArt(cls))}</span>`;
 const CURVE_LABELS = ['0', '1', '2', '3', '4', '5', '6', '7+'];
 
 /**
@@ -102,7 +102,7 @@ export function mountDeckBuilder(root, { onBack, onUse, notify, sounds = {} }) {
       <div class="db-classes">
         ${Object.entries(CLASSES).map(([key, c]) => `
           <button class="db-class" data-act="create" data-cls="${key}" type="button" style="--cls:${c.color}">
-            ${portrait(key)}<span class="db-class-name">${c.name}</span><span class="db-class-hero">${esc(c.hero)}</span>
+            ${portrait(key)}<span class="db-class-name">${c.name}</span><span class="db-class-hero">${esc(defaultHero(key).name)}</span>
           </button>`).join('')}
       </div>`;
   }
@@ -123,7 +123,7 @@ export function mountDeckBuilder(root, { onBack, onUse, notify, sounds = {} }) {
         <div class="db-collection">
           <div class="lib-tabs" role="tablist" aria-label="Card pool">
             <button class="lib-tab" role="tab" data-tab="class" type="button" style="--cls:${cls.color}">
-              <span class="lib-tab-icon">${artHTML({ sprite: cls.portrait, emoji: cls.emoji })}</span>${cls.name}
+              <span class="lib-tab-icon">${artHTML(classArt(d.cls))}</span>${cls.name}
             </button>
             <button class="lib-tab" role="tab" data-tab="neutral" type="button" style="--cls:#8a8f98">
               <span class="lib-tab-icon lib-tab-icon-text">◇</span>Neutral

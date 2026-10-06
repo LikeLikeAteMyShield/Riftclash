@@ -1,7 +1,7 @@
 // Riftclash rules engine. Pure game logic with no DOM access, so it can run
 // in the browser or under node for tests and AI.
 
-import { CARDS, CLASSES, buildDeck } from './cards.js';
+import { CARDS, CLASSES, HEROES, buildDeck } from './cards.js';
 
 export const MAX_BOARD = 7;
 export const MAX_HAND = 10;
@@ -22,12 +22,19 @@ function mulberry32(seed) {
 export class Game {
   /**
    * @param {object} opts
-   * @param {string[]} opts.classes  class keys for player 0 and 1
+   * @param {string[]} [opts.heroes]   hero ids (keys of HEROES) for player 0 and 1
+   * @param {string[]} [opts.classes]  or class keys, played by each class's default hero
    * @param {string[][]} [opts.decks] card id lists; built automatically if omitted
    * @param {number} [opts.seed]
    * @param {number} [opts.firstPlayer] 0 or 1; random if omitted
    */
-  constructor({ classes, decks, seed = Date.now(), firstPlayer } = {}) {
+  constructor({ heroes, classes, decks, seed = Date.now(), firstPlayer } = {}) {
+    heroes ??= classes?.map(cls => {
+      if (!CLASSES[cls]) throw new Error(`Unknown class "${cls}"`);
+      return CLASSES[cls].defaultHero;
+    });
+    if (!heroes || heroes.length !== 2) throw new Error('A game needs two heroes (or two classes)');
+    for (const id of heroes) if (!HEROES[id]) throw new Error(`Unknown hero "${id}"`);
     this.rand = mulberry32(seed);
     this.nextUid = 1;
     this.turn = 0;
@@ -41,7 +48,7 @@ export class Game {
     this.fxSeq = 0;
     this.combat = false;
     this.current = firstPlayer ?? (this.rand() < 0.5 ? 0 : 1);
-    this.players = [0, 1].map(i => this.#createPlayer(i, classes[i], decks?.[i] ?? buildDeck(classes[i], this.rand)));
+    this.players = [0, 1].map(i => this.#createPlayer(i, heroes[i], decks?.[i] ?? buildDeck(HEROES[heroes[i]].cls, this.rand)));
     this.mulliganDone = [false, false];
     // Opening hands: 3 for the player going first, 4 for the other.
     for (const p of this.players) {
@@ -50,11 +57,12 @@ export class Game {
     }
   }
 
-  #createPlayer(id, heroClass, deckIds) {
+  #createPlayer(id, heroId, deckIds) {
     const deck = deckIds.map(cardId => ({ uid: this.nextUid++, cardId }));
     this.#shuffle(deck);
     return {
-      id, heroClass,
+      // The hero decides the portrait and hero power; the class decides the cards.
+      id, heroId, heroClass: HEROES[heroId].cls,
       hero: { uid: this.nextUid++, kind: 'hero', owner: id, health: STARTING_HEALTH, maxHealth: STARTING_HEALTH,
         armor: 0, attack: 0, attacksThisTurn: 0, frozen: false, frozenTurn: -1 },
       weapon: null,
@@ -87,7 +95,7 @@ export class Game {
     const { id, name, cls, type, cost, attack, health, emoji, sprite } = CARDS[m.cardId];
     return { id, name, cls, type, cost, attack, health, emoji, sprite, keywords: {}, text: '' };
   }
-  heroPower(playerId) { return CLASSES[this.players[playerId].heroClass].heroPower; }
+  heroPower(playerId) { return HEROES[this.players[playerId].heroId].heroPower; }
 
   getEntity(uid) {
     for (const p of this.players) {
