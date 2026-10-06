@@ -10,7 +10,7 @@ Riftclash is a browser card battle game (Hearthstone-like, original card set) wr
 npm start                                     # static server at http://localhost:8080 (PORT=xxxx to change)
 npm test                                      # node --test test/*.test.js
 node --test test/engine.test.js               # one test file
-node --test --test-name-pattern="silence" test/   # tests whose name matches
+node --test --test-name-pattern="silence" test/*.test.js   # tests whose name matches
 ```
 
 - ES modules don't load over `file://`, so the page always needs a server. The game is also deployed as a static site (GitHub Pages).
