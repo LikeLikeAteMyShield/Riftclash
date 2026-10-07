@@ -110,17 +110,19 @@ export const BACKGROUNDS = {
     name: 'Citadel of Endless Night',
     boss: true,
     layers: [
-      { type: 'sky', stops: [[0, '#06030a'], [30, '#120508'], [62, '#34100a'], [84, '#481608']] },
-      { type: 'glow', x: 96, y: 84, r: 90, color: '#5a160a', alpha: 0.35 },
-      { type: 'stars', count: 6, yMax: 30, color: '#6a4040', seed: 67 },
-      { type: 'smoke', columns: [{ x: 52, color: '#160a0a' }, { x: 142, color: '#140909' }] },
-      { type: 'ridge', y: 70, amp: 14, rough: 0.75, color: '#120808', seed: 71 },
-      { type: 'spire', x: 96, base: 88, height: 74, color: '#060308', edge: '#2a0c0c', eye: '#ff7a2a', core: '#ffd27a' },
-      { type: 'ridge', y: 84, amp: 6, rough: 0.6, color: '#0a0507', seed: 73 },
-      { type: 'ground', y: 92, color: '#070405' },
-      { type: 'cracks', y: 92, count: 7, color: '#c8401a', seed: 79 },
-      { type: 'particles', kind: 'snow', count: 40, color: '#4a3a3a', seed: 83 },
-      { type: 'particles', kind: 'embers', count: 18, color: '#ff6a2a', alt: '#ffb05a', seed: 89 },
+      { type: 'sky', stops: [[0, '#04030a'], [34, '#0a0618'], [64, '#1a0c2a'], [84, '#2a1032']] },
+      { type: 'glow', x: 40, y: 15, r: 36, color: '#3a1c6a', alpha: 0.3 },
+      { type: 'stars', count: 30, yMax: 60, color: '#9a8ac0', seed: 67 },
+      { type: 'eclipse', x: 40, y: 15, r: 9, color: '#020106', corona: '#9a6aff', rim: '#e8d8ff' },
+      { type: 'ridge', y: 72, amp: 12, rough: 0.7, color: '#0e0818', seed: 71 },
+      { type: 'fortress', x: 120, base: 80, color: '#06040c', edge: '#1e1430', window: '#a07aff', towers: [
+        [-34, 7, 22, 9], [-22, 9, 38, 12], [-6, 12, 30, 0], [8, 8, 46, 14], [22, 7, 28, 10], [36, 6, 16, 7],
+      ] },
+      { type: 'ridge', y: 86, amp: 5, rough: 0.6, color: '#08050e', seed: 73 },
+      { type: 'ground', y: 92, color: '#05030a' },
+      { type: 'cracks', y: 92, count: 6, color: '#7a4ae0', seed: 79 },
+      { type: 'fog', y: 78, height: 10, color: '#2a1a44', alpha: 0.35 },
+      { type: 'particles', kind: 'motes', count: 22, color: '#7a5ac8', seed: 83 },
     ],
   },
 };
@@ -481,50 +483,76 @@ const LAYERS = {
       }
     },
   },
-  spire: {
+  eclipse: {
     draw(c, L, ctx) {
-      // A dark tower narrowing as it rises, with buttresses, and two great prongs at the top
-      // around the window where the Nightlord watches.
+      // The moon that never leaves: a black disc in front of the sun.
+      const col = hex(L.color);
+      for (let y = -L.r; y <= L.r; y++) for (let x = -L.r; x <= L.r; x++) {
+        if (x * x + y * y > L.r * L.r) continue;
+        c.put(L.x + x, L.y + y, col); ctx.sky[(L.y + y) * c.w + L.x + x] = 0;
+      }
+    },
+    animate(c, L, { t, base }) {
+      // Its corona: a pale rim and a violet halo with slowly turning streamers.
+      const corona = hex(L.corona), rim = hex(L.rim);
+      const R = L.r + 12;
+      for (let y = -R; y <= R; y++) for (let x = -R; x <= R; x++) {
+        const d = Math.hypot(x, y);
+        if (d <= L.r || d > R) continue;
+        const px = L.x + x, py = L.y + y;
+        if (py < 0 || py >= c.h || px < 0 || px >= c.w || !base.sky[py * c.w + px]) continue;
+        const a = Math.atan2(y, x);
+        const streak = 0.6 + 0.4 * Math.sin(a * 5 + t * 0.15) * Math.sin(a * 3 - t * 0.1);
+        const fall = (1 - (d - L.r) / (R - L.r)) ** 2;
+        c.blend(px, py, corona, 0.5 * fall * streak);
+        if (d < L.r + 1.5) c.blend(px, py, rim, 0.35 + 0.08 * Math.sin(t * 0.7 + a * 2));
+      }
+    },
+  },
+  fortress: {
+    draw(c, L, ctx) {
+      // A citadel on a crag: a curtain wall between towers of different heights,
+      // each with a steep conical roof (or battlements) and a crescent finial.
       const col = hex(L.color), edge = hex(L.edge);
-      const { x, base, height } = L, top = base - height;
-      for (let y = top + 10; y <= base + 6; y++) {
-        const f = (y - top) / height;
-        const half = Math.round(4 + f * f * 11);
-        c.rect(x - half, y, x + half, y, col);
-        c.put(x - half, y, edge); c.put(x + half, y, edge);
-        for (let xx = x - half; xx <= x + half; xx++) ctx.sky[y * c.w + xx] = 0;
+      const { x, base } = L;
+      const mark = (x0, y0, x1, y1) => { for (let y = Math.max(0, y0); y <= Math.min(c.h - 1, y1); y++) for (let xx = Math.max(0, x0); xx <= Math.min(c.w - 1, x1); xx++) ctx.sky[y * c.w + xx] = 0; };
+      // the crag
+      for (let dx = -50; dx <= 50; dx++) {
+        const top = base - 2 + Math.round((Math.abs(dx) / 50) ** 1.6 * 12) - (Math.abs(dx) % 7 === 3 ? 1 : 0);
+        c.rect(x + dx, top, x + dx, c.h - 1, col); mark(x + dx, top, x + dx, c.h - 1);
       }
-      // buttresses stepping out near the foot
-      for (const [dx, h] of [[-15, 22], [15, 22], [-21, 12], [21, 12]]) {
-        for (let k = 0; k < h; k++) { const w = Math.round(k / h * 3); c.rect(x + dx - w, base - h + k, x + dx + w, base - h + k, col); }
-        c.rect(x + dx - 3, base, x + dx + 3, base + 6, col);
-        for (let y = base - h; y <= base + 6; y++) for (let xx = x + dx - 3; xx <= x + dx + 3; xx++) ctx.sky[y * c.w + xx] = 0;
-      }
-      // the crown: two prongs sweeping out from the top, then curving back in to points
-      for (const side of [-1, 1]) {
-        for (let k = 0; k < 16; k++) {
-          const px = x + side * Math.round(3 + 6 * Math.sin((k / 16) * Math.PI * 0.85)), py = top + 12 - k;
-          const w = k < 12 ? 2 : 1;
-          for (let j = 0; j < w; j++) { c.put(px + side * j, py, col); ctx.sky[py * c.w + px + side * j] = 0; }
-          c.put(px + side * w, py, edge);
+      // the curtain wall with crenels
+      c.rect(x - 38, base - 14, x + 40, base, col); mark(x - 38, base - 16, x + 40, base);
+      for (let k = -38; k <= 40; k += 3) c.put(x + k, base - 15, col);
+      L._windows = [];
+      for (const [dx, w, h, roof] of L.towers) {
+        const x0 = x + dx - (w >> 1), x1 = x0 + w - 1, top = base - h;
+        c.rect(x0, top, x1, base, col); mark(x0, top, x1, base);
+        c.rect(x0, top, x0, base, edge);
+        if (roof) {
+          for (let k = 0; k < roof; k++) {
+            const half = Math.round(((roof - k) / roof) * (w / 2 + 1));
+            const cx = (x0 + x1) / 2;
+            c.rect(Math.round(cx - half), top - k, Math.round(cx + half), top - k, col);
+            c.put(Math.round(cx - half), top - k, edge);
+            mark(Math.round(cx - half), top - k, Math.round(cx + half), top - k);
+          }
+          // crescent finial
+          const fx = Math.round((x0 + x1) / 2), fy = top - roof - 3;
+          for (const [px, py] of [[0, 3], [0, 2], [-1, 1], [-1, 0], [0, -1], [1, 1]]) { c.put(fx + px, fy + py, col); mark(fx + px, fy + py, fx + px, fy + py); }
+        } else {
+          for (let k = x0 - 1; k <= x1 + 1; k += 2) c.put(k, top - 1, col);
+          c.rect(x0 - 1, top, x1 + 1, top + 1, col); mark(x0 - 1, top - 1, x1 + 1, top + 1);
         }
+        for (let wy = top + 4; wy < base - 6; wy += 7) L._windows.push([Math.round((x0 + x1) / 2), wy]);
       }
-      // spikes along the upper tower
-      for (let k = 0; k < 4; k++) { const y = top + 22 + k * 9, half = Math.round(3 + ((y - top) / height) ** 2 * 11); c.put(x - half - 1, y, col); c.put(x + half + 1, y, col); c.put(x - half - 2, y - 1, col); c.put(x + half + 2, y - 1, col); }
-      L._eye = [x, top + 4];
-      L._windows = [[x - 4, base - 30], [x + 5, base - 22], [x - 2, base - 46], [x + 3, base - 12]];
     },
     animate(c, L, { t }) {
-      // The burning eye between the prongs: a slit that glows and slowly pulses.
-      const eye = hex(L.eye), core = hex(L.core);
-      const [ex, ey] = L._eye, pulse = 0.75 + 0.25 * Math.sin(t * 0.9);
-      for (let y = -6; y <= 6; y++) for (let x = -9; x <= 9; x++) {
-        const d = Math.hypot(x / 9, y / 6);
-        if (d < 1) c.blend(ex + x, ey + y, eye, 0.22 * (1 - d) * pulse);
-      }
-      for (let x = -2; x <= 2; x++) c.blend(ex + x, ey, Math.abs(x) < 1 ? core : eye, 0.9 * pulse);
-      c.blend(ex, ey - 1, eye, 0.6 * pulse); c.blend(ex, ey + 1, eye, 0.6 * pulse);
-      L._windows.forEach(([wx, wy], i) => c.blend(wx, wy, eye, 0.35 + 0.2 * Math.sin(t * (1.7 + i * 0.4) + i * 2)));
+      const col = hex(L.window);
+      L._windows.forEach(([wx, wy], i) => {
+        const f = 0.45 + 0.2 * Math.sin(t * (0.9 + i * 0.23) + i * 1.3);
+        c.blend(wx, wy, col, f); c.blend(wx, wy + 1, col, f * 0.7);
+      });
     },
   },
   cracks: {
