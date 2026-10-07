@@ -95,7 +95,7 @@ export const HEROES = {
     heroPower: RIFT_STRENGTH,
   },
   grun: {
-    name: 'Nightlord Grun', title: 'Lord of the Long Night', cls: 'celestial', boss: true, emoji: '😈', portrait: 'hero_grun',
+    name: 'Nightlord Grun', title: 'Lord of the Long Night', cls: 'celestial', boss: true, emoji: '👁️', portrait: 'hero_grun',
     lore: 'Grun rules the hours when the stars go out, and the demons of the Rift come when he calls.',
     heroPower: { name: 'Wrath of the Night', cost: 2, sprite: 'power_grun', text: 'Summon a 6/6 Rift Demon.',
       effects: [{ type: 'summon', card: 't_riftdemon' }] },
