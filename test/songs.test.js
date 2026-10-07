@@ -14,7 +14,7 @@ test('every song compiles, with all channels the same length', () => {
 });
 
 test('each screen has its own track', () => {
-  assert.deepEqual(Object.keys(SONGS).sort(), ['battle', 'forge', 'grun', 'library', 'menu', 'quests', 'riftkin']);
+  assert.deepEqual(Object.keys(SONGS).filter(id => SONGS[id].loop !== false).sort(), ['battle', 'forge', 'grun', 'library', 'menu', 'quests', 'riftkin']);
 });
 
 test('battle, library and forge are calmer than the menu theme', () => {
@@ -100,4 +100,30 @@ test('the Riftkin fight to their own music: the battle theme made menacing, and 
   const leadPitches = id => new Set(compileSong(id).events.filter(e => e.channel === 'lead').map(e => e.midi % 12));
   assert.ok(leadPitches('riftkin').has(5), 'the Riftkin lead touches F, the flat second of E minor');
   assert.ok(leadPitches('grun').has(1), 'Grun\'s lead touches Db, the flat second of C minor');
+});
+
+test('a battle ends with a short victory or defeat theme that plays once, and beating Grun gets a far grander one', async () => {
+  const { HEROES } = await import('../src/cards.js');
+  const stingers = Object.keys(SONGS).filter(id => SONGS[id].loop === false).sort();
+  assert.deepEqual(stingers, ['defeat', 'grunVictory', 'victory']);
+  for (const id of stingers) {
+    const s = compileSong(id);
+    const release = Math.max(...Object.values(SONGS[id].channels).map(c => c.env?.r ?? 0));
+    const seconds = s.length * s.stepDur + release;
+    assert.ok(seconds <= 5.25, `${id} lasts ${seconds.toFixed(2)}s, about 5s at most`);
+  }
+  assert.equal(HEROES.grun.victoryMusic, 'grunVictory');
+  assert.deepEqual(Object.keys(HEROES).filter(id => HEROES[id].victoryMusic), ['grun'], 'only Grun has his own');
+  // Grander: a bigger band, louder, busier, and climbing higher than the standard fanfare.
+  const v = compileSong('victory'), g = compileSong('grunVictory');
+  const peak = c => Math.max(...c.events.filter(e => e.midi).map(e => e.midi));
+  assert.ok(Object.keys(SONGS.grunVictory.channels).length > Object.keys(SONGS.victory.channels).length, 'more voices');
+  assert.ok(SONGS.grunVictory.volume > SONGS.victory.volume, 'louder');
+  assert.ok(g.events.length > v.events.length * 2, `busier: ${g.events.length} vs ${v.events.length} notes`);
+  assert.ok(peak(g) > peak(v), 'reaches higher');
+  // Victory ends bright in a major key, defeat ends low and slow.
+  const last = (c, ch) => c.events.filter(e => e.channel === ch).at(-1).midi;
+  assert.equal(last(v, 'lead') % 12, 9, 'victory resolves to A');
+  assert.equal(last(g, 'lead') % 12, 0, 'Grun\'s victory resolves to C');
+  assert.ok(SONGS.defeat.bpm < SONGS.victory.bpm && SONGS.defeat.volume < SONGS.victory.volume, 'defeat is slower and quieter');
 });

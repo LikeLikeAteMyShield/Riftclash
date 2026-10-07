@@ -173,11 +173,4 @@ export const sfx = {
     tone(523, { type: 'sawtooth', dur: 0.5, vol: 0.12, filter: 1600, delay: 0.16 });
     tone(784, { type: 'sine', dur: 0.5, vol: 0.06, delay: 0.16 });
   },
-  victory() {
-    [523, 659, 784, 1047].forEach((f, i) => tone(f, { type: 'sawtooth', dur: 0.5, vol: 0.09, filter: 2500, delay: i * 0.13 }));
-    tone(1047, { type: 'sine', dur: 1.2, vol: 0.08, delay: 0.52 });
-  },
-  defeat() {
-    [392, 330, 262, 196].forEach((f, i) => tone(f, { type: 'sawtooth', dur: 0.55, vol: 0.09, filter: 900, delay: i * 0.18 }));
-  },
 };

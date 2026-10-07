@@ -15,7 +15,7 @@ import { visibleClasses, sequenceMatcher, SECRET_CODE, togglePlaytest } from './
 import { createQuestBoard, questBoardWidth } from './questboard.js';
 import { mountDeckBuilder } from './deckbuilder.js';
 import { STANDARD_DECK, loadDecks, isPlayable, loadDeckChoice, saveDeckChoice } from './decks.js';
-import { playTrack, startMusic, isMusicOn, setMusicOn, beatClock } from './music.js';
+import { playTrack, playStinger, stopMusic, startMusic, isMusicOn, setMusicOn, beatClock } from './music.js';
 import { mountBackdrop, newBackdrop, setBackdrop, showBackdrop } from './backdrop.js';
 import { mountMenuScene } from './menuscene.js';
 import { mountScene } from './sceneview.js';
@@ -955,6 +955,8 @@ function drawFx(ev) {
 
 async function gameOverFx() {
   const w = ui.game.winner;
+  // The battle music stops as the last hero falls; a short victory or defeat theme follows, then silence.
+  stopMusic(1.2);
   const losers = w === 'draw' ? [0, 1] : [1 - w];
   for (const pid of losers) {
     const hero = nodeOf(ui.game.players[pid].hero.uid);
@@ -970,14 +972,12 @@ async function gameOverFx() {
     hero.animate([{ opacity: 1, transform: 'scale(1.1)' }, { opacity: 0, transform: 'scale(.3)' }], { duration: 500, fill: 'forwards' });
   }
   await sleep(900);
+  playStinger(w === HUMAN ? HEROES[ui.game.players[AI].heroId].victoryMusic ?? 'victory' : 'defeat');
   if (w === HUMAN) {
-    sfx.victory();
     for (let k = 0; k < 3; k++) {
       setTimeout(() => fx.burst({ x: innerWidth * (0.25 + k * 0.25), y: innerHeight * 0.3 },
         { color: ['#ffd27a', '#7cc0ff', '#8dff8d', '#ff8a7a'], count: 60, speed: 9, shape: 'shard', gravity: 0.15, life: 1500 }), k * 200);
     }
-  } else {
-    sfx.defeat();
   }
   const completed = recordFinishedGame();
   showResult(completed);

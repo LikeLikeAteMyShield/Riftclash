@@ -34,6 +34,22 @@ export function playTrack(id) {
   if (graph && enabled && !document.hidden) start(id);
 }
 
+/**
+ * Play a one-shot song (a stinger like the victory theme, `loop: false` in
+ * songs.js) straight away. Whatever was playing stops, and silence follows:
+ * nothing plays again until a screen asks for a track.
+ */
+export function playStinger(id) {
+  wanted = null;
+  if (graph && enabled && !document.hidden) start(id, 0);
+}
+
+/** Fade the music out and ask for nothing, so silence stays until the next playTrack. */
+export function stopMusic(fade = FADE_OUT) {
+  wanted = null;
+  if (graph) stop(fade);
+}
+
 /** Call from a user gesture: browsers only allow audio after one. */
 export function startMusic() {
   graph ??= audioGraph();
@@ -86,14 +102,14 @@ function songData(id) {
   return compiled[id];
 }
 
-function start(id) {
-  if (playing?.id === id) return;
+function start(id, fadeIn = FADE_IN) {
+  if (playing?.id === id && !playing.ended) return;
   stop(FADE_OUT);
   const ctx = graph.ctx;
   const song = SONGS[id];
   const gain = ctx.createGain();
-  gain.gain.setValueAtTime(0, ctx.currentTime);
-  gain.gain.linearRampToValueAtTime(song.volume, ctx.currentTime + FADE_IN);
+  gain.gain.setValueAtTime(fadeIn ? 0 : song.volume, ctx.currentTime);
+  if (fadeIn) gain.gain.linearRampToValueAtTime(song.volume, ctx.currentTime + fadeIn);
   gain.connect(musicGain);
   playing = { id, song, comp: songData(id), gain, step: 0, total: 0, time: ctx.currentTime + 0.1 };
   timer ??= setInterval(tick, TICK_MS);
@@ -115,12 +131,21 @@ function tick() {
   if (!playing) { clearInterval(timer); timer = null; return; }
   const ctx = graph.ctx;
   const p = playing;
+  if (p.ended) {
+    // A one-shot that has played through: let its last notes ring out, then let go.
+    if (ctx.currentTime > p.time + 3) { setTimeout(() => p.gain.disconnect(), 0); playing = null; }
+    return;
+  }
   if (p.time < ctx.currentTime - 0.2) p.time = ctx.currentTime + 0.05; // fell behind: skip ahead, don't burst
   while (p.time < ctx.currentTime + LOOKAHEAD) {
     for (const ev of p.comp.byStep[p.step]) playEvent(ctx, p.gain, p.song.channels[ev.channel], ev, p.time, p.comp.stepDur);
-    p.step = (p.step + 1) % p.comp.length;
+    p.step++;
     p.total++;
     p.time += p.comp.stepDur;
+    if (p.step === p.comp.length) {
+      if (p.song.loop === false) { p.ended = true; return; }
+      p.step = 0;
+    }
   }
 }
 
