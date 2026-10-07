@@ -124,43 +124,43 @@ export default {
       vvvvvvvvvvvvvVvvvvVvvvvvvvvvvvvv
     `,
   },
-  // Manus Darkhammer: a dark-iron war-helm with a rift-lit visor, a beard of falling stars, his hammer on his shoulder.
+  // Manus Darkhammer: a heavy dark-iron war-helm with a forge-gold band, rift eyes glaring under a V-shaped brow, a long braided black beard, dark plate, and his rune-hammer at his shoulder.
   hero_manus: {
     palette,
     outline: OUTLINE,
     pixels: `
       ................................
-      ................................
-      ...........AAAAAAAAAA...........
-      .........AAaaaaaaaaaaAA..AAAAAAA
-      ........AaaaAaaaaaaAaaaA.AaaaaaA
-      .......AaaaaAaaaaaaAaaaaAAavvvaA
-      ......AaaaaaAaaaaaaAaaaaaAavcvaA
-      ......AaaaaaAaaaaaaAaaaaaAavvvaA
-      .....AAAAAAAAAAAAAAAAAAAAAaaaaaA
-      .....AdddddddddAAddddddddAAAAAAA
-      .....AdddcccdddAAdddcccdddGG....
-      .....AddcwwcddAAAAddcwwcddGG....
-      .....AAddcccddAaaAddcccddGG.....
-      .....AaAdddddAaaaaAdddddAGG.....
-      .....AaaAAAAAaaaaaaAAAAAaGG.....
-      .....AaaaWWWWWWWWWWWWWWaGGA.....
-      ......AaWwwWwwWwwWwwWwwWGG......
-      ......AWwwWwwWwwwwWwwWwwGG......
-      .....AAWwWwwWwwWWwwWwwWGGAA.....
-      ....AaaAWwwWwwWwwWwwWwwGGaaA....
-      ...AaaaaAWwWwwWWWWwwWwWGGaaaA...
-      ..AaaaaaaAWwWwwWWwwWwWGGaaaaaA..
-      .AaaaaVaaaAWWwWwwWwWWAGGaVaaaaA.
-      AaaaaaVaaaaAWWWWWWWWAaaaaVaaaaaA
-      AaaaaVVaaaaaAiiiiiiAaaaaaVVaaaaA
-      AaaaaVaaaaaaAiIiiIiAaaaaaaVaaaaA
-      AaaaVVaaaaaaAiIiiIiAaaaaaaVVaaaA
-      AaaaVaaaaaaaAiIiiIiAaaaaaaaVaaaA
-      AaaVVaaaaaaaAiIiiIiAaaaaaaaVVaaA
-      AaaVaaaaaaaaAiIiiIiAaaaaaaaaVaaA
-      AaVVaaaaaaaaAiIiiIiAaaaaaaaaVVaA
-      AaVaaaaaaaaaAiIiiIiAaaaaaaaaaVaA
+      ...........RRRRRRRRRR...........
+      .........RRrrrrAArrrrRR.rrrrrrrr
+      ........RRRRRRrAArRRRRRRRNNNcNNR
+      .......RRRRRRRrAArRRRRRRRNNcNNNR
+      .......RRRRRRRrAArRRRRRRRNNwwNNR
+      ......RRRRRRRRRAARRRRRRRRNNNcNNR
+      ......RGGGGGGGGGGGGGGGGGRNNcNNNR
+      ......RRRRRRRRRAARRRRRRRRRRRRRRR
+      ......RNRRRRRRRAARRRRRRRNR..OG..
+      ......RNddRRRRRAARRRRRddNR..GG..
+      ......RNdcwdRRRAARRRdwcdNR..GG..
+      ......RNddcwcdRAARdcwcddNR..GG..
+      ......RNNddddddAAddddddNNR..GG..
+      ......RdNddddddRRddddddNdR..GG..
+      .....RRdNddNddddddddNddNdRR.GG..
+      .....RddNddNddddddddNddNddR.GG..
+      ..RRRRdNddNddddNNddddNddNdRRGG..
+      .RNNNRddNddNddNddNddNddNddRNNNR.
+      RNNRNRdNddNdddNddNdddNddNdRNRNNR
+      RNRRNRdNddNddNddddNddNddNdRNRRNR
+      RNNNRdNddNdddNddddNdddNddNdRNNNR
+      RRRRRdNddNdddNddddNdddNddNdRRRRR
+      RNNNNRdNddNddNddddNddNddNdRNNNNR
+      RNcNNRddNddNddNddNddNddNddRNNcNR
+      RNNNNNRdNddNddNddNddNddNdRNNNNNR
+      RNNNNNRddNddNddNNddNddNddRNNNNNR
+      RNNNNNNRddNddNddddNddNddRNNNNNNR
+      RNNNNNNNRddGGddNNddGGddRNNNNNNNR
+      RNNNNNNNNRddddNddNddddRNNNNNNNNR
+      RNNNNNNNNRddNddddddNddRNNNNNNNNR
+      RNNNNNNNNNRdddNddNdddRNNNNNNNNNR
     `,
   },
   // Nightlord Grun: a faceless dark lord in a tall spiked iron crown-helm, only slanted burning eyes in the visor's dark, spiked pauldrons over a black mantle.
