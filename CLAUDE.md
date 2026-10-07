@@ -51,8 +51,9 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
 
 ### `src/ui.js` is the app shell
 - It renders the board, handles input (drag and click placement), and directs the animations.
-- `showScreen(id)` switches between `menu` (the title screen: game modes plus Deck Builder, Library, Quests), `play` (champion, deck and opponent selection for the standard mode), `library`, `decks`, `quests`, `mulligan` and `table`. `menu` and `play` share the menu battle scene and theme.
+- `showScreen(id)` switches between `menu` (the title screen: game modes plus Deck Builder, Library, Quests), `play` (champion, deck and opponent selection for the standard mode), `bosses` (Challenge the Riftkin: boss, champion and deck selection), `library`, `decks`, `quests`, `mulligan` and `table`. `menu`, `play` and `bosses` share the menu battle scene and theme.
 - Game modes are data in `src/modes.js` (`{ id, name, text, icon, screen }`); the title screen renders one tile per mode, and picking one opens its `screen`. Mode emblems are sprites in `src/sprites/modes.js`.
+- A mode with `unlockedWith: cls` only shows once that hidden class is unlocked. *Challenge the Riftkin* (`riftkin`) unlocks with Celestial, so the play-test code opens it too; per-boss unlocking through quests isn't built yet. In a boss battle the AI plays the chosen Riftkin hero (`ui.boss`) with the Celestial deck, and `recordGame` gets `boss` so `stats.byBoss` keeps a record per boss.
 - When the screen changes, the same function also:
   - selects the music track (`playTrack`)
   - shows or hides that screen's animated backdrop

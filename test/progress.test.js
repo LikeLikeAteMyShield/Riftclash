@@ -96,3 +96,20 @@ test('a real game produces a result the stats accept', () => {
   assert.equal(p.stats.played, 1);
   assert.equal(p.stats.byClass.warlord.played, 1);
 });
+
+test('boss battles are tallied per Riftkin as well as overall; anything else is not a boss', () => {
+  let s = emptyStats();
+  s = recordResult(s, { cls: 'warlord', result: 'win', boss: 'zarth' });
+  s = recordResult(s, { cls: 'shade', result: 'loss', boss: 'zarth' });
+  s = recordResult(s, { cls: 'shade', result: 'win', boss: 'grun' });
+  s = recordResult(s, { cls: 'shade', result: 'win', boss: 'aurion' });   // a hero, but not a boss
+  s = recordResult(s, { cls: 'shade', result: 'win' });
+  assert.deepEqual(s.byBoss, {
+    zarth: { played: 2, wins: 1, losses: 1, draws: 0 },
+    grun: { played: 1, wins: 1, losses: 0, draws: 0 },
+  });
+  assert.equal(s.wins, 4, 'boss wins count towards quests like any other win');
+  const cleaned = sanitizeProgress({ stats: { byBoss: { manus: { played: 1, wins: 1 }, aurion: { played: 3 }, nobody: { played: 1 } } } });
+  assert.deepEqual(cleaned.stats.byBoss, { manus: { played: 1, wins: 1, losses: 0, draws: 0 } });
+  assert.deepEqual(sanitizeProgress({ stats: {} }).stats.byBoss, {}, 'older saves without boss records still load');
+});
