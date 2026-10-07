@@ -14,7 +14,7 @@ test('every song compiles, with all channels the same length', () => {
 });
 
 test('each screen has its own track', () => {
-  assert.deepEqual(Object.keys(SONGS).sort(), ['battle', 'forge', 'library', 'menu', 'quests']);
+  assert.deepEqual(Object.keys(SONGS).sort(), ['battle', 'forge', 'grun', 'library', 'menu', 'quests', 'riftkin']);
 });
 
 test('battle, library and forge are calmer than the menu theme', () => {
@@ -79,4 +79,25 @@ test('the quest theme sits between the library and the menu: brighter than one, 
   const gMajor = new Set([7, 9, 11, 0, 2, 4, 6]);
   const lead = compileSong('quests').events.filter(e => e.channel === 'lead');
   assert.ok(lead.every(e => gMajor.has(e.midi % 12)), 'lead stays in G major');
+});
+
+test('the Riftkin fight to their own music: the battle theme made menacing, and Grun\'s more intense still', async () => {
+  const { HEROES, RIFTKIN } = await import('../src/cards.js');
+  for (const id of RIFTKIN) assert.equal(HEROES[id].music, id === 'grun' ? 'grun' : 'riftkin', id);
+  assert.ok(!Object.values(HEROES).some(h => !h.boss && h.music), 'other heroes use the standard battle music');
+  const density = id => { const s = compileSong(id); return s.events.length / (s.length * s.stepDur); };
+  const { riftkin, grun, battle, menu } = SONGS;
+  // The Riftkin theme keeps the battle theme's ambient energy: about as slow, sparse and quiet.
+  assert.ok(Math.abs(riftkin.bpm - battle.bpm) <= 8, 'about the battle tempo');
+  assert.ok(density('riftkin') < density('battle') * 1.5, 'about as sparse as the battle theme');
+  assert.ok(riftkin.volume < menu.volume);
+  // Grun turns it up: faster, busier and louder than the other battles, but under the menu theme.
+  for (const calmer of ['battle', 'riftkin']) {
+    assert.ok(grun.bpm > SONGS[calmer].bpm && density('grun') > density(calmer) * 2 && grun.volume > SONGS[calmer].volume, `Grun is more intense than ${calmer}`);
+  }
+  assert.ok(grun.bpm < menu.bpm && density('grun') < density('menu') && grun.volume < menu.volume, 'but still under the menu theme');
+  // Menacing: both leads lean on the flat second of their key (F over E, Db over C).
+  const leadPitches = id => new Set(compileSong(id).events.filter(e => e.channel === 'lead').map(e => e.midi % 12));
+  assert.ok(leadPitches('riftkin').has(5), 'the Riftkin lead touches F, the flat second of E minor');
+  assert.ok(leadPitches('grun').has(1), 'Grun\'s lead touches Db, the flat second of C minor');
 });

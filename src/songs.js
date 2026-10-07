@@ -69,6 +69,10 @@ const MENU_CHORDS = ['Dm', 'Bb', 'C', 'Dm', 'Dm', 'Bb', 'C', 'A', 'F', 'C', 'Bb'
 const BATTLE_CHORDS = ['Am', 'F', 'G', 'Em', 'Am', 'Dm', 'Em', 'Am', 'F', 'C', 'G', 'Em', 'F', 'Dm', 'Em', 'Am'];
 const LIBRARY_CHORDS = ['C', 'Am', 'F', 'G', 'C', 'Em', 'F', 'G', 'F', 'G', 'Em', 'Am', 'Dm', 'G', 'C', 'C'];
 const QUEST_CHORDS = ['G', 'D', 'Em', 'C', 'G', 'D', 'C', 'D', 'Em', 'C', 'G', 'D', 'C', 'D', 'G', 'G'];
+// The Riftkin: E minor with its dark neighbours, F (the flat second) and B major (the harmonic-minor dominant).
+const RIFTKIN_CHORDS = ['Em', 'F', 'Em', 'Em', 'Am', 'F', 'B', 'Em', 'C', 'F', 'Em', 'Em', 'Am', 'F', 'B', 'Em'];
+// Grun: C minor, leaning on Db (the flat second) and G major for a darker, grander pull home.
+const GRUN_CHORDS = ['Cm', 'Db', 'Cm', 'Bb', 'Ab', 'Fm', 'G', 'G', 'Cm', 'Ab', 'Bb', 'Gm', 'Ab', 'Db', 'G', 'Cm'];
 const FORGE_CHORDS = ['Dm', 'Dm', 'Bb', 'C', 'Dm', 'Dm', 'Gm', 'A', 'Dm', 'F', 'C', 'Gm', 'Bb', 'C', 'A', 'Dm'];
 
 export const SONGS = {
@@ -150,6 +154,90 @@ export const SONGS = {
       drums: {
         wave: 'noise', volume: 0.05,
         bars: BATTLE_CHORDS.map(() => 'k . . . . . . . k . . . . . . .'),
+      },
+    },
+  },
+
+  // Riftkin battles: the battle theme's slow, spacious shape, made menacing. The
+  // lead leans on the flat second and the tritone, over a heartbeat kick.
+  riftkin: {
+    title: 'The Riftkin Wake',
+    bpm: 76,
+    volume: 0.72,
+    channels: {
+      pad: {
+        wave: 'pulse50', volume: 0.05, filter: 800, env: { a: 0.1, d: 0.4, s: 0.55, r: 0.7 },
+        bars: RIFTKIN_CHORDS.map(c => arp(c, { octave: 3, order: [0, 2, 1, 3, 1, 2], every: 2 })),
+      },
+      lead: {
+        wave: 'pulse25', volume: 0.07, filter: 1500, env: { a: 0.08, d: 0.3, s: 0.65, r: 0.9 }, vibrato: { rate: 4, depth: 7, delay: 0.35 },
+        bars: [
+          REST, REST,
+          'E4 - - - - - - - F4 - - - - - - -',
+          'E4 - - - - - - - - - - - . . . .',
+          REST, REST,
+          'B4 - - - - - - - D#5 - - - C5 - - -',
+          'B4 - - - - - - - - - - - . . . .',
+          REST, REST,
+          'G5 - - - F5 - - - E5 - - - - - - -',
+          'B4 - - - - - - - - - - - . . . .',
+          REST, REST,
+          'D#5 - - - E5 - - - F5 - - - D#5 - - -',
+          'E5 - - - - - - - - - - - . . . .',
+        ],
+      },
+      bass: {
+        wave: 'triangle', volume: 0.28, env: { a: 0.08, d: 0.3, s: 0.75, r: 0.6 },
+        bars: RIFTKIN_CHORDS.map(c => bass(c, 'halves', 2)),
+      },
+      drums: {
+        wave: 'noise', volume: 0.055,
+        bars: RIFTKIN_CHORDS.map((_, i) => (i % 4 === 3 ? 'k . . k . . . . k . . . s . . .' : 'k . . k . . . . . . . . . . . .')),
+      },
+    },
+  },
+
+  // Grun's battle: the fate of the cosmos. Faster and fuller than the other
+  // battles, with a driving bass and a soaring lead, but still under the menu.
+  grun: {
+    title: 'Wrath of the Endless Night',
+    bpm: 104,
+    volume: 0.82,
+    channels: {
+      pad: {
+        wave: 'pulse50', volume: 0.05, filter: 1100, env: { a: 0.04, d: 0.3, s: 0.5, r: 0.4 },
+        bars: GRUN_CHORDS.map(c => arp(c, { octave: 3, order: [0, 1, 2, 3, 2, 1], every: 2 })),
+      },
+      lead: {
+        wave: 'pulse25', volume: 0.09, filter: 2200, env: { a: 0.02, d: 0.2, s: 0.65, r: 0.4 }, vibrato: { rate: 5, depth: 6, delay: 0.2 },
+        bars: [
+          'C5 - - - - - G4 - C5 - Eb5 - D5 - C5 -',
+          'Db5 - - - - - - - F5 - - - Ab5 - - -',
+          'G5 - - - - - F5 - Eb5 - - - D5 - C5 -',
+          'D5 - - - - - - - Bb4 - - - - - - -',
+          'C5 - - - Eb5 - - - Ab5 - - - G5 - F5 -',
+          'F5 - - - - - Eb5 - C5 - - - Ab4 - - -',
+          'B4 - - - D5 - - - G5 - - - F5 - D5 -',
+          'B4 - - - - - - - - - - - . . . .',
+          'G5 - - - - - - - C6 - - - Bb5 - G5 -',
+          'Ab5 - - - - - - - G5 - F5 - Eb5 - - -',
+          'F5 - - - - - D5 - Bb4 - D5 - F5 - Bb5 -',
+          'G5 - - - - - - - D5 - - - - - - -',
+          'Eb5 - - - F5 - - - Ab5 - - - C6 - - -',
+          'Db6 - - - - - C6 - Ab5 - - - F5 - - -',
+          'D5 - - - F5 - - - B5 - - - D6 - - -',
+          'C6 - - - - - - - - - - - . . . .',
+        ],
+      },
+      bass: {
+        wave: 'triangle', volume: 0.3, env: { a: 0.004, d: 0.08, s: 0.75, r: 0.05 },
+        bars: GRUN_CHORDS.map(c => bass(c, 'pump')),
+      },
+      drums: {
+        wave: 'noise', volume: 0.1,
+        bars: GRUN_CHORDS.map((_, i) => (i % 8 === 7
+          ? 'k . h . s . h . s . s . s s s s'
+          : 'k . h . s . h . k . k . s . h .')),
       },
     },
   },
