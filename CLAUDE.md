@@ -25,7 +25,8 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
 
 ### Classes, heroes and cards are data
 - `src/cards.js` holds `CLASSES`, `HEROES` and `CARDS`.
-- **Classes and heroes are separate.** A class is a card pool, colour and `defaultHero`. A hero (`HEROES`) has a name, a `portrait`, a `cls` and its own `heroPower`. Several heroes can share a class (planned: Riftkin bosses all using the Celestial class, one with its own hero power).
+- **Classes and heroes are separate.** A class is a card pool, colour and `defaultHero`. A hero (`HEROES`) has a name, a `portrait`, a `cls` and its own `heroPower`. Several heroes can share a class.
+- **The Riftkin** (`RIFTKIN` in `cards.js`: Zarth, Gal'kun, Ylva, Manus, Grun) are Celestial heroes with `boss: true`, plus a `title` and `lore` for their profiles. Boss heroes are never offered to the player (`playerHeroes()` excludes them). All but Grun share Aurion's hero power; Grun's *Wrath of the Night* summons the `t_riftdemon` token. Their art is in `src/sprites/riftkin.js`.
 - `new Game({ heroes: [id, id] })` takes hero ids. `classes: [...]` still works and means each class's default hero. Players carry both `heroId` (portrait, hero power) and `heroClass` (deck, colours, stats). Use `game.heroPower(pid)`, `defaultHero(cls)` and `classArt(cls)` rather than reading hero fields off a class. Effects are small objects (`{ type: 'damage', amount, to: 'target' }`) that the engine interprets in `#runEffects` / `#resolveEffect`.
 - Hooks: `effects`, `battlecry`, `deathrattle`, `combo`, `endOfTurn`, `onDamaged`, `onFriendlySpell`, `adjacentAura`.
 - Target selectors are listed at the top of `cards.js`.

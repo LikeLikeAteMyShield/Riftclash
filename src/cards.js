@@ -37,6 +37,10 @@ export const CLASSES = {
   celestial: { name: 'Celestial', emoji: '🌌', color: '#6f7fe8', defaultHero: 'aurion', hidden: true },
 };
 
+// Shared by Aurion and most of the Riftkin.
+const RIFT_STRENGTH = { name: 'Rift Grant Me Strength', cost: 2, sprite: 'power_celestial', text: 'Your hero gains +2 Attack this turn.',
+  effects: [{ type: 'heroAttack', amount: 2 }] };
+
 export const HEROES = {
   ignatia: {
     name: 'Ignatia the Kindled', cls: 'pyromancer', emoji: '🔥', portrait: 'hero_pyromancer',
@@ -65,8 +69,36 @@ export const HEROES = {
   },
   aurion: {
     name: 'Aurion, Lord of the Stars', cls: 'celestial', emoji: '🌌', portrait: 'hero_celestial',
-    heroPower: { name: 'Rift Grant Me Strength', cost: 2, sprite: 'power_celestial', text: 'Your hero gains +2 Attack this turn.',
-      effects: [{ type: 'heroAttack', amount: 2 }] },
+    heroPower: RIFT_STRENGTH,
+  },
+
+  // ---------- The Riftkin: Celestial bosses ----------
+  // `boss: true` heroes are never offered to the player; they're fought in "Challenge the Riftkin".
+  zarth: {
+    name: 'Zarth the Colossus', title: 'The First Mountain', cls: 'celestial', boss: true, emoji: '🗿', portrait: 'hero_zarth',
+    lore: 'Zarth raised the pillars that hold the Rift open. Ages of standing still have only made him heavier.',
+    heroPower: RIFT_STRENGTH,
+  },
+  galkun: {
+    name: "Void Serpent Gal'kun", title: 'Coil of the Endless Dark', cls: 'celestial', boss: true, emoji: '🐍', portrait: 'hero_galkun',
+    lore: 'Gal\'kun swims the dark between the stars and swallows any light that strays too close.',
+    heroPower: RIFT_STRENGTH,
+  },
+  ylva: {
+    name: 'Ylva, Starlight Priestess', title: 'Keeper of the First Light', cls: 'celestial', boss: true, emoji: '🌙', portrait: 'hero_ylva',
+    lore: 'Ylva sang the first stars awake. She still tends them, and she does not forgive those who dim them.',
+    heroPower: RIFT_STRENGTH,
+  },
+  manus: {
+    name: 'Manus Darkhammer', title: 'Forger of the Rift', cls: 'celestial', boss: true, emoji: '🔨', portrait: 'hero_manus',
+    lore: 'Manus beat the Rift into shape on an anvil of cold iron, and he never put the hammer down.',
+    heroPower: RIFT_STRENGTH,
+  },
+  grun: {
+    name: 'Nightlord Grun', title: 'Lord of the Long Night', cls: 'celestial', boss: true, emoji: '😈', portrait: 'hero_grun',
+    lore: 'Grun rules the hours when the stars go out, and the demons of the Rift come when he calls.',
+    heroPower: { name: 'Wrath of the Night', cost: 2, sprite: 'power_grun', text: 'Summon a 6/6 Rift Demon.',
+      effects: [{ type: 'summon', card: 't_riftdemon' }] },
   },
   vex: {
     name: 'Vex the Unseen', cls: 'shade', emoji: '🗡️', portrait: 'hero_shade',
@@ -74,6 +106,12 @@ export const HEROES = {
       effects: [{ type: 'weapon', card: 't_shiv' }] },
   },
 };
+
+/** The Riftkin bosses, in the order the doc lists them. */
+export const RIFTKIN = ['zarth', 'galkun', 'ylva', 'manus', 'grun'];
+
+/** Heroes a player can play (bosses excluded). */
+export const playerHeroes = () => Object.entries(HEROES).filter(([, h]) => !h.boss).map(([id, h]) => ({ id, ...h }));
 
 /** The hero a class is played with by default (e.g. on the menu). */
 export const defaultHero = cls => HEROES[CLASSES[cls].defaultHero];
@@ -271,6 +309,8 @@ const RAW_CARDS = [
     text: 'Destroy an enemy minion.', target: 'enemyMinion', effects: [{ type: 'destroy', to: 'target' }] },
 
   // ---------- Celestial (hidden until unlocked: see src/unlocks.js) ----------
+  // Summoned by Nightlord Grun's hero power.
+  { id: 't_riftdemon', cls: 'celestial', name: 'Rift Demon', type: 'minion', cost: 6, attack: 6, health: 6, emoji: '😈', sprite: 'card_t_riftdemon', token: true },
   // Time and space: the power of the Rift itself. Played by Aurion, and by the Riftkin bosses.
   { id: 'c_acolyte', cls: 'celestial', name: 'Chrono Acolyte', type: 'minion', cost: 2, attack: 2, health: 2, emoji: '⏳', sprite: 'card_c_acolyte',
     text: 'Battlecry: Gain 1 Mana Crystal this turn only.', battlecry: [{ type: 'mana', amount: 1 }] },
