@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { SONGS, compileSong, chord, arp, bass, noteToMidi } from '../src/songs.js';
+import { SONGS, compileSong, songSeconds, chord, arp, bass, noteToMidi } from '../src/songs.js';
 
 test('every song compiles, with all channels the same length', () => {
   for (const id of Object.keys(SONGS)) {
@@ -107,10 +107,8 @@ test('a battle ends with a short victory or defeat theme that plays once, and be
   const stingers = Object.keys(SONGS).filter(id => SONGS[id].loop === false).sort();
   assert.deepEqual(stingers, ['defeat', 'grunVictory', 'victory']);
   for (const id of stingers) {
-    const s = compileSong(id);
-    const release = Math.max(...Object.values(SONGS[id].channels).map(c => c.env?.r ?? 0));
-    const seconds = s.length * s.stepDur + release;
-    assert.ok(seconds <= 5.25, `${id} lasts ${seconds.toFixed(2)}s, about 5s at most`);
+    const seconds = songSeconds(id);
+    assert.ok(seconds > 3 && seconds <= 5.25, `${id} lasts ${seconds.toFixed(2)}s, about 5s at most`);
   }
   assert.equal(HEROES.grun.victoryMusic, 'grunVictory');
   assert.deepEqual(Object.keys(HEROES).filter(id => HEROES[id].victoryMusic), ['grun'], 'only Grun has his own');

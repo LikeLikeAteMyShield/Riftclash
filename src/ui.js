@@ -16,6 +16,7 @@ import { createQuestBoard, questBoardWidth } from './questboard.js';
 import { mountDeckBuilder } from './deckbuilder.js';
 import { STANDARD_DECK, loadDecks, isPlayable, loadDeckChoice, saveDeckChoice } from './decks.js';
 import { playTrack, playStinger, stopMusic, startMusic, isMusicOn, setMusicOn, beatClock } from './music.js';
+import { songSeconds } from './songs.js';
 import { mountBackdrop, newBackdrop, setBackdrop, showBackdrop } from './backdrop.js';
 import { mountMenuScene } from './menuscene.js';
 import { mountScene } from './sceneview.js';
@@ -238,8 +239,9 @@ $('#decks-btn').addEventListener('click', () => {
   showScreen('decks');
   openDecks();
 });
-$('#again-btn').addEventListener('click', startGame);
+$('#again-btn').addEventListener('click', () => { ui.resultRun = null; startGame(); });
 $('#menu-btn').addEventListener('click', () => {
+  ui.resultRun = null;
   $('#overlay').classList.add('hidden');
   renderClassSelect();
   showScreen(ui.mode === 'riftkin' ? 'bosses' : 'play');
@@ -972,16 +974,17 @@ async function gameOverFx() {
     hero.animate([{ opacity: 1, transform: 'scale(1.1)' }, { opacity: 0, transform: 'scale(.3)' }], { duration: 500, fill: 'forwards' });
   }
   await sleep(900);
-  playStinger(w === HUMAN ? HEROES[ui.game.players[AI].heroId].victoryMusic ?? 'victory' : 'defeat');
+  const stinger = w === HUMAN ? HEROES[ui.game.players[AI].heroId].victoryMusic ?? 'victory' : 'defeat';
+  playStinger(stinger);
   if (w === HUMAN) {
     for (let k = 0; k < 3; k++) {
       setTimeout(() => fx.burst({ x: innerWidth * (0.25 + k * 0.25), y: innerHeight * 0.3 },
         { color: ['#ffd27a', '#7cc0ff', '#8dff8d', '#ff8a7a'], count: 60, speed: 9, shape: 'shard', gravity: 0.15, life: 1500 }), k * 200);
     }
   }
+  const before = questStatus(loadProgress());
   const completed = recordFinishedGame();
-  showResult(completed);
-  if (completed.length) setTimeout(() => sfx.questComplete(), 600);
+  showResult(completed, before, isMusicOn() ? songSeconds(stinger) : 1.5);
 }
 
 /** Add the finished game to the player's stats (once per game) and return any quests it completed. */
@@ -994,23 +997,74 @@ function recordFinishedGame() {
   return recordGame({ cls: g.players[HUMAN].heroClass, result, boss: foe.boss ? g.players[AI].heroId : undefined }).completed;
 }
 
-function showResult(completed = []) {
+/**
+ * The end of a battle, in two steps. First the result on its own (Victory!,
+ * Defeat or Draw) while its theme plays; a Continue button appears as the
+ * theme ends. Then the quest progress, with bars filling and their own
+ * jingles, and finally the Rematch / Change class choices.
+ * `before` is the quest status from before this game was recorded.
+ */
+function showResult(completed, before, themeSeconds) {
   const w = ui.game.winner;
-  $('#result-title').textContent = w === 'draw' ? 'Draw' : w === HUMAN ? 'Victory!' : 'Defeat';
-  // Quest progress after this game: quests just completed first, then any still open.
+  const run = ui.resultRun = {};   // a newer result (or a rematch) cancels this one
   const progress = loadProgress();
   const just = new Set(completed.map(q => q.id));
+  // Quests worth showing: those this game completed, then any still open.
   const shown = questStatus(progress).filter(q => just.has(q.id) || !q.done);
-  const s = progress.stats;
   const foe = HEROES[ui.game.players[AI].heroId];
-  const bossLine = !foe.boss || w === 'draw' ? '' : `<p class="result-boss">${esc(foe.name)} ${w === HUMAN ? 'is defeated.' : 'stands victorious.'}</p>`;
+  $('#result-title').textContent = w === 'draw' ? 'Draw' : w === HUMAN ? 'Victory!' : 'Defeat';
+  $('#result-banner').innerHTML = !foe.boss || w === 'draw' ? '' : `<p class="result-boss">${esc(foe.name)} ${w === HUMAN ? 'is defeated.' : 'stands victorious.'}</p>`;
+  $('#result-quests').innerHTML = '';
   $('#menu-btn').textContent = ui.mode === 'riftkin' ? 'Choose another foe' : 'Change class';
-  $('#result-quests').innerHTML = `${bossLine}
-    <p class="result-record">Record: ${s.wins} W · ${s.losses} L${s.draws ? ` · ${s.draws} D` : ''}</p>
-    ${completed.length ? `<p class="result-quest-done">Quest complete!</p>` : ''}
-    ${shown.map(q => questNoticeHTML(q, { compact: true, fresh: just.has(q.id) })).join('')}`;
-  renderQuestBadge();
+  setResultButtons('none');
   $('#overlay').classList.remove('hidden');
+  renderQuestBadge();
+  // Let the theme play out; then offer the quest progress (or go straight to the choices if there's none to show).
+  setTimeout(() => {
+    if (ui.resultRun !== run) return;
+    setResultButtons(shown.length ? 'continue' : 'choices');
+  }, Math.max(1, themeSeconds - 0.4) * 1000);
+  $('#continue-btn').onclick = () => { sfx.click(); showQuestProgress(run, shown, before, just, progress.stats); };
+}
+
+/** Which buttons the result overlay offers: none yet, Continue, or the Rematch / Change class choices. */
+function setResultButtons(which) {
+  $('#continue-btn').classList.toggle('hidden', which !== 'continue');
+  $('#again-btn').classList.toggle('hidden', which !== 'choices');
+  $('#menu-btn').classList.toggle('hidden', which !== 'choices');
+  $('#overlay .overlay-actions').classList.toggle('appear', which !== 'none');
+}
+
+/** Step two: each quest's bar fills from where it was before the game, with a chime; completed quests get stamped. */
+async function showQuestProgress(run, shown, before, just, stats) {
+  setResultButtons('none');
+  const was = Object.fromEntries(before.map(q => [q.id, q]));
+  $('#result-title').textContent = 'Quest Progress';
+  $('#result-banner').innerHTML = '';
+  // Start every notice where it stood before this game.
+  const start = q => ({ ...q, value: was[q.id]?.value ?? 0, done: false, completedAt: null });
+  $('#result-quests').innerHTML = `
+    <p class="result-record">Record: ${stats.wins} W · ${stats.losses} L${stats.draws ? ` · ${stats.draws} D` : ''}</p>
+    ${shown.map(q => `<div data-quest="${q.id}">${questNoticeHTML(start(q), { compact: true })}</div>`).join('')}`;
+  await sleep(500);
+  for (const q of shown) {
+    if (ui.resultRun !== run) return;
+    const slot = $(`#result-quests [data-quest="${q.id}"]`);
+    if (q.value > (was[q.id]?.value ?? 0)) {
+      slot.querySelector('.q-bar span').style.width = `${Math.round(q.value / q.goal * 100)}%`;
+      slot.querySelector('.q-count').textContent = `${q.value} / ${q.goal}`;
+      sfx.questProgress();
+      await sleep(750);
+    }
+    if (just.has(q.id)) {
+      slot.innerHTML = questNoticeHTML(q, { compact: true, fresh: true });
+      slot.insertAdjacentHTML('beforebegin', '<p class="result-quest-done">Quest complete!</p>');
+      sfx.questComplete();
+      await sleep(1200);
+    }
+  }
+  if (ui.resultRun !== run) return;
+  setResultButtons('choices');
 }
 
 // ------------------------------------------------------------------ input
