@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BACKGROUNDS, createScene, pickBackground, BG_WIDTH as W, BG_HEIGHT as H } from '../src/backgrounds.js';
+import { BACKGROUNDS, createScene, pickBackground, randomBackgrounds, BG_WIDTH as W, BG_HEIGHT as H } from '../src/backgrounds.js';
+import { HEROES, RIFTKIN } from '../src/cards.js';
 
 const ids = Object.keys(BACKGROUNDS);
 const luminance = f => {
@@ -70,7 +71,19 @@ test('the background is picked at random, never repeating the previous one', () 
     seen.add(id);
     prev = id;
   }
-  assert.equal(seen.size, ids.length, 'every background comes up');
+  assert.equal(seen.size, randomBackgrounds().length, 'every ordinary background comes up');
+  assert.ok(![...seen].some(id => BACKGROUNDS[id].boss), 'boss boards never come up at random');
+});
+
+test('the Riftkin fight on their own boards: Grun in his citadel, the other four in the Celestial Realm', () => {
+  assert.equal(BACKGROUNDS.celestial.name, 'The Celestial Realm');
+  assert.equal(BACKGROUNDS.citadel.name, 'Citadel of Endless Night');
+  for (const id of RIFTKIN) {
+    const board = HEROES[id].board;
+    assert.ok(BACKGROUNDS[board]?.boss, `${id} fights on a boss board`);
+    assert.equal(board, id === 'grun' ? 'citadel' : 'celestial', id);
+  }
+  assert.ok(!Object.values(HEROES).some(h => !h.boss && h.board), 'only bosses have a board');
 });
 
 test('bad scene data fails clearly', () => {

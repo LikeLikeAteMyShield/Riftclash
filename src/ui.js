@@ -16,7 +16,7 @@ import { createQuestBoard, questBoardWidth } from './questboard.js';
 import { mountDeckBuilder } from './deckbuilder.js';
 import { STANDARD_DECK, loadDecks, isPlayable, loadDeckChoice, saveDeckChoice } from './decks.js';
 import { playTrack, startMusic, isMusicOn, setMusicOn, beatClock } from './music.js';
-import { mountBackdrop, newBackdrop, showBackdrop } from './backdrop.js';
+import { mountBackdrop, newBackdrop, setBackdrop, showBackdrop } from './backdrop.js';
 import { mountMenuScene } from './menuscene.js';
 import { mountScene } from './sceneview.js';
 import { createArchive, archiveWidth } from './archive.js';
@@ -281,9 +281,10 @@ function startGame() {
   ui.selection = null;
   setBusy(false);
   ui.mulliganPicks = new Set();
-  const place = newBackdrop();
-  $('#battlefield').textContent = `Battlefield: ${place}`;
+  // Bosses fight on their own board; other matches get a random one.
   const foe = HEROES[heroes[1]];
+  const place = foe.board ? setBackdrop(foe.board) : newBackdrop();
+  $('#battlefield').textContent = `Battlefield: ${place}`;
   $('#log').innerHTML = foe.boss
     ? `<li>${esc(foe.name)}, ${esc(foe.title)}, awaits you at ${esc(place)}.</li>`
     : `<li>The battle is joined at ${esc(place)}.</li>`;

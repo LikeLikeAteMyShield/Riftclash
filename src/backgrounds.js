@@ -85,11 +85,53 @@ export const BACKGROUNDS = {
       { type: 'particles', kind: 'motes', count: 22, color: '#b48aff', seed: 47 },
     ],
   },
+
+  // Boss boards (`boss: true`): never picked at random, only for Riftkin fights (a boss hero's `board` in cards.js).
+
+  celestial: {
+    name: 'The Celestial Realm',
+    boss: true,
+    layers: [
+      { type: 'sky', stops: [[0, '#06061a'], [40, '#0e0c2c'], [76, '#1c1240']] },
+      { type: 'nebula', clouds: [[150, 24, 44, 12, '#3a1c5a', 0.45], [60, 44, 50, 14, '#162a5a', 0.45], [104, 12, 30, 8, '#4a1c4a', 0.3]] },
+      { type: 'stars', count: 70, yMax: 80, color: '#d8d0ff', seed: 53 },
+      { type: 'planet', x: 30, y: 18, r: 11, color: '#3a3478', shade: '#1a1844', ring: '#6a5aa8' },
+      { type: 'isles', color: '#1e1a3c', cap: '#3c3870', seed: 59, items: [
+        { x: 20, y: 60, w: 22 }, { x: 96, y: 54, w: 46, temple: 7 }, { x: 172, y: 66, w: 26 }, { x: 56, y: 36, w: 10 }, { x: 140, y: 44, w: 8 },
+      ] },
+      { type: 'glow', x: 96, y: 40, r: 30, color: '#5a4ab0', alpha: 0.18 },
+      { type: 'fog', y: 84, height: 12, color: '#2a2458', alpha: 0.4 },
+      { type: 'ground', y: 94, color: '#0c0a1e' },
+      { type: 'particles', kind: 'motes', count: 26, color: '#8fe0ff', seed: 61 },
+    ],
+  },
+
+  citadel: {
+    name: 'Citadel of Endless Night',
+    boss: true,
+    layers: [
+      { type: 'sky', stops: [[0, '#06030a'], [30, '#120508'], [62, '#34100a'], [84, '#481608']] },
+      { type: 'glow', x: 96, y: 84, r: 90, color: '#5a160a', alpha: 0.35 },
+      { type: 'stars', count: 6, yMax: 30, color: '#6a4040', seed: 67 },
+      { type: 'smoke', columns: [{ x: 52, color: '#160a0a' }, { x: 142, color: '#140909' }] },
+      { type: 'ridge', y: 70, amp: 14, rough: 0.75, color: '#120808', seed: 71 },
+      { type: 'spire', x: 96, base: 88, height: 74, color: '#060308', edge: '#2a0c0c', eye: '#ff7a2a', core: '#ffd27a' },
+      { type: 'ridge', y: 84, amp: 6, rough: 0.6, color: '#0a0507', seed: 73 },
+      { type: 'ground', y: 92, color: '#070405' },
+      { type: 'cracks', y: 92, count: 7, color: '#c8401a', seed: 79 },
+      { type: 'particles', kind: 'snow', count: 40, color: '#4a3a3a', seed: 83 },
+      { type: 'particles', kind: 'embers', count: 18, color: '#ff6a2a', alt: '#ffb05a', seed: 89 },
+    ],
+  },
 };
 
-/** Pick a background id. Avoids repeating `previous` when there is a choice. */
+/** The backgrounds an ordinary match can get (boss boards are kept for their bosses). */
+export const randomBackgrounds = () => Object.keys(BACKGROUNDS).filter(id => !BACKGROUNDS[id].boss);
+
+/** Pick a background id for an ordinary match. Avoids repeating `previous` when there is a choice. */
 export function pickBackground(rand = Math.random, previous = null) {
-  const ids = Object.keys(BACKGROUNDS).filter(id => id !== previous || Object.keys(BACKGROUNDS).length === 1);
+  const pool = randomBackgrounds();
+  const ids = pool.filter(id => id !== previous || pool.length === 1);
   return ids[Math.floor(rand() * ids.length)];
 }
 
@@ -383,6 +425,125 @@ const LAYERS = {
           for (let dx = -w; dx <= w; dx++) c.put(x + dx, yy + dy, col);
         }
       });
+    },
+  },
+  nebula: {
+    draw(c, L) {
+      // Soft, wispy clouds of colour: an ellipse falloff broken up by a few sine waves.
+      for (const [cx, cy, rx, ry, color, alpha] of L.clouds) {
+        const col = hex(color);
+        for (let y = Math.max(0, cy - ry * 2); y < Math.min(c.h, cy + ry * 2); y++) for (let x = Math.max(0, cx - rx * 2); x < Math.min(c.w, cx + rx * 2); x++) {
+          const d = Math.hypot((x - cx) / rx, (y - cy) / ry);
+          const wisp = 0.55 + 0.25 * Math.sin(x / 5 + y / 3) + 0.2 * Math.sin(x / 11 - y / 4 + cx);
+          if (d < 1.6) c.blend(x, y, col, alpha * wisp * (1 - d / 1.6) ** 1.5);
+        }
+      }
+    },
+  },
+  planet: {
+    draw(c, L, ctx) {
+      const col = hex(L.color), sh = hex(L.shade), ring = hex(L.ring);
+      const ringAt = (x, y) => { const e = ((x - L.x) / (L.r * 1.9)) ** 2 + ((y - L.y) / (L.r * 0.42)) ** 2; return e <= 1 && e >= 0.6; };
+      // The back half of the ring, the planet, then the front half over it.
+      for (let y = L.y - L.r; y <= L.y; y++) for (let x = L.x - L.r * 2; x <= L.x + L.r * 2; x++) if (ringAt(x, y)) c.blend(x, y, ring, 0.7);
+      for (let y = -L.r; y <= L.r; y++) for (let x = -L.r; x <= L.r; x++) {
+        if (x * x + y * y > L.r * L.r) continue;
+        const lit = (x + y * 0.6) / L.r;   // lit from the lower left
+        const dark = Math.min(1, Math.max(0, (lit + 0.2) * 0.9 + BAYER[(L.y + y) & 3][(L.x + x) & 3] * 0.35 - 0.15));
+        c.put(L.x + x, L.y + y, col.map((v, k) => Math.round(v + (sh[k] - v) * dark)));
+        ctx.sky[(L.y + y) * c.w + L.x + x] = 0;
+      }
+      for (let y = L.y; y <= L.y + L.r; y++) for (let x = L.x - L.r * 2; x <= L.x + L.r * 2; x++) if (ringAt(x, y)) c.blend(x, y, ring, 0.7);
+    },
+  },
+  isles: {
+    draw(c, L, ctx) {
+      // Floating islands: a flat top with a lighter rim, a jagged rocky underside, maybe a temple of pillars.
+      const r = rng(L.seed), col = hex(L.color), cap = hex(L.cap);
+      for (const { x, y, w, temple } of L.items) {
+        const depth = w * 0.55;
+        for (let dx = -w / 2; dx <= w / 2; dx++) {
+          const f = 1 - Math.abs(dx) / (w / 2);
+          const bottom = y + 2 + depth * f ** 0.8 * (0.75 + r() * 0.25);
+          for (let yy = y; yy <= bottom; yy++) { c.put(x + dx, yy, yy < y + 1 ? cap : col); ctx.sky[(yy | 0) * c.w + ((x + dx) | 0)] = 0; }
+        }
+        if (!temple) continue;
+        // A small colonnade: a step, pillars, a beam and a pediment.
+        const half = Math.floor(w * 0.3), top = y - 12;
+        c.rect(x - half - 1, y - 1, x + half + 1, y - 1, col);
+        for (let k = 0; k < temple; k++) {
+          const px = Math.round(x - half + k * (2 * half) / (temple - 1));
+          c.rect(px, top + 2, px, y - 2, cap);
+        }
+        c.rect(x - half - 1, top, x + half + 1, top + 1, cap);
+        for (let k = 0; k <= 4; k++) c.rect(x - half - 1 + k * 3, top - k - 1, x + half + 1 - k * 3, top - k - 1, k ? col : cap);
+        for (let yy = top - 6; yy < y; yy++) for (let xx = x - half - 1; xx <= x + half + 1; xx++) ctx.sky[yy * c.w + xx] = 0;
+      }
+    },
+  },
+  spire: {
+    draw(c, L, ctx) {
+      // A dark tower narrowing as it rises, with buttresses, and two great prongs at the top
+      // around the window where the Nightlord watches.
+      const col = hex(L.color), edge = hex(L.edge);
+      const { x, base, height } = L, top = base - height;
+      for (let y = top + 10; y <= base + 6; y++) {
+        const f = (y - top) / height;
+        const half = Math.round(4 + f * f * 11);
+        c.rect(x - half, y, x + half, y, col);
+        c.put(x - half, y, edge); c.put(x + half, y, edge);
+        for (let xx = x - half; xx <= x + half; xx++) ctx.sky[y * c.w + xx] = 0;
+      }
+      // buttresses stepping out near the foot
+      for (const [dx, h] of [[-15, 22], [15, 22], [-21, 12], [21, 12]]) {
+        for (let k = 0; k < h; k++) { const w = Math.round(k / h * 3); c.rect(x + dx - w, base - h + k, x + dx + w, base - h + k, col); }
+        c.rect(x + dx - 3, base, x + dx + 3, base + 6, col);
+        for (let y = base - h; y <= base + 6; y++) for (let xx = x + dx - 3; xx <= x + dx + 3; xx++) ctx.sky[y * c.w + xx] = 0;
+      }
+      // the crown: two prongs sweeping out from the top, then curving back in to points
+      for (const side of [-1, 1]) {
+        for (let k = 0; k < 16; k++) {
+          const px = x + side * Math.round(3 + 6 * Math.sin((k / 16) * Math.PI * 0.85)), py = top + 12 - k;
+          const w = k < 12 ? 2 : 1;
+          for (let j = 0; j < w; j++) { c.put(px + side * j, py, col); ctx.sky[py * c.w + px + side * j] = 0; }
+          c.put(px + side * w, py, edge);
+        }
+      }
+      // spikes along the upper tower
+      for (let k = 0; k < 4; k++) { const y = top + 22 + k * 9, half = Math.round(3 + ((y - top) / height) ** 2 * 11); c.put(x - half - 1, y, col); c.put(x + half + 1, y, col); c.put(x - half - 2, y - 1, col); c.put(x + half + 2, y - 1, col); }
+      L._eye = [x, top + 4];
+      L._windows = [[x - 4, base - 30], [x + 5, base - 22], [x - 2, base - 46], [x + 3, base - 12]];
+    },
+    animate(c, L, { t }) {
+      // The burning eye between the prongs: a slit that glows and slowly pulses.
+      const eye = hex(L.eye), core = hex(L.core);
+      const [ex, ey] = L._eye, pulse = 0.75 + 0.25 * Math.sin(t * 0.9);
+      for (let y = -6; y <= 6; y++) for (let x = -9; x <= 9; x++) {
+        const d = Math.hypot(x / 9, y / 6);
+        if (d < 1) c.blend(ex + x, ey + y, eye, 0.22 * (1 - d) * pulse);
+      }
+      for (let x = -2; x <= 2; x++) c.blend(ex + x, ey, Math.abs(x) < 1 ? core : eye, 0.9 * pulse);
+      c.blend(ex, ey - 1, eye, 0.6 * pulse); c.blend(ex, ey + 1, eye, 0.6 * pulse);
+      L._windows.forEach(([wx, wy], i) => c.blend(wx, wy, eye, 0.35 + 0.2 * Math.sin(t * (1.7 + i * 0.4) + i * 2)));
+    },
+  },
+  cracks: {
+    init(L, ctx) {
+      // Fissures across the ground: short jagged polylines.
+      const r = rng(L.seed);
+      L._cracks = Array.from({ length: L.count }, () => {
+        let x = r() * ctx.w, y = L.y + 2 + r() * (ctx.h - L.y - 4);
+        const pts = [];
+        for (let k = 0; k < 10 + r() * 14; k++) { pts.push([x | 0, y | 0]); x += r() < 0.5 ? 1 : 2; y += r() < 0.3 ? 1 : r() < 0.5 ? -1 : 0; y = Math.max(L.y + 1, Math.min(ctx.h - 1, y)); }
+        return { pts, p: r() * 6.28 };
+      });
+    },
+    animate(c, L, { t }) {
+      const col = hex(L.color);
+      for (const { pts, p } of L._cracks) {
+        const a = 0.35 + 0.2 * Math.sin(t * 0.8 + p);
+        for (const [x, y] of pts) c.blend(x, y, col, a);
+      }
     },
   },
   particles: {

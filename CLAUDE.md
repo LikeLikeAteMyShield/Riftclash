@@ -76,7 +76,7 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
 - `test/pixelart.test.js` requires every card (including tokens) and every hero power to have a registered sprite, so a new card needs art.
 
 ### Screen backdrops
-- **Battle boards:** `backgrounds.js` (layered scene data) shown by `backdrop.js`.
+- **Battle boards:** `backgrounds.js` (layered scene data) shown by `backdrop.js`. Boards marked `boss: true` never come up at random (`pickBackground`); a boss hero's `board` in `cards.js` names the one it fights on (the Celestial Realm for four of the Riftkin, the Citadel of Endless Night for Grun).
 - **Library, deck builder and quests:** `archive.js`, `forge.js` and `questboard.js` paint into RGBA buffers using helpers from `pixelbuf.js`. Each exports `create<Scene>(width)` returning `{ width, height, render(t) }`. `render(t)` is a pure function of time.
 - They are shown by `sceneview.js` → `mountScene(canvas, { width, create, fps, stillAt, time })`. This sizes the canvas to the viewport's aspect, runs only while that screen is shown and the tab is visible, and draws a still frame under `prefers-reduced-motion`.
 - **Tests enforce readability limits** on each scene: mean and 95th-percentile brightness, how many pixels may change sharply between frames, and determinism. A brighter or busier scene needs its colours toned down, not the thresholds raised.

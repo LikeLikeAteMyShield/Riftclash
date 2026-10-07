@@ -73,29 +73,30 @@ export const HEROES = {
   },
 
   // ---------- The Riftkin: Celestial bosses ----------
-  // `boss: true` heroes are never offered to the player; they're fought in "Challenge the Riftkin".
+  // `boss: true` heroes are never offered to the player; they're fought in "Challenge the Riftkin",
+  // on their own battle board (`board`, a boss background id in backgrounds.js).
   zarth: {
-    name: 'Zarth the Colossus', title: 'The First Mountain', cls: 'celestial', boss: true, emoji: '🗿', portrait: 'hero_zarth',
+    name: 'Zarth the Colossus', title: 'The First Mountain', cls: 'celestial', boss: true, emoji: '🗿', portrait: 'hero_zarth', board: 'celestial',
     lore: 'Zarth raised the pillars that hold the Rift open. Ages of standing still have only made him heavier.',
     heroPower: RIFT_STRENGTH,
   },
   galkun: {
-    name: "Void Serpent Gal'kun", title: 'Coil of the Endless Dark', cls: 'celestial', boss: true, emoji: '🐍', portrait: 'hero_galkun',
+    name: "Void Serpent Gal'kun", title: 'Coil of the Endless Dark', cls: 'celestial', boss: true, emoji: '🐍', portrait: 'hero_galkun', board: 'celestial',
     lore: 'Gal\'kun swims the dark between the stars and swallows any light that strays too close.',
     heroPower: RIFT_STRENGTH,
   },
   ylva: {
-    name: 'Ylva, Starlight Priestess', title: 'Keeper of the First Light', cls: 'celestial', boss: true, emoji: '🌙', portrait: 'hero_ylva',
+    name: 'Ylva, Starlight Priestess', title: 'Keeper of the First Light', cls: 'celestial', boss: true, emoji: '🌙', portrait: 'hero_ylva', board: 'celestial',
     lore: 'Ylva sang the first stars awake. She still tends them, and she does not forgive those who dim them.',
     heroPower: RIFT_STRENGTH,
   },
   manus: {
-    name: 'Manus Darkhammer', title: 'Forger of the Rift', cls: 'celestial', boss: true, emoji: '🔨', portrait: 'hero_manus',
+    name: 'Manus Darkhammer', title: 'Forger of the Rift', cls: 'celestial', boss: true, emoji: '🔨', portrait: 'hero_manus', board: 'celestial',
     lore: 'Manus beat the Rift into shape on an anvil of cold iron, and he never put the hammer down.',
     heroPower: RIFT_STRENGTH,
   },
   grun: {
-    name: 'Nightlord Grun', title: 'Lord of the Long Night', cls: 'celestial', boss: true, emoji: '👁️', portrait: 'hero_grun',
+    name: 'Nightlord Grun', title: 'Lord of the Long Night', cls: 'celestial', boss: true, emoji: '👁️', portrait: 'hero_grun', board: 'citadel',
     lore: 'Grun rules the hours when the stars go out, and the demons of the Rift come when he calls.',
     heroPower: { name: 'Wrath of the Night', cost: 2, sprite: 'power_grun', text: 'Summon a 6/6 Rift Demon.',
       effects: [{ type: 'summon', card: 't_riftdemon' }] },
