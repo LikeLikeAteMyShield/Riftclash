@@ -242,6 +242,119 @@ export const SONGS = {
     },
   },
 
+  // ---- Stingers: short one-shots for the end of a battle (`loop: false`), then silence.
+
+  // Victory: a quick, bright fanfare in A major, the battle theme's A minor turned to the light.
+  victory: {
+    title: 'Victory',
+    bpm: 132,
+    volume: 0.8,
+    loop: false,
+    channels: {
+      lead: {
+        wave: 'pulse25', volume: 0.16, env: { a: 0.005, d: 0.1, s: 0.6, r: 0.5 }, vibrato: { rate: 6, depth: 5, delay: 0.25 },
+        bars: [
+          'A4 . C#5 . E5 . A5 - - - E5 - A5 - - -',
+          'B5 - - - G#5 - - - A5 - - - - - - -',
+        ],
+      },
+      harmony: {
+        wave: 'pulse12', volume: 0.07, env: { a: 0.005, d: 0.1, s: 0.5, r: 0.4 },
+        bars: [
+          'E4 . A4 . C#5 . E5 - - - C#5 - E5 - - -',
+          'G#5 - - - E5 - - - E5 - - - - - - -',
+        ],
+      },
+      bass: {
+        wave: 'triangle', volume: 0.3, env: { a: 0.004, d: 0.1, s: 0.8, r: 0.3 },
+        bars: [
+          'A2 - - - - - - - A2 - - - E2 - - -',
+          'E2 - - - E3 - - - A2 - - - - - - -',
+        ],
+      },
+      drums: {
+        wave: 'noise', volume: 0.12,
+        bars: [
+          'k . . . s . . . k . k . s s s s',
+          'k . . . s . . . k . . . . . . .',
+        ],
+      },
+    },
+  },
+
+  // Defeat: a slow, falling minor line that settles low and fades.
+  defeat: {
+    title: 'Defeat',
+    bpm: 66,
+    volume: 0.65,
+    loop: false,
+    channels: {
+      lead: {
+        wave: 'pulse25', volume: 0.09, filter: 1600, env: { a: 0.05, d: 0.3, s: 0.6, r: 1 }, vibrato: { rate: 4, depth: 6, delay: 0.3 },
+        bars: ['E5 - - - C5 - - - B4 - - - A4 - - -'],
+      },
+      harmony: {
+        wave: 'pulse50', volume: 0.04, filter: 900, env: { a: 0.08, d: 0.3, s: 0.6, r: 1 },
+        bars: ['C5 - - - A4 - - - G#4 - - - E4 - - -'],
+      },
+      bass: {
+        wave: 'triangle', volume: 0.26, env: { a: 0.05, d: 0.3, s: 0.7, r: 1 },
+        bars: ['A2 - - - - - - - E2 - - - A1 - - -'],
+      },
+      drums: {
+        wave: 'noise', volume: 0.06,
+        bars: ['k . . . . . . . . . . . k . . .'],
+      },
+    },
+  },
+
+  // Beating Grun: the fate of the cosmos is won. His C minor breaks into a blazing
+  // C major fanfare, with a full band, a sweeping high arpeggio, rolling drums and
+  // the grand bVII - bVI - V - I cadence home.
+  grunVictory: {
+    title: 'Dawn After the Endless Night',
+    bpm: 112,
+    volume: 0.95,
+    loop: false,
+    channels: {
+      lead: {
+        wave: 'pulse25', volume: 0.18, env: { a: 0.005, d: 0.08, s: 0.7, r: 0.8 }, vibrato: { rate: 6, depth: 6, delay: 0.2 },
+        bars: [
+          'G4 G4 G4 . C5 - - . E5 - G5 - C6 - - -',
+          'D6 - - - C6 - - - B5 - - - C6 - - -',
+        ],
+      },
+      harmony: {
+        wave: 'pulse50', volume: 0.07, filter: 2400, env: { a: 0.005, d: 0.1, s: 0.6, r: 0.8 },
+        bars: [
+          'E4 E4 E4 . G4 - - . C5 - E5 - G5 - - -',
+          'F5 - - - Eb5 - - - D5 - - - E5 - - -',
+        ],
+      },
+      sparkle: {
+        wave: 'pulse12', volume: 0.05, env: { a: 0.002, d: 0.06, s: 0.4, r: 0.4 },
+        bars: [
+          arp('C', { octave: 5, order: [0, 1, 2, 3] }),
+          'Bb5 D6 F6 D6 Ab5 C6 Eb6 C6 G5 B5 D6 B5 C6 E6 G6 E6',
+        ],
+      },
+      bass: {
+        wave: 'triangle', volume: 0.34, env: { a: 0.003, d: 0.08, s: 0.8, r: 0.6 },
+        bars: [
+          bass('C', 'pump'),
+          'Bb2 - Bb3 - Ab2 - Ab3 - G2 - G3 - C3 - C2 -',
+        ],
+      },
+      drums: {
+        wave: 'noise', volume: 0.14,
+        bars: [
+          'k . s s k . s s k . s . k s s s',
+          'k . s . k . s . k . s s s s s k',
+        ],
+      },
+    },
+  },
+
   // Card library: a warm, lute-like study piece in C major. No drums.
   library: {
     title: 'The Archivist\'s Lute',

@@ -75,7 +75,8 @@ export const HEROES = {
   // ---------- The Riftkin: Celestial bosses ----------
   // `boss: true` heroes are never offered to the player; they're fought in "Challenge the Riftkin",
   // on their own battle board (`board`, a boss background id in backgrounds.js)
-  // to their own music (`music`, a song id in songs.js).
+  // to their own music (`music`, a song id in songs.js). Beating a hero with
+  // `victoryMusic` plays that stinger instead of the standard victory theme.
   zarth: {
     name: 'Zarth the Colossus', title: 'The First Mountain', cls: 'celestial', boss: true, emoji: '🗿', portrait: 'hero_zarth', board: 'celestial', music: 'riftkin',
     lore: 'Zarth raised the pillars that hold the Rift open. Ages of standing still have only made him heavier.',
@@ -97,7 +98,7 @@ export const HEROES = {
     heroPower: RIFT_STRENGTH,
   },
   grun: {
-    name: 'Nightlord Grun', title: 'Lord of the Long Night', cls: 'celestial', boss: true, emoji: '👁️', portrait: 'hero_grun', board: 'citadel', music: 'grun',
+    name: 'Nightlord Grun', title: 'Lord of the Long Night', cls: 'celestial', boss: true, emoji: '👁️', portrait: 'hero_grun', board: 'citadel', music: 'grun', victoryMusic: 'grunVictory',
     lore: 'Grun rules the hours when the stars go out, and the demons of the Rift come when he calls.',
     heroPower: { name: 'Wrath of the Night', cost: 2, sprite: 'power_grun', text: 'Summon a 6/6 Rift Demon.',
       effects: [{ type: 'summon', card: 't_riftdemon' }] },
