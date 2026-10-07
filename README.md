@@ -13,6 +13,8 @@ It has no dependencies and no build step. ES modules don't load over `file://`, 
 
 ## How to play
 
+The title screen offers the game modes. For now there's one, **Enter the Rift**: pick it, choose your champion (class), deck and opponent, then **Begin battle**. **Deck Builder**, **Card Library** and **Quests** are on the title screen too. Game modes are defined in `src/modes.js`.
+
 - Each hero starts with 30 Health. You gain a Mana Crystal every turn, up to 10.
 - The player going first starts with 3 cards. The player going second starts with 4 cards plus the **Ember Coin** (gain 1 mana this turn). You can mulligan your opening hand.
 - **Drag a minion** onto your side of the board and drop it where you want it; a gap opens to show where it will land. You can also click the minion, then click a spot on the board (handy on touch screens).
@@ -33,7 +35,7 @@ Open **Deck Builder** from the main menu to make your own decks. Each deck has a
 - **Auto-fill**: tops the deck up to 30 cards. The class's own cards go in first, then neutrals chosen to round out the curve. **Clear** empties the deck (click twice).
 - **Saving**: changes save as you go, in your browser's local storage. Decks stay on this browser only, and clearing site data deletes them.
 
-Back on the main menu, the **Deck** dropdown lists the standard deck plus your finished decks for the chosen class. The menu remembers the last deck you picked for each class. Unfinished decks are listed but can't be selected until they have 30 cards. **Play** on a finished deck jumps back to the menu with it selected. The AI always uses a standard deck.
+On the champion selection screen, the **Deck** dropdown lists the standard deck plus your finished decks for the chosen class. The menu remembers the last deck you picked for each class. Unfinished decks are listed but can't be selected until they have 30 cards. **Play** on a finished deck jumps to champion selection with that class and deck selected. The AI always uses a standard deck.
 
 The deck builder is set in a blacksmith's forge at night:
 - A brick hearth glows under its stone hood, swelling each time the bellows pump, with sparks flying up the chimney.
@@ -81,7 +83,7 @@ Every sound is synthesized live with the Web Audio API, so there are no audio fi
 
 ### Main menu
 
-Behind the main menu, a pixel art battle plays out in time with the menu theme.
+Behind the title screen and champion selection, a pixel art battle plays out in time with the menu theme.
 - A storm sky is torn open by the Rift, which pulses on every beat and throws lightning every other bar.
 - Clouds are drawn into the Rift, a castle burns on the ridge, and two armies march to meet in the middle.
 - In front, the six heroes fight on a 16-beat loop:
@@ -139,7 +141,7 @@ The neutral **Whispering Monk** (3 mana, 2/1) has *Battlecry: Silence a minion.*
 | Vanguard | tokens, buffs, divine shields | **Muster**: summon a 1/1 Recruit |
 | Shade | cheap tricks, combos, daggers | **Blade Kit**: equip a 1/2 Shiv |
 
-Classes and heroes are separate in the data (`CLASSES` and `HEROES` in `src/cards.js`). The class decides the cards and colours; the hero decides the name, portrait and hero power. Each class has a default hero, the one you play on the menu, and more than one hero can share a class.
+Classes and heroes are separate in the data (`CLASSES` and `HEROES` in `src/cards.js`). The class decides the cards and colours; the hero decides the name, portrait and hero power. Each class has a default hero, the one you play when you pick that class, and more than one hero can share a class.
 
 Each class's standard deck is 2 copies of its 8 class cards plus 7 pairs of neutral cards chosen to give a sensible mana curve.
 

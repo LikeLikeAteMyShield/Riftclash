@@ -8,6 +8,7 @@ import { sfx, unlock, isMuted, setMuted } from './sfx.js';
 import { artHTML, hasSprite, spriteSVG } from './pixelart.js';
 import { cardHTML, keywordHelpHTML, esc } from './cardview.js';
 import { mountLibrary } from './library.js';
+import { availableModes } from './modes.js';
 import { mountQuests, questNoticeHTML, unseenCompleted } from './questscreen.js';
 import { recordGame, questStatus, loadProgress } from './progress.js';
 import { visibleClasses, sequenceMatcher, SECRET_CODE, togglePlaytest } from './unlocks.js';
@@ -50,7 +51,30 @@ const powerArt = hp => (hasSprite(hp.sprite) ? spriteSVG(hp.sprite) : `<span cla
 /** A hero's portrait (pixel art, or its emoji if no sprite exists). */
 const heroArt = hero => artHTML({ sprite: hero.portrait, emoji: hero.emoji }, { title: hero.name });
 
-function renderMenu() {
+/** The title screen: one tile per game mode. */
+function renderTitle() {
+  $('#mode-grid').innerHTML = availableModes().map(m => `
+    <button class="mode-tile" data-mode="${m.id}" type="button">
+      <span class="mode-icon">${hasSprite(m.icon) ? spriteSVG(m.icon) : ''}</span>
+      <span class="mode-name">${esc(m.name)}</span>
+      <span class="mode-text">${esc(m.text)}</span>
+    </button>`).join('');
+}
+
+$('#mode-grid').addEventListener('click', e => {
+  const tile = e.target.closest('[data-mode]');
+  if (!tile) return;
+  const mode = availableModes().find(m => m.id === tile.dataset.mode);
+  sfx.click();
+  ui.mode = mode.id;
+  $('#play-title').textContent = mode.name;
+  renderClassSelect();
+  showScreen(mode.screen);
+});
+$('#play-back').addEventListener('click', () => showScreen('menu'));
+
+/** The class and deck selection screen. */
+function renderClassSelect() {
   // Only classes the player can see (hidden ones stay out until unlocked).
   const classes = visibleClasses();
   if (ui.playerClass && !classes.includes(ui.playerClass)) ui.playerClass = null;
@@ -103,7 +127,7 @@ $('#class-grid').addEventListener('click', e => {
   const tile = e.target.closest('[data-class]');
   if (!tile) return;
   ui.playerClass = tile.dataset.class;
-  renderMenu();
+  renderClassSelect();
 });
 $('#opponent-select').addEventListener('change', e => { ui.aiClass = e.target.value; });
 $('#start-btn').addEventListener('click', startGame);
@@ -118,10 +142,11 @@ $('#library-btn').addEventListener('click', () => {
 // classes (and locks them again). See unlocks.js.
 const secret = sequenceMatcher(SECRET_CODE);
 document.addEventListener('keydown', e => {
-  if ($('#menu').classList.contains('hidden') || e.target.closest?.('input, select, textarea')) return;
+  const onMenu = !$('#menu').classList.contains('hidden') || !$('#play').classList.contains('hidden');
+  if (!onMenu || e.target.closest?.('input, select, textarea')) return;
   if (!secret(e.key)) return;
   const on = togglePlaytest();
-  renderMenu();
+  renderClassSelect();
   if (on) {
     sfx.questComplete();
     fx.flash('#c58cff', 600, 0.35);
@@ -150,12 +175,12 @@ function renderQuestBadge() {
 let openDecks = null;
 $('#decks-btn').addEventListener('click', () => {
   openDecks ??= mountDeckBuilder($('#decks'), {
-    onBack: () => { renderMenu(); showScreen('menu'); },
+    onBack: () => showScreen('menu'),
     onUse: (cls, deckId) => {
       ui.playerClass = cls;
       saveDeckChoice(cls, deckId);
-      renderMenu();
-      showScreen('menu');
+      renderClassSelect();
+      showScreen('play');
     },
     notify: toast,
     sounds: { add: () => sfx.draw(), remove: () => sfx.click() },
@@ -166,24 +191,27 @@ $('#decks-btn').addEventListener('click', () => {
 $('#again-btn').addEventListener('click', startGame);
 $('#menu-btn').addEventListener('click', () => {
   $('#overlay').classList.add('hidden');
-  showScreen('menu');
+  renderClassSelect();
+  showScreen('play');
 });
 
 let menuScene = null, archive = null, forge = null, questBoard = null;
 
 function showScreen(id) {
-  for (const s of ['menu', 'library', 'decks', 'quests', 'mulligan', 'table']) $('#' + s).classList.toggle('hidden', s !== id);
+  for (const s of ['menu', 'play', 'library', 'decks', 'quests', 'mulligan', 'table']) $('#' + s).classList.toggle('hidden', s !== id);
   document.body.classList.toggle('in-game', id === 'table');
   showBackdrop(id === 'mulligan' || id === 'table');
-  menuScene?.show(id === 'menu');
+  // The title and class selection share the battle scene and the menu theme.
+  const titleScreens = id === 'menu' || id === 'play';
+  menuScene?.show(titleScreens);
   archive?.show(id === 'library');
   forge?.show(id === 'decks');
   questBoard?.show(id === 'quests');
   document.body.classList.toggle('on-board', id === 'quests');
   document.body.classList.toggle('in-forge', id === 'decks');
   document.body.classList.toggle('in-archive', id === 'library');
-  document.body.classList.toggle('on-menu', id === 'menu');
-  playTrack({ menu: 'menu', library: 'library', decks: 'forge', quests: 'quests' }[id] ?? 'battle');
+  document.body.classList.toggle('on-menu', titleScreens);
+  playTrack({ menu: 'menu', play: 'menu', library: 'library', decks: 'forge', quests: 'quests' }[id] ?? 'battle');
 }
 
 // ------------------------------------------------------------------ setup
@@ -1160,6 +1188,7 @@ menuScene.show(true);
 document.body.classList.add('on-menu');
 renderSoundButton();
 renderMusicButton();
-renderMenu();
+renderTitle();
+renderClassSelect();
 renderQuestBadge();
 playTrack('menu');

@@ -50,7 +50,8 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
 
 ### `src/ui.js` is the app shell
 - It renders the board, handles input (drag and click placement), and directs the animations.
-- `showScreen(id)` switches between `menu`, `library`, `decks`, `quests`, `mulligan` and `table`.
+- `showScreen(id)` switches between `menu` (the title screen: game modes plus Deck Builder, Library, Quests), `play` (champion, deck and opponent selection for the standard mode), `library`, `decks`, `quests`, `mulligan` and `table`. `menu` and `play` share the menu battle scene and theme.
+- Game modes are data in `src/modes.js` (`{ id, name, text, icon, screen }`); the title screen renders one tile per mode, and picking one opens its `screen`. Mode emblems are sprites in `src/sprites/modes.js`.
 - When the screen changes, the same function also:
   - selects the music track (`playTrack`)
   - shows or hides that screen's animated backdrop
