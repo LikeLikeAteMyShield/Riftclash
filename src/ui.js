@@ -8,7 +8,7 @@ import { sfx, unlock, isMuted, setMuted } from './sfx.js';
 import { artHTML, hasSprite, spriteSVG } from './pixelart.js';
 import { cardHTML, keywordHelpHTML, esc } from './cardview.js';
 import { mountLibrary } from './library.js';
-import { availableModes } from './modes.js';
+import { availableModes, bossChoices } from './modes.js';
 import { mountQuests, questNoticeHTML, unseenCompleted } from './questscreen.js';
 import { recordGame, questStatus, loadProgress } from './progress.js';
 import { visibleClasses, sequenceMatcher, SECRET_CODE, togglePlaytest } from './unlocks.js';
@@ -38,6 +38,8 @@ const ui = {
   game: null,
   playerClass: null,
   aiClass: 'random',
+  mode: 'standard',
+  boss: null,       // the Riftkin hero id chosen in Challenge the Riftkin
   selection: null, // { type: 'hand' | 'attacker' | 'heroPower', uid? }
   busy: false,
   mulliganPicks: new Set(),
@@ -72,33 +74,64 @@ $('#mode-grid').addEventListener('click', e => {
   showScreen(mode.screen);
 });
 $('#play-back').addEventListener('click', () => showScreen('menu'));
+$('#bosses-back').addEventListener('click', () => showScreen('menu'));
 
-/** The class and deck selection screen. */
+/** A hero power as a line of text with its icon. */
+const powerLine = hp => `<span class="class-power"><span class="class-power-icon">${powerArt(hp)}</span><span><b>${esc(hp.name)}</b> (${hp.cost}): ${esc(hp.text)}</span></span>`;
+
+/** One tile per class the player can see; each shows the hero the player plays it with. */
+function classTilesHTML(classes) {
+  return classes.map(key => {
+    const c = CLASSES[key], hero = defaultHero(key);
+    return `
+    <button class="class-tile${ui.playerClass === key ? ' chosen' : ''}" data-class="${key}" style="--cls:${c.color}" aria-pressed="${ui.playerClass === key}">
+      <span class="class-portrait">${heroArt(hero)}</span>
+      <span class="class-name">${c.name}</span>
+      <span class="class-hero">${esc(hero.name)}</span>
+      ${powerLine(hero.heroPower)}
+    </button>`;
+  }).join('');
+}
+
+/** Render both setup screens: the standard mode's and Challenge the Riftkin's. */
 function renderClassSelect() {
   // Only classes the player can see (hidden ones stay out until unlocked).
   const classes = visibleClasses();
   if (ui.playerClass && !classes.includes(ui.playerClass)) ui.playerClass = null;
   if (ui.aiClass !== 'random' && !classes.includes(ui.aiClass)) ui.aiClass = 'random';
-  // Each class tile shows the hero the player plays it with.
-  $('#class-grid').innerHTML = classes.map(key => [key, CLASSES[key]]).map(([key, c]) => {
-    const hero = defaultHero(key), hp = hero.heroPower;
-    return `
-    <button class="class-tile${ui.playerClass === key ? ' chosen' : ''}" data-class="${key}" style="--cls:${c.color}">
-      <span class="class-portrait">${heroArt(hero)}</span>
-      <span class="class-name">${c.name}</span>
-      <span class="class-hero">${esc(hero.name)}</span>
-      <span class="class-power"><span class="class-power-icon">${powerArt(hp)}</span><span><b>${hp.name}</b> (${hp.cost}): ${esc(hp.text)}</span></span>
-    </button>`;
-  }).join('');
-  renderDeckSelect();
+  $('#class-grid').innerHTML = classTilesHTML(classes);
+  renderDeckSelect($('#deck-select'));
   $('#opponent-select').innerHTML = `<option value="random">Random</option>` +
     classes.map(k => `<option value="${k}"${ui.aiClass === k ? ' selected' : ''}>${CLASSES[k].name}</option>`).join('');
   $('#start-btn').disabled = !ui.playerClass;
+  renderBossSelect(classes);
+}
+
+/** Challenge the Riftkin: pick a boss, then a class and deck to face it with. */
+function renderBossSelect(classes) {
+  const record = loadProgress().stats.byBoss;
+  $('#boss-grid').innerHTML = bossChoices().map(b => {
+    const r = record[b.id];
+    const status = r?.wins ? `Defeated ${r.wins === 1 ? 'once' : `${r.wins} times`}` : r?.played ? 'Not yet defeated' : 'Not yet challenged';
+    return `
+    <button class="boss-tile${ui.boss === b.id ? ' chosen' : ''}${r?.wins ? ' beaten' : ''}" data-boss="${b.id}" type="button" style="--cls:${CLASSES[b.cls].color}" aria-pressed="${ui.boss === b.id}">
+      <span class="boss-portrait">${heroArt(b)}</span>
+      <span class="boss-name">${esc(b.name)}</span>
+      <span class="boss-title">${esc(b.title)}</span>
+      <span class="boss-lore">${esc(b.lore)}</span>
+      ${powerLine(b.heroPower)}
+      <span class="boss-record">${status}</span>
+    </button>`;
+  }).join('');
+  $('#boss-class-grid').innerHTML = classTilesHTML(classes);
+  renderDeckSelect($('#boss-deck-select'));
+  const btn = $('#boss-start-btn');
+  btn.disabled = !(ui.boss && ui.playerClass);
+  btn.textContent = !ui.boss ? 'Choose a foe' : !ui.playerClass ? 'Choose a champion' : `Challenge ${HEROES[ui.boss].name}`;
 }
 
 /** The chosen class's decks: the standard deck plus its custom decks (unfinished ones can't be picked). */
-function renderDeckSelect() {
-  const sel = $('#deck-select');
+function renderDeckSelect(sel) {
   if (!ui.playerClass) {
     sel.innerHTML = '<option>Choose a class first</option>';
     sel.disabled = true;
@@ -121,14 +154,26 @@ function chosenDeck() {
   return deck && isPlayable(deck) ? deck.cards : undefined;
 }
 
-$('#deck-select').addEventListener('change', e => saveDeckChoice(ui.playerClass, e.target.value));
+for (const sel of ['#deck-select', '#boss-deck-select']) {
+  $(sel).addEventListener('change', e => saveDeckChoice(ui.playerClass, e.target.value));
+}
 
-$('#class-grid').addEventListener('click', e => {
-  const tile = e.target.closest('[data-class]');
+for (const grid of ['#class-grid', '#boss-class-grid']) {
+  $(grid).addEventListener('click', e => {
+    const tile = e.target.closest('[data-class]');
+    if (!tile) return;
+    ui.playerClass = tile.dataset.class;
+    renderClassSelect();
+  });
+}
+$('#boss-grid').addEventListener('click', e => {
+  const tile = e.target.closest('[data-boss]');
   if (!tile) return;
-  ui.playerClass = tile.dataset.class;
+  sfx.click();
+  ui.boss = tile.dataset.boss;
   renderClassSelect();
 });
+$('#boss-start-btn').addEventListener('click', startGame);
 $('#opponent-select').addEventListener('change', e => { ui.aiClass = e.target.value; });
 $('#start-btn').addEventListener('click', startGame);
 
@@ -142,11 +187,14 @@ $('#library-btn').addEventListener('click', () => {
 // classes (and locks them again). See unlocks.js.
 const secret = sequenceMatcher(SECRET_CODE);
 document.addEventListener('keydown', e => {
-  const onMenu = !$('#menu').classList.contains('hidden') || !$('#play').classList.contains('hidden');
+  const onMenu = ['#menu', '#play', '#bosses'].some(s => !$(s).classList.contains('hidden'));
   if (!onMenu || e.target.closest?.('input, select, textarea')) return;
   if (!secret(e.key)) return;
   const on = togglePlaytest();
+  renderTitle();
   renderClassSelect();
+  // Locking again closes Challenge the Riftkin, which unlocks with Celestial.
+  if (!on && !$('#bosses').classList.contains('hidden')) showScreen('menu');
   if (on) {
     sfx.questComplete();
     fx.flash('#c58cff', 600, 0.35);
@@ -177,6 +225,8 @@ $('#decks-btn').addEventListener('click', () => {
   openDecks ??= mountDeckBuilder($('#decks'), {
     onBack: () => showScreen('menu'),
     onUse: (cls, deckId) => {
+      ui.mode = 'standard';
+      $('#play-title').textContent = availableModes().find(m => m.id === 'standard').name;
       ui.playerClass = cls;
       saveDeckChoice(cls, deckId);
       renderClassSelect();
@@ -192,17 +242,17 @@ $('#again-btn').addEventListener('click', startGame);
 $('#menu-btn').addEventListener('click', () => {
   $('#overlay').classList.add('hidden');
   renderClassSelect();
-  showScreen('play');
+  showScreen(ui.mode === 'riftkin' ? 'bosses' : 'play');
 });
 
 let menuScene = null, archive = null, forge = null, questBoard = null;
 
 function showScreen(id) {
-  for (const s of ['menu', 'play', 'library', 'decks', 'quests', 'mulligan', 'table']) $('#' + s).classList.toggle('hidden', s !== id);
+  for (const s of ['menu', 'play', 'bosses', 'library', 'decks', 'quests', 'mulligan', 'table']) $('#' + s).classList.toggle('hidden', s !== id);
   document.body.classList.toggle('in-game', id === 'table');
   showBackdrop(id === 'mulligan' || id === 'table');
-  // The title and class selection share the battle scene and the menu theme.
-  const titleScreens = id === 'menu' || id === 'play';
+  // The title and the modes' setup screens share the battle scene and the menu theme.
+  const titleScreens = id === 'menu' || id === 'play' || id === 'bosses';
   menuScene?.show(titleScreens);
   archive?.show(id === 'library');
   forge?.show(id === 'decks');
@@ -211,23 +261,32 @@ function showScreen(id) {
   document.body.classList.toggle('in-forge', id === 'decks');
   document.body.classList.toggle('in-archive', id === 'library');
   document.body.classList.toggle('on-menu', titleScreens);
-  playTrack({ menu: 'menu', play: 'menu', library: 'library', decks: 'forge', quests: 'quests' }[id] ?? 'battle');
+  playTrack({ menu: 'menu', play: 'menu', bosses: 'menu', library: 'library', decks: 'forge', quests: 'quests' }[id] ?? 'battle');
 }
 
 // ------------------------------------------------------------------ setup
 
-function startGame() {
+/** The AI's hero: the chosen boss in Challenge the Riftkin, otherwise the opponent class's default hero. */
+function opponentHero() {
+  if (ui.mode === 'riftkin') return ui.boss;
   const keys = visibleClasses();
   const aiClass = ui.aiClass === 'random' ? keys[Math.floor(Math.random() * keys.length)] : ui.aiClass;
-  // Both sides play their class's default hero; the class decides the cards.
-  const heroes = [CLASSES[ui.playerClass].defaultHero, CLASSES[aiClass].defaultHero];
+  return CLASSES[aiClass].defaultHero;
+}
+
+function startGame() {
+  // The player plays their class's default hero; the class decides the cards.
+  const heroes = [CLASSES[ui.playerClass].defaultHero, opponentHero()];
   ui.game = new Game({ heroes, decks: [chosenDeck()], seed: Date.now() });
   ui.selection = null;
   setBusy(false);
   ui.mulliganPicks = new Set();
   const place = newBackdrop();
   $('#battlefield').textContent = `Battlefield: ${place}`;
-  $('#log').innerHTML = `<li>The battle is joined at ${esc(place)}.</li>`;
+  const foe = HEROES[heroes[1]];
+  $('#log').innerHTML = foe.boss
+    ? `<li>${esc(foe.name)}, ${esc(foe.title)}, awaits you at ${esc(place)}.</li>`
+    : `<li>The battle is joined at ${esc(place)}.</li>`;
   $('#overlay').classList.add('hidden');
   ui.game.mulligan(AI, mulliganChoice(ui.game, AI));
   renderMulligan();
@@ -927,7 +986,8 @@ function recordFinishedGame() {
   if (g.recorded) return [];
   g.recorded = true;
   const result = g.winner === 'draw' ? 'draw' : g.winner === HUMAN ? 'win' : 'loss';
-  return recordGame({ cls: g.players[HUMAN].heroClass, result }).completed;
+  const foe = HEROES[g.players[AI].heroId];
+  return recordGame({ cls: g.players[HUMAN].heroClass, result, boss: foe.boss ? g.players[AI].heroId : undefined }).completed;
 }
 
 function showResult(completed = []) {
@@ -938,7 +998,10 @@ function showResult(completed = []) {
   const just = new Set(completed.map(q => q.id));
   const shown = questStatus(progress).filter(q => just.has(q.id) || !q.done);
   const s = progress.stats;
-  $('#result-quests').innerHTML = `
+  const foe = HEROES[ui.game.players[AI].heroId];
+  const bossLine = !foe.boss || w === 'draw' ? '' : `<p class="result-boss">${esc(foe.name)} ${w === HUMAN ? 'is defeated.' : 'stands victorious.'}</p>`;
+  $('#menu-btn').textContent = ui.mode === 'riftkin' ? 'Choose another foe' : 'Change class';
+  $('#result-quests').innerHTML = `${bossLine}
     <p class="result-record">Record: ${s.wins} W · ${s.losses} L${s.draws ? ` · ${s.draws} D` : ''}</p>
     ${completed.length ? `<p class="result-quest-done">Quest complete!</p>` : ''}
     ${shown.map(q => questNoticeHTML(q, { compact: true, fresh: just.has(q.id) })).join('')}`;

@@ -3,7 +3,7 @@
 // is met. Everything here is pure except the storage defaults, so it's unit
 // tested in node; ui.js records each finished game and shows the quest screen.
 
-import { CLASSES } from './cards.js';
+import { CLASSES, HEROES, RIFTKIN } from './cards.js';
 
 const STORE_KEY = 'riftclash-progress';
 export const RESULTS = ['win', 'loss', 'draw'];
@@ -25,7 +25,7 @@ export const QUESTS = [
 const emptyRecord = () => ({ played: 0, wins: 0, losses: 0, draws: 0 });
 
 export function emptyStats() {
-  return { ...emptyRecord(), streak: 0, bestStreak: 0, byClass: {} };
+  return { ...emptyRecord(), streak: 0, bestStreak: 0, byClass: {}, byBoss: {} };
 }
 
 export function emptyProgress() {
@@ -39,13 +39,15 @@ const tally = (rec, result) => ({
   draws: rec.draws + (result === 'draw'),
 });
 
-/** Stats after one more game, played as `cls`. */
-export function recordResult(stats, { cls, result }) {
+/** Stats after one more game, played as `cls` (and against `boss`, a Riftkin hero id, in a boss battle). */
+export function recordResult(stats, { cls, result, boss }) {
   if (!RESULTS.includes(result)) throw new Error(`Unknown result "${result}"`);
   const streak = result === 'win' ? stats.streak + 1 : 0;
   const byClass = { ...stats.byClass };
   if (CLASSES[cls]) byClass[cls] = tally(byClass[cls] ?? emptyRecord(), result);
-  return { ...tally(stats, result), streak, bestStreak: Math.max(stats.bestStreak, streak), byClass };
+  const byBoss = { ...stats.byBoss };
+  if (HEROES[boss]?.boss) byBoss[boss] = tally(byBoss[boss] ?? emptyRecord(), result);
+  return { ...tally(stats, result), streak, bestStreak: Math.max(stats.bestStreak, streak), byClass, byBoss };
 }
 
 /** Every quest with the player's progress: { ...quest, value, done, completedAt }. */
@@ -92,8 +94,9 @@ export function sanitizeProgress(raw) {
   const p = emptyProgress();
   if (!raw || typeof raw !== 'object') return p;
   const s = raw.stats ?? {};
-  p.stats = { ...cleanRecord(s), streak: count(s.streak), bestStreak: count(s.bestStreak), byClass: {} };
+  p.stats = { ...cleanRecord(s), streak: count(s.streak), bestStreak: count(s.bestStreak), byClass: {}, byBoss: {} };
   for (const cls of Object.keys(CLASSES)) if (s.byClass?.[cls]) p.stats.byClass[cls] = cleanRecord(s.byClass[cls]);
+  for (const id of RIFTKIN) if (s.byBoss?.[id]) p.stats.byBoss[id] = cleanRecord(s.byBoss[id]);
   for (const q of QUESTS) {
     const at = raw.quests?.[q.id]?.completedAt;
     if (Number.isFinite(at)) p.quests[q.id] = { completedAt: at };

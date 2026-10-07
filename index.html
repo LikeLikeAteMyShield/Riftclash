@@ -54,6 +54,26 @@
       </div>
     </section>
 
+    <section id="bosses" class="screen hidden" aria-labelledby="bosses-title">
+      <header class="play-head">
+        <button id="bosses-back" class="btn lib-back" type="button">← Menu</button>
+        <h2 id="bosses-title">Challenge the Riftkin</h2>
+      </header>
+      <p class="tagline">Choose your foe</p>
+      <div id="boss-grid" class="boss-grid"></div>
+      <p class="tagline">Choose your champion</p>
+      <div id="boss-class-grid" class="class-grid compact"></div>
+      <div class="menu-picks">
+        <div class="opponent-pick">
+          <label for="boss-deck-select">Deck</label>
+          <select id="boss-deck-select" disabled></select>
+        </div>
+      </div>
+      <div class="menu-actions">
+        <button id="boss-start-btn" class="btn primary" disabled>Choose a foe and a champion</button>
+      </div>
+    </section>
+
     <section id="library" class="screen hidden" aria-label="Card library"></section>
     <section id="quests" class="screen hidden" aria-label="Quests"></section>
     <section id="decks" class="screen hidden" aria-label="Deck builder"></section>
