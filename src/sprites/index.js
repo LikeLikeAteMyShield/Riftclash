@@ -13,6 +13,7 @@ import shade from './shade.js';
 import neutral from './neutral.js';
 import champions from './champions.js';
 import celestial from './celestial.js';
+import modes from './modes.js';
 
 defineSprites(heroes);
 defineSprites(powers);
@@ -25,3 +26,4 @@ defineSprites(shade);
 defineSprites(neutral);
 defineSprites(champions);
 defineSprites(celestial);
+defineSprites(modes);

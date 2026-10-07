@@ -23,6 +23,20 @@
   <main id="app">
     <section id="menu" class="screen">
       <h1 class="logo">Riftclash</h1>
+      <p class="tagline">Choose your path</p>
+      <div id="mode-grid" class="mode-grid"></div>
+      <div class="menu-actions">
+        <button id="decks-btn" class="btn">Deck Builder</button>
+        <button id="library-btn" class="btn">Card Library</button>
+        <button id="quests-btn" class="btn">Quests <span id="quests-badge" class="q-badge hidden"></span></button>
+      </div>
+    </section>
+
+    <section id="play" class="screen hidden" aria-labelledby="play-title">
+      <header class="play-head">
+        <button id="play-back" class="btn lib-back" type="button">← Menu</button>
+        <h2 id="play-title">Enter the Rift</h2>
+      </header>
       <p class="tagline">Choose your champion</p>
       <div id="class-grid" class="class-grid"></div>
       <div class="menu-picks">
@@ -36,10 +50,7 @@
         </div>
       </div>
       <div class="menu-actions">
-        <button id="start-btn" class="btn primary" disabled>Enter the Rift</button>
-        <button id="decks-btn" class="btn">Deck Builder</button>
-        <button id="library-btn" class="btn">Card Library</button>
-        <button id="quests-btn" class="btn">Quests <span id="quests-badge" class="q-badge hidden"></span></button>
+        <button id="start-btn" class="btn primary" disabled>Begin battle</button>
       </div>
     </section>
 
