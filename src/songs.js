@@ -483,6 +483,12 @@ export const SONGS = {
   },
 };
 
+/** How long a one-shot song lasts, in seconds, including its last notes ringing out. */
+export function songSeconds(id) {
+  const s = compileSong(id);
+  return s.length * s.stepDur + Math.max(...Object.values(SONGS[id].channels).map(c => c.env?.r ?? 0));
+}
+
 export const WAVES = ['pulse12', 'pulse25', 'pulse50', 'triangle', 'noise'];
 const DRUMS = new Set(['k', 's', 'h', 'a', 't', 'b']);
 export const STEPS_PER_BAR = 16;

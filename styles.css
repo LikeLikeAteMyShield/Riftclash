@@ -827,3 +827,10 @@ body.on-menu .play-head h2 { text-shadow: 0 2px 8px #000; }
   .boss-grid { grid-template-columns: 1fr 1fr; }
   .boss-lore { display: none; }
 }
+
+/* The end-of-battle overlay: buttons fade in when it's time to choose. */
+#result-banner:empty { display: none; }
+#result-banner .result-boss { margin: -8px 0 4px; }
+#overlay .overlay-actions.appear { animation: result-appear .5s ease-out both; }
+@keyframes result-appear { from { opacity: 0; transform: translateY(6px); } }
+.overlay-box { min-width: min(380px, calc(100vw - 32px)); }
