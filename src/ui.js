@@ -245,6 +245,9 @@ $('#menu-btn').addEventListener('click', () => {
   showScreen(ui.mode === 'riftkin' ? 'bosses' : 'play');
 });
 
+/** The music for the match in progress: a boss's own theme, or the standard battle track. */
+const battleTrack = () => HEROES[ui.game?.players[AI].heroId]?.music ?? 'battle';
+
 let menuScene = null, archive = null, forge = null, questBoard = null;
 
 function showScreen(id) {
@@ -261,7 +264,7 @@ function showScreen(id) {
   document.body.classList.toggle('in-forge', id === 'decks');
   document.body.classList.toggle('in-archive', id === 'library');
   document.body.classList.toggle('on-menu', titleScreens);
-  playTrack({ menu: 'menu', play: 'menu', bosses: 'menu', library: 'library', decks: 'forge', quests: 'quests' }[id] ?? 'battle');
+  playTrack({ menu: 'menu', play: 'menu', bosses: 'menu', library: 'library', decks: 'forge', quests: 'quests' }[id] ?? battleTrack());
 }
 
 // ------------------------------------------------------------------ setup

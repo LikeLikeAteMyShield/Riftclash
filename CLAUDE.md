@@ -88,6 +88,7 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
   - Drums: `k`/`s`/`h` are kick, snare and hi-hat; `a`/`t`/`b` are anvil, hammer tap and bellows.
   - `compileSong` validates a song and turns it into timed events. `test/songs.test.js` asserts each screen has a track and checks each track's relative tempo, volume and density.
 - `src/music.js` synthesises the songs live (NES-style pulse, triangle and noise voices) with crossfades between tracks.
+- Battles play `battle`, unless the AI's hero has its own `music` (a song id). The Riftkin do: `riftkin` (the battle theme made menacing) for four of them and `grun` (more intense) for Grun. `songs.test.js` keeps their tempo, density and volume relative to `battle` and `menu`.
 - `beatClock()` exposes the playing track's position in beats, so visuals can keep time:
   - The menu scene locks onto it.
   - The forge scene maps it to scene time with `MUSIC_OFFSET`. One forge bar (80 BPM) is one `HAMMER_PERIOD`, and a test enforces this.
