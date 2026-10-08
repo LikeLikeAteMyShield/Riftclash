@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  QUESTS, emptyProgress, emptyStats, recordResult, questStatus, updateQuests, applyGame, winRate,
+  QUESTS, CHAMPION_QUESTS, emptyProgress, emptyStats, recordResult, questStatus, updateQuests, applyGame, winRate,
   sanitizeProgress, loadProgress, saveProgress, recordGame,
 } from '../src/progress.js';
 import { Game } from '../src/engine.js';
@@ -38,7 +38,8 @@ test('"Win 5 games" completes on the fifth win, once, and stays complete', () =>
     done.push(out.completed.map(q => q.id));
   });
   const fifthWin = 7;    // index of the fifth 'win'
-  done.forEach((ids, i) => assert.deepEqual(ids, i === fifthWin ? ['win5'] : [], `game ${i}`));
+  // All five wins were as a Pyromancer, so the Pyromancer's trial completes too.
+  done.forEach((ids, i) => assert.deepEqual(ids, i === fifthWin ? ['win5', 'win5_pyromancer'] : [], `game ${i}`));
   const [q] = questStatus(p).filter(q => q.id === 'win5');
   assert.equal(q.done, true);
   assert.equal(q.completedAt, 1000 + fifthWin);
@@ -70,7 +71,7 @@ test('progress round-trips through storage, and bad data is cleaned up', () => {
   for (let i = 0; i < 5; i++) recordGame({ cls: 'vanguard', result: 'win' }, s, 50 + i);
   const back = loadProgress(s);
   assert.equal(back.stats.wins, 5);
-  assert.deepEqual(back.quests, { win5: { completedAt: 54 } });
+  assert.deepEqual(back.quests, { win5: { completedAt: 54 }, win5_vanguard: { completedAt: 54 } });
 
   s.setItem('riftclash-progress', '{not json');
   assert.deepEqual(loadProgress(s), emptyProgress());
@@ -112,4 +113,23 @@ test('boss battles are tallied per Riftkin as well as overall; anything else is 
   const cleaned = sanitizeProgress({ stats: { byBoss: { manus: { played: 1, wins: 1 }, aurion: { played: 3 }, nobody: { played: 1 } } } });
   assert.deepEqual(cleaned.stats.byBoss, { manus: { played: 1, wins: 1, losses: 0, draws: 0 } });
   assert.deepEqual(sanitizeProgress({ stats: {} }).stats.byBoss, {}, 'older saves without boss records still load');
+});
+
+test('each class the player can see has a Champion\'s Trial: win 5 games as that class', async () => {
+  const { CLASSES } = await import('../src/cards.js');
+  const visible = Object.keys(CLASSES).filter(cls => !CLASSES[cls].hidden);
+  assert.deepEqual(CHAMPION_QUESTS.map(q => q.cls), visible);
+  assert.ok(!CHAMPION_QUESTS.some(q => q.cls === 'celestial'), 'no trial for the hidden Celestial class');
+  assert.equal(new Set(CHAMPION_QUESTS.map(q => q.title)).size, visible.length, 'each trial has its own title');
+  assert.equal(CHAMPION_QUESTS.find(q => q.cls === 'oracle').text, 'Win 5 games as an Oracle.');
+  // Only wins as that class count.
+  let p = emptyProgress();
+  for (const [cls, result] of [['shade', 'win'], ['shade', 'loss'], ['warlord', 'win'], ['shade', 'win'], ['shade', 'draw']]) p = applyGame(p, { cls, result }).progress;
+  const status = Object.fromEntries(questStatus(p).map(q => [q.id, q.value]));
+  assert.equal(status.win5_shade, 2);
+  assert.equal(status.win5_warlord, 1);
+  assert.equal(status.win5_oracle, 0);
+  for (let i = 0; i < 3; i++) p = applyGame(p, { cls: 'shade', result: 'win' }, 77).progress;
+  assert.deepEqual(p.quests.win5_shade, { completedAt: 77 });
+  assert.ok(!p.quests.win5_warlord);
 });

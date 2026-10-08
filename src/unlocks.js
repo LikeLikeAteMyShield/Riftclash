@@ -4,8 +4,9 @@
 //
 // For now the only way in is a secret code typed on the main menu, for
 // play-testing: the classic up, up, down, down, left, right, left, right, B, A.
-// Typing it again locks the class away again. Boss battles will unlock it
-// for real later, through setUnlocked().
+// It also opens every mode still locked behind quests (see isPlaytest and
+// modes.js). Typing it again locks everything away again. Boss battles will
+// unlock the class for real later, through setUnlocked().
 //
 // Pure apart from the storage defaults, so it's unit tested in node.
 
@@ -57,6 +58,9 @@ export function setUnlocked(cls, on, { how = 'playtest', storage = defaultStorag
   try { storage.setItem(STORE_KEY, JSON.stringify(unlocks)); } catch { /* storage unavailable */ }
   return unlocks;
 }
+
+/** Has the play-test code been used? It unlocks everything: hidden classes and locked modes. */
+export const isPlaytest = (unlocks = loadUnlocks()) => Object.values(unlocks).some(u => u.how === 'playtest');
 
 /** Can the player see and use this class? Neutral and normal classes always. */
 export function isVisible(cls, unlocks = loadUnlocks()) {

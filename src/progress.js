@@ -12,6 +12,23 @@ export const RESULTS = ['win', 'loss', 'draw'];
  * Quest definitions. `progress(stats)` returns how far along the player is;
  * the quest completes when that reaches `goal`. To add a quest, add an entry.
  */
+// The Champion's Trials: win 5 games as each class the player can see.
+// Hidden classes (Celestial) have none. Completing them all unlocks
+// Challenge the Riftkin (see modes.js).
+const TRIAL_TITLES = {
+  pyromancer: 'Trial of Flame', warlord: 'Trial of Iron', stalker: 'Trial of the Hunt',
+  oracle: 'Trial of Light', vanguard: 'Trial of the Shield', shade: 'Trial of Shadows',
+};
+const withArticle = name => (/^[AEIOU]/.test(name) ? `an ${name}` : `a ${name}`);
+export const CHAMPION_QUESTS = Object.keys(CLASSES).filter(cls => !CLASSES[cls].hidden).map(cls => ({
+  id: `win5_${cls}`,
+  cls,
+  title: TRIAL_TITLES[cls] ?? `Trial of the ${CLASSES[cls].name}`,
+  text: `Win 5 games as ${withArticle(CLASSES[cls].name)}.`,
+  goal: 5,
+  progress: stats => stats.byClass[cls]?.wins ?? 0,
+}));
+
 export const QUESTS = [
   {
     id: 'win5',
@@ -20,6 +37,7 @@ export const QUESTS = [
     goal: 5,
     progress: stats => stats.wins,
   },
+  ...CHAMPION_QUESTS,
 ];
 
 const emptyRecord = () => ({ played: 0, wins: 0, losses: 0, draws: 0 });

@@ -7,6 +7,7 @@ import { esc } from './cardview.js';
 import { artHTML } from './pixelart.js';
 import { loadProgress, questStatus, winRate } from './progress.js';
 import { loadUnlocks, isVisible } from './unlocks.js';
+import { MODES, isModeUnlocked, unlockProgress } from './modes.js';
 
 const SEEN_KEY = 'riftclash-quests-seen';
 
@@ -58,12 +59,20 @@ export function mountQuests(root, { onBack }) {
     const rate = winRate(s);
     const unlocks = loadUnlocks();
     const classes = Object.entries(CLASSES).filter(([cls]) => s.byClass[cls]?.played && isVisible(cls, unlocks));
+    // What the quests lead to: modes they unlock, and how far along the player is.
+    const goals = MODES.filter(m => m.unlock).map(m => {
+      const { done, total } = unlockProgress(m, progress);
+      return isModeUnlocked(m, unlocks, progress)
+        ? `<p class="q-goal open"><b>${esc(m.name)}</b> is open. Find it on the title screen.</p>`
+        : `<p class="q-goal">Complete all ${total} Champion's Trials to unlock <b>${esc(m.name)}</b>. <span>${done} / ${total}</span></p>`;
+    }).join('');
     wrap.innerHTML = `
       <header class="lib-head">
         <button class="btn lib-back" data-act="menu" type="button">← Menu</button>
         <h2>Quest Board</h2>
         <span class="lib-count">${quests.filter(q => q.done).length} / ${quests.length} complete</span>
       </header>
+      ${goals}
       <div class="q-layout">
         <section class="q-board" aria-label="Quests">
           ${quests.map(q => questNoticeHTML(q, { fresh: fresh.has(q.id) })).join('')}
