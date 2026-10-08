@@ -56,21 +56,20 @@ const heroArt = hero => artHTML({ sprite: hero.portrait, emoji: hero.emoji }, { 
 
 /** The title screen: one tile per game mode. */
 function renderTitle() {
-  // Locked modes show too, greyed out, with what unlocks them and how far along the player is.
+  // Locked modes show too, but as a mystery: no name, no emblem, just what unlocks them and how far along the player is.
   $('#mode-grid').innerHTML = MODES.map(m => {
-    const icon = `<span class="mode-icon">${hasSprite(m.icon) ? spriteSVG(m.icon) : ''}</span>`;
     if (isModeUnlocked(m)) return `
     <button class="mode-tile" data-mode="${m.id}" type="button">
-      ${icon}
+      <span class="mode-icon">${hasSprite(m.icon) ? spriteSVG(m.icon) : ''}</span>
       <span class="mode-name">${esc(m.name)}</span>
       <span class="mode-text">${esc(m.text)}</span>
     </button>`;
     const { done, total } = unlockProgress(m);
     return `
-    <div class="mode-tile locked" aria-disabled="true">
-      ${icon}
-      <span class="mode-name"><span class="mode-lock" aria-hidden="true">🔒</span>${esc(m.name)}</span>
-      <span class="mode-text">${esc(m.unlock.hint)}<span class="mode-unlock">${done} / ${total} complete</span></span>
+    <div class="mode-tile locked" aria-disabled="true" aria-label="Locked mode. ${esc(m.unlock.hint)} ${done} of ${total} complete.">
+      <span class="mode-icon mystery" aria-hidden="true">?</span>
+      <span class="mode-name" aria-hidden="true"><span class="mode-lock">🔒</span>???</span>
+      <span class="mode-text" aria-hidden="true">${esc(m.unlock.hint)}<span class="mode-unlock">${done} / ${total} complete</span></span>
     </div>`;
   }).join('');
 }
