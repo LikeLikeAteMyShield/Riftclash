@@ -94,6 +94,25 @@ export const BACKGROUNDS = {
     ],
   },
 
+  crypt: {
+    name: 'The Ancient Crypt',
+    music: 'crypt',
+    layers: [
+      { type: 'sky', stops: [[0, '#060508'], [34, '#0e0c10'], [84, '#1a1517']] },
+      { type: 'masonry', bottom: 84, bw: 12, bh: 6, color: '#2a2428', mortar: '#060507', seed: 89 },
+      { type: 'alcoves', base: 84, color: '#0c0a0c', rim: '#242022', items: [[30, 34, 24], [96, 26, 30], [162, 34, 24]] },
+      { type: 'coffins', color: '#22150f', edge: '#2e1f16', cross: '#3e2c1f', items: [[30, 82, 40, 16], [162, 82, 40, 16]] },
+      { type: 'sarcophagus', x: 96, w: 40, base: 84, h: 13, color: '#2a2526', lid: '#363031', panel: '#1c1819' },
+      { type: 'cobwebs', color: '#4a4448', alpha: 0.22, corners: [[0, 0, 22], [191, 0, 18], [18, 48, 7], [174, 48, 7]] },
+      { type: 'flagstones', y: 84, color: '#100d0f', seam: '#060507', rows: [[87, 10], [91, 14], [96, 19], [102, 26]] },
+      { type: 'fog', y: 80, height: 9, color: '#2a2630', alpha: 0.25 },
+      { type: 'candles', wax: '#564e3e', shade: '#3e372c', flame: '#ff9a3c', core: '#ffe2a0', glow: '#6a3410', items: [
+        [14, 96, 9], [19, 97, 5], [10, 98, 3], [52, 89, 6], [56, 90, 3], [84, 70, 4], [108, 70, 5], [140, 89, 4], [136, 90, 7], [174, 97, 8], [180, 98, 4],
+      ] },
+      { type: 'particles', kind: 'motes', count: 14, color: '#8a7c6a', seed: 97 },
+    ],
+  },
+
   // Boss boards (`boss: true`): never picked at random, only for Riftkin fights (a boss hero's `board` in cards.js).
 
   celestial: {
@@ -582,6 +601,129 @@ const LAYERS = {
         const a = 0.35 + 0.2 * Math.sin(t * 0.8 + p);
         for (const [x, y] of pts) c.blend(x, y, col, a);
       }
+    },
+  },
+  masonry: {
+    draw(c, L, ctx) {
+      // Courses of old stone blocks over the wall's gradient, each block a slightly different shade.
+      const r = rng(L.seed), col = hex(L.color), mortar = hex(L.mortar);
+      const shade = new Map();
+      for (let y = 0; y < L.bottom; y++) {
+        const row = Math.floor(y / L.bh), off = row % 2 ? L.bw >> 1 : 0;
+        for (let x = 0; x < c.w; x++) {
+          const bx = Math.floor((x + off) / L.bw), key = row * 64 + bx;
+          if (!shade.has(key)) shade.set(key, 0.14 + r() * 0.14);
+          const seam = y % L.bh === 0 || (x + off) % L.bw === 0;
+          c.blend(x, y, seam ? mortar : col, seam ? 0.2 : shade.get(key));
+          ctx.sky[y * c.w + x] = 0;
+        }
+      }
+    },
+  },
+  alcoves: {
+    draw(c, L) {
+      // Arched burial niches cut into the wall, framed by a ring of paler stone.
+      const col = hex(L.color), rim = hex(L.rim);
+      const inside = (x, y, cx, top, w) => {
+        const dx = x - cx, rad = w / 2;
+        return Math.abs(dx) <= rad && y >= top + rad - Math.sqrt(rad * rad - dx * dx) && y <= L.base;
+      };
+      for (const [cx, top, w] of L.items) {
+        for (let y = top - 3; y <= L.base; y++) for (let x = cx - w / 2 - 3; x <= cx + w / 2 + 3; x++) {
+          if (inside(x, y, cx, top, w)) c.put(x, y, col);
+          else if (inside(x, y, cx, top - 2, w + 4)) c.put(x, y, rim);
+        }
+      }
+    },
+  },
+  coffins: {
+    draw(c, L) {
+      // Upright wooden coffins: the classic six-sided shape, widest at the shoulders, with a cross on the lid.
+      const col = hex(L.color), edge = hex(L.edge), cross = hex(L.cross);
+      for (const [x, base, h, w] of L.items) {
+        const top = base - h, sh = Math.round(h * 0.28);
+        const half = k => k < sh ? w * (0.35 + 0.15 * k / sh) : w * (0.5 - 0.2 * (k - sh) / (h - sh));
+        for (let k = 0; k <= h; k++) {
+          const hw = Math.round(half(k));
+          c.rect(x - hw, top + k, x + hw, top + k, k === 0 || k === h ? edge : col);
+          c.put(x - hw, top + k, edge); c.put(x + hw, top + k, edge);
+        }
+        c.rect(x, top + 5, x, top + Math.round(h * 0.62), cross);
+        c.rect(x - 3, top + sh - 1, x + 3, top + sh - 1, cross);
+      }
+    },
+  },
+  sarcophagus: {
+    draw(c, L) {
+      // A stone tomb with a heavy overhanging lid and carved panels along its side.
+      const col = hex(L.color), lid = hex(L.lid), panel = hex(L.panel);
+      const x0 = L.x - L.w / 2, x1 = L.x + L.w / 2, top = L.base - L.h;
+      c.rect(x0, top + 3, x1, L.base, col);
+      c.rect(x0 - 2, top, x1 + 2, top + 2, lid);
+      c.rect(x0 - 1, L.base - 1, x1 + 1, L.base, lid);
+      for (let px = x0 + 3; px + 8 <= x1 - 2; px += 9) c.rect(px, top + 5, px + 6, L.base - 3, panel);
+    },
+  },
+  cobwebs: {
+    draw(c, L) {
+      // Webs strung across corners: threads fanning out from the corner, crossed by sagging rings.
+      const col = hex(L.color);
+      for (const [cx, cy, size] of L.corners) {
+        const sx = cx < c.w / 2 ? 1 : -1;
+        for (let k = 0; k <= 4; k++) {
+          const a = (k / 4) * Math.PI / 2;
+          for (let d = 0; d <= size; d++) c.blend(cx + sx * Math.cos(a) * d, cy + Math.sin(a) * d, col, L.alpha);
+        }
+        for (let ring = size / 3; ring <= size; ring += size / 3) {
+          for (let s = 0; s <= 40; s++) {
+            const a = (s / 40) * Math.PI / 2, sag = Math.sin((s % 10) / 10 * Math.PI) * ring * 0.08;
+            c.blend(cx + sx * Math.cos(a) * (ring - sag), cy + Math.sin(a) * (ring - sag), col, L.alpha * 0.8);
+          }
+        }
+      }
+    },
+  },
+  flagstones: {
+    draw(c, L, ctx) {
+      // A floor of worn flagstones, the rows growing deeper and the stones wider towards the viewer.
+      const col = hex(L.color), seam = hex(L.seam);
+      c.rect(0, L.y, c.w - 1, c.h - 1, col);
+      for (let y = L.y; y < c.h; y++) for (let x = 0; x < c.w; x++) ctx.sky[y * c.w + x] = 0;
+      c.rect(0, L.y, c.w - 1, L.y, seam);
+      let prev = L.y;
+      L.rows.forEach(([y, w], i) => {
+        c.rect(0, y, c.w - 1, y, seam);
+        for (let x = (i % 2) * (w >> 1); x < c.w; x += w) c.rect(x, prev, x, y, seam);
+        prev = y;
+      });
+    },
+  },
+  candles: {
+    draw(c, L) {
+      // Old candles burnt down to different heights, wax run down their sides and pooled at their feet.
+      const wax = hex(L.wax), shade = hex(L.shade);
+      for (const [x, base, h] of L.items) {
+        c.rect(x - 1, base - h, x + 1, base, wax);
+        c.rect(x + 1, base - h + 1, x + 1, base, shade);
+        c.put(x - 1, base - h + 2 + (x % 3), wax); c.put(x - 2, base - h + 3 + (x % 3), wax);
+        c.rect(x - 2, base, x + 2, base, shade);
+      }
+    },
+    animate(c, L, { t }) {
+      const flame = hex(L.flame), core = hex(L.core), glow = hex(L.glow);
+      L.items.forEach(([x, base, h], i) => {
+        const top = base - h;
+        const flick = 0.85 + 0.1 * Math.sin(t * (5 + i * 0.7) + i * 2.3) + 0.05 * Math.sin(t * 13.1 + i);
+        const R = 12;
+        for (let y = -R; y <= R; y++) for (let dx = -R; dx <= R; dx++) {
+          const d = Math.hypot(dx, y * 1.2) / R;
+          if (d < 1) c.blend(x + dx, top - 2 + y, glow, 0.3 * flick * (1 - d) ** 2);
+        }
+        const sway = Math.sin(t * 1.7 + i * 1.9) > 0.85 ? 1 : 0;
+        c.blend(x, top - 1, core, 0.9);
+        c.blend(x + sway, top - 2, flame, 0.75 * flick);
+        if (flick > 0.88) c.blend(x + sway, top - 3, flame, 0.4);
+      });
     },
   },
   particles: {

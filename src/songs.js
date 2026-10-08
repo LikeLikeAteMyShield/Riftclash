@@ -79,6 +79,7 @@ const FROZEN_CHORDS = ['Em', 'Csus', 'G', 'Dsus', 'Em', 'C', 'Am', 'B', 'Em', 'C
 const MOONWOOD_CHORDS = ['F#m', 'E', 'F#m', 'C#m', 'F#m', 'E', 'D', 'E', 'F#m', 'A', 'E', 'C#m', 'D', 'E', 'C#m', 'F#m'];
 const SANCTUM_CHORDS = ['Bm', 'Gm', 'Bm', 'F', 'Bm', 'Gm', 'Em', 'F#', 'Bm', 'D', 'Gm', 'F', 'Em', 'Gm', 'F#', 'Bm'];
 const FORGE_CHORDS = ['Dm', 'Dm', 'Bb', 'C', 'Dm', 'Dm', 'Gm', 'A', 'Dm', 'F', 'C', 'Gm', 'Bb', 'C', 'A', 'Dm'];
+const CRYPT_CHORDS = ['Bm', 'G', 'A', 'Em', 'Bm', 'G', 'A', 'Em'];
 
 export const SONGS = {
   // Main menu: a marching battle theme in C minor. Heavier and a touch slower than
@@ -658,6 +659,43 @@ export const SONGS = {
       drums: {
         wave: 'noise', volume: 0.06,
         bars: QUEST_CHORDS.map((_, i) => (i % 4 === 3 ? 'k . . . h . . . k . k . h . h .' : 'k . . . h . . . k . . . h . . .')),
+      },
+    },
+  },
+
+  crypt: {
+    title: 'Dirge of the Crypt',
+    bpm: 80,
+    volume: 0.7,
+    channels: {
+      lead: {
+        wave: 'pulse25', volume: 0.045, filter: 2250, env: { a: 0.245, d: 0.3, s: 0.6, r: 0.8 }, vibrato: { rate: 4.5, depth: 13, delay: 0.3 },
+        bars: [
+          'B4 - - - - - - - . . . . . . F#4 -',
+          'G4 - - - - - - - . . . . F#4 - G4 -',
+          'A4 - - - - - - - . . . . F#4 - F4 -',
+          'E4 - - - - - - - . . . . A4 - Bb4 -',
+          'B4 - - - - - - - . . . . . . F#4 -',
+          'G4 - - - - - - - . . . . F#4 - G4 -',
+          'A4 - - - - - - - . . . . F#4 - F4 -',
+          'E4 - - - - - - - . . . . . . . .',
+        ],
+      },
+      pad: {
+        wave: 'pulse50', volume: 0.05, filter: 900, env: { a: 0.08, d: 0.4, s: 0.5, r: 0.6 },
+        bars: CRYPT_CHORDS.map(c => arp(c, { octave: 3, order: [0, 1, 2, 3], every: 2 })),
+      },
+      bass: {
+        wave: 'triangle', volume: 0.26, env: { a: 0.05, d: 0.3, s: 0.7, r: 0.5 },
+        bars: CRYPT_CHORDS.map(c => bass(c, 'halves')),
+      },
+      drums: {
+        wave: 'noise', volume: 0.05,
+        bars: repeat('k . . . t . . . a . . . . . . .', 8),
+      },
+      lute: {
+        wave: 'pulse25', volume: 0.05, filter: 1450, env: { a: 0.003, d: 0.44, s: 0.1, r: 0.15 },
+        bars: CRYPT_CHORDS.map(c => arp(c)),
       },
     },
   },
