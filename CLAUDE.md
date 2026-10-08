@@ -92,7 +92,14 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
   - Drums: `k`/`s`/`h` are kick, snare and hi-hat; `a`/`t`/`b` are anvil, hammer tap and bellows.
   - `compileSong` validates a song and turns it into timed events. `test/songs.test.js` asserts each screen has a track and checks each track's relative tempo, volume and density.
 - `src/music.js` synthesises the songs live (NES-style pulse, triangle and noise voices) with crossfades between tracks.
-- Battles play `battle`, unless the AI's hero has its own `music` (a song id). The Riftkin do: `riftkin` (the battle theme made menacing) for four of them and `grun` (more intense) for Grun. `songs.test.js` keeps their tempo, density and volume relative to `battle` and `menu`.
+- Battle music belongs to the board: each entry in `BACKGROUNDS` names its track (`music`, a song id), and `battleTrack()` in `ui.js` plays the current board's track (falling back to `battle`). The tracks:
+  - Highkeep: `highkeep`;
+  - The Frozen Pass: `frozenpass`;
+  - Field of Embers: `battle`, the original battle theme;
+  - Moonwood: `moonwood`;
+  - The Riven Sanctum: `sanctum`;
+  - the Riftkin's boss boards: `riftkin` (the battle theme made menacing) for the Celestial Realm and `grun` (more intense) for the Citadel.
+  `songs.test.js` keeps every board's track as calm as `battle`, no two boards sharing one, and the boss tracks' tempo, density and volume relative to `battle` and `menu`.
 - A song with `loop: false` is a stinger: `playStinger(id)` plays it once and silence follows (`wanted` is cleared, so nothing restarts until the next `playTrack`). When a battle ends, `gameOverFx` calls `stopMusic()` and then plays `victory` (or the beaten hero's `victoryMusic`: `grunVictory` for Grun) or `defeat`. A test keeps each stinger to about 5 seconds. The result overlay then comes in two steps (`showResult`, then `showQuestProgress` in `ui.js`): the result alone while the stinger plays, a Continue button as it ends (`songSeconds`), then the quest bars filling with their own chimes, then Rematch / Change class.
 - `beatClock()` exposes the playing track's position in beats, so visuals can keep time:
   - The menu scene locks onto it.

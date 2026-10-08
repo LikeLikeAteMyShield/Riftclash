@@ -18,7 +18,8 @@ import { STANDARD_DECK, loadDecks, isPlayable, loadDeckChoice, saveDeckChoice } 
 import { playTrack, playStinger, stopMusic, startMusic, isMusicOn, setMusicOn, beatClock } from './music.js';
 import { songSeconds } from './songs.js';
 import { createSplash, splashWidth, runeRingSVG, ticksSVG, sigilPoints, hexagramPath } from './splash.js';
-import { mountBackdrop, newBackdrop, setBackdrop, showBackdrop } from './backdrop.js';
+import { mountBackdrop, newBackdrop, setBackdrop, showBackdrop, backdropId } from './backdrop.js';
+import { BACKGROUNDS } from './backgrounds.js';
 import { mountMenuScene } from './menuscene.js';
 import { mountScene } from './sceneview.js';
 import { createArchive, archiveWidth } from './archive.js';
@@ -259,8 +260,8 @@ $('#menu-btn').addEventListener('click', () => {
   showScreen(ui.mode === 'riftkin' ? 'bosses' : 'play');
 });
 
-/** The music for the match in progress: a boss's own theme, or the standard battle track. */
-const battleTrack = () => HEROES[ui.game?.players[AI].heroId]?.music ?? 'battle';
+/** The music for the match in progress: the battle board's own track (the standard battle theme if it has none). */
+const battleTrack = () => BACKGROUNDS[backdropId()]?.music ?? 'battle';
 
 let menuScene = null, archive = null, forge = null, questBoard = null;
 

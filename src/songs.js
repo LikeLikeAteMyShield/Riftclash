@@ -73,6 +73,11 @@ const QUEST_CHORDS = ['G', 'D', 'Em', 'C', 'G', 'D', 'C', 'D', 'Em', 'C', 'G', '
 const RIFTKIN_CHORDS = ['Em', 'F', 'Em', 'Em', 'Am', 'F', 'B', 'Em', 'C', 'F', 'Em', 'Em', 'Am', 'F', 'B', 'Em'];
 // Grun: C minor, leaning on Db (the flat second) and G major for a darker, grander pull home.
 const GRUN_CHORDS = ['Cm', 'Db', 'Cm', 'Bb', 'Ab', 'Fm', 'G', 'G', 'Cm', 'Ab', 'Bb', 'Gm', 'Ab', 'Db', 'G', 'Cm'];
+// Battle boards (each board in backgrounds.js names its track).
+const HIGHKEEP_CHORDS = ['Dm', 'G', 'Dm', 'C', 'Dm', 'G', 'Am', 'Am', 'F', 'C', 'G', 'Dm', 'F', 'G', 'C', 'Dm'];
+const FROZEN_CHORDS = ['Em', 'Csus', 'G', 'Dsus', 'Em', 'C', 'Am', 'B', 'Em', 'Csus', 'G', 'D', 'Am', 'C', 'B', 'Em'];
+const MOONWOOD_CHORDS = ['F#m', 'E', 'F#m', 'C#m', 'F#m', 'E', 'D', 'E', 'F#m', 'A', 'E', 'C#m', 'D', 'E', 'C#m', 'F#m'];
+const SANCTUM_CHORDS = ['Bm', 'Gm', 'Bm', 'F', 'Bm', 'Gm', 'Em', 'F#', 'Bm', 'D', 'Gm', 'F', 'Em', 'Gm', 'F#', 'Bm'];
 const FORGE_CHORDS = ['Dm', 'Dm', 'Bb', 'C', 'Dm', 'Dm', 'Gm', 'A', 'Dm', 'F', 'C', 'Gm', 'Bb', 'C', 'A', 'Dm'];
 
 export const SONGS = {
@@ -353,6 +358,179 @@ export const SONGS = {
           'k . s s k . s s k . s . k s s s',
           'k . s . k . s . k . s s s s s k',
         ],
+      },
+    },
+  },
+
+  // ---- Battle boards: each as slow and spacious as the battle theme, in the board's own colours.
+
+  // Dusk over Highkeep: twilight on the castle walls. D Dorian, with a lute plucking
+  // under a distant, noble horn and a soft march on the drum.
+  highkeep: {
+    title: 'Twilight on the Ramparts',
+    bpm: 70,
+    volume: 0.7,
+    channels: {
+      lute: {
+        wave: 'pulse12', volume: 0.05, filter: 2200, env: { a: 0.002, d: 0.25, s: 0, r: 0.2 },
+        bars: HIGHKEEP_CHORDS.map(c => arp(c, { octave: 4, order: [0, 1, 2, 3], every: 2 })),
+      },
+      horn: {
+        wave: 'pulse50', volume: 0.06, filter: 1400, env: { a: 0.12, d: 0.4, s: 0.7, r: 0.8 }, vibrato: { rate: 4.5, depth: 4, delay: 0.35 },
+        bars: [
+          'A4 - - - - - - - D5 - - - - - - -',
+          'B4 - - - - - - - - - - - . . . .',
+          'A4 - - - G4 - - - F4 - - - E4 - - -',
+          'E4 - - - - - - - - - - - . . . .',
+          'A4 - - - - - - - D5 - - - E5 - - -',
+          'D5 - - - - - - - B4 - - - - - - -',
+          'C5 - - - - - - - E5 - - - - - - -',
+          'A4 - - - - - - - - - - - . . . .',
+          'F5 - - - - - - - E5 - - - C5 - - -',
+          'E5 - - - - - - - G4 - - - - - - -',
+          'D5 - - - - - - - B4 - - - G4 - - -',
+          'A4 - - - - - - - - - - - . . . .',
+          'A4 - - - C5 - - - F5 - - - - - - -',
+          'G5 - - - - - - - D5 - - - B4 - - -',
+          'C5 - - - - - - - E5 - - - G4 - - -',
+          'D5 - - - - - - - - - - - . . . .',
+        ],
+      },
+      bass: {
+        wave: 'triangle', volume: 0.24, env: { a: 0.04, d: 0.3, s: 0.7, r: 0.4 },
+        bars: HIGHKEEP_CHORDS.map(c => bass(c, 'halves')),
+      },
+      drums: {
+        wave: 'noise', volume: 0.045,
+        bars: HIGHKEEP_CHORDS.map((_, i) => (i % 4 === 3 ? 'k . . . . . . . k . . . s . s s' : 'k . . . . . . . k . . . . . . .')),
+      },
+    },
+  },
+
+  // The Frozen Pass: snow on the pines under the aurora. E minor, cold suspended
+  // chords, high bells ringing out, and only the wind for a beat.
+  frozenpass: {
+    title: 'Snowfall on the Pass',
+    bpm: 66,
+    volume: 0.65,
+    channels: {
+      pad: {
+        wave: 'pulse50', volume: 0.045, filter: 700, env: { a: 0.3, d: 0.6, s: 0.6, r: 1.2 },
+        bars: FROZEN_CHORDS.map(c => arp(c, { octave: 3, order: [0, 1, 2, 1], every: 4 })),
+      },
+      bells: {
+        wave: 'pulse12', volume: 0.045, filter: 3200, env: { a: 0.002, d: 0.6, s: 0, r: 1.2 },
+        bars: FROZEN_CHORDS.map(c => arp(c, { octave: 5, order: [3, 2, 0, 1], every: 5 })),
+      },
+      lead: {
+        wave: 'pulse25', volume: 0.055, filter: 1600, env: { a: 0.1, d: 0.4, s: 0.6, r: 1 }, vibrato: { rate: 4, depth: 5, delay: 0.4 },
+        bars: [
+          REST, REST,
+          'B4 - - - - - - - - - - - D5 - - -',
+          'A4 - - - - - - - - - - - . . . .',
+          REST, REST,
+          'C5 - - - - - - - E5 - - - - - - -',
+          'D#5 - - - - - - - - - - - . . . .',
+          REST, REST,
+          'G5 - - - - - - - F#5 - - - D5 - - -',
+          'E5 - - - - - - - - - - - . . . .',
+          REST, REST,
+          'F#5 - - - - - - - D#5 - - - - - - -',
+          'E5 - - - - - - - - - - - . . . .',
+        ],
+      },
+      bass: {
+        wave: 'triangle', volume: 0.22, env: { a: 0.2, d: 0.4, s: 0.7, r: 0.8 },
+        bars: FROZEN_CHORDS.map(c => bass(c, 'whole')),
+      },
+      wind: {
+        wave: 'noise', volume: 0.03,
+        bars: FROZEN_CHORDS.map(() => '. . . . h . . . . . . . h . . .'),
+      },
+    },
+  },
+
+  // Moonwood: a moonlit forest full of fireflies. F# minor pentatonic on a soft,
+  // flute-like lead over a plucked harp, with a hand drum and crickets.
+  moonwood: {
+    title: 'Under the Moonwood',
+    bpm: 76,
+    volume: 0.7,
+    channels: {
+      harp: {
+        wave: 'pulse12', volume: 0.045, filter: 2400, env: { a: 0.002, d: 0.3, s: 0, r: 0.3 },
+        bars: MOONWOOD_CHORDS.map(c => arp(c, { octave: 4, order: [0, 2, 3, 2], every: 2 })),
+      },
+      flute: {
+        wave: 'triangle', volume: 0.13, env: { a: 0.06, d: 0.3, s: 0.7, r: 0.5 }, vibrato: { rate: 5, depth: 6, delay: 0.25 },
+        bars: [
+          'C#5 - - - - - E5 - F#5 - - - - - - -',
+          'E5 - - - - - - - B4 - - - - - - -',
+          'C#5 - - - - - - - A4 - - - B4 - - -',
+          'C#5 - - - - - - - - - - - . . . .',
+          'F#5 - - - - - E5 - C#5 - - - - - - -',
+          'B4 - - - - - - - E5 - - - - - - -',
+          'F#5 - - - - - - - A5 - - - F#5 - - -',
+          'E5 - - - - - - - - - - - . . . .',
+          REST, REST,
+          'B4 - - - - - - - E5 - - - B5 - - -',
+          'E5 - - - - - - - C#5 - - - - - - -',
+          'F#5 - - - A5 - - - - - - - F#5 - - -',
+          'E5 - - - - - - - B4 - - - - - - -',
+          'C#5 - - - - - - - E5 - - - - - - -',
+          'F#5 - - - - - - - - - - - . . . .',
+        ],
+      },
+      bass: {
+        wave: 'triangle', volume: 0.24, env: { a: 0.05, d: 0.3, s: 0.7, r: 0.5 },
+        bars: MOONWOOD_CHORDS.map(c => bass(c, 'halves')),
+      },
+      drums: {
+        wave: 'noise', volume: 0.04,
+        bars: MOONWOOD_CHORDS.map(() => 'k . . . . . k . . . h . . . h .'),
+      },
+    },
+  },
+
+  // The Riven Sanctum: ruins around a tear in the sky. B minor that keeps slipping
+  // to G minor and F, slow swelling chords, a wavering lead, and glints of light.
+  sanctum: {
+    title: 'The Riven Sanctum',
+    bpm: 62,
+    volume: 0.65,
+    channels: {
+      swell: {
+        wave: 'pulse50', volume: 0.045, filter: 900, env: { a: 0.9, d: 0.5, s: 0.8, r: 1.5 },
+        bars: SANCTUM_CHORDS.map(c => arp(c, { octave: 3, order: [0, 2], every: 8 })),
+      },
+      glints: {
+        wave: 'pulse12', volume: 0.03, filter: 3000, env: { a: 0.01, d: 0.4, s: 0, r: 0.8 },
+        bars: SANCTUM_CHORDS.map(c => arp(c, { octave: 5, order: [3, 1, 2, 0], every: 3 })),
+      },
+      lead: {
+        wave: 'pulse25', volume: 0.055, filter: 1500, env: { a: 0.15, d: 0.4, s: 0.65, r: 1 }, vibrato: { rate: 3.5, depth: 9, delay: 0.3 },
+        bars: [
+          REST, REST,
+          'F#5 - - - - - - - D5 - - - - - - -',
+          'C5 - - - - - - - - - - - . . . .',
+          REST, REST,
+          'G5 - - - - - - - F#5 - - - E5 - - -',
+          'A#4 - - - - - - - - - - - . . . .',
+          REST, REST,
+          'D5 - - - - - - - Bb4 - - - G4 - - -',
+          'A4 - - - - - - - - - - - . . . .',
+          REST, REST,
+          'C#5 - - - - - - - A#4 - - - - - - -',
+          'B4 - - - - - - - - - - - . . . .',
+        ],
+      },
+      bass: {
+        wave: 'triangle', volume: 0.24, env: { a: 0.1, d: 0.3, s: 0.75, r: 0.8 },
+        bars: SANCTUM_CHORDS.map(c => bass(c, 'whole')),
+      },
+      drums: {
+        wave: 'noise', volume: 0.04,
+        bars: SANCTUM_CHORDS.map((_, i) => (i % 2 ? REST : 'k . . . . . . . . . . . . . . .')),
       },
     },
   },

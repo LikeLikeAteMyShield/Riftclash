@@ -114,7 +114,12 @@ Scenes are built from layers in `src/backgrounds.js` (sky gradients, mountain ri
 Chiptune background music in an 8-bit medieval style plays on every screen, synthesized live like the sound effects (two pulse-wave channels, a triangle bass and noise drums, as on the NES). Each screen has its own track and they crossfade as you move between them:
 
 - **Main menu:** *Banners of the Rift*, a marching battle theme in C minor
-- **Battle:** *Embers Between Turns*, slow and spacious so it stays in the background through long games
+- **Battles:** each battlefield has its own track, all slow and spacious so they stay in the background through long games:
+  - *Dusk over Highkeep*: *Twilight on the Ramparts*, a plucked lute under a distant horn, with a soft march on the drum
+  - *The Frozen Pass*: *Snowfall on the Pass*, cold suspended chords and high, ringing bells, with only the wind for a beat
+  - *Field of Embers*: *Embers Between Turns*, a slow, smouldering A minor
+  - *Moonwood*: *Under the Moonwood*, a flute-like melody over a harp, with a hand drum and crickets
+  - *The Riven Sanctum*: *The Riven Sanctum*, slow swelling chords that keep slipping somewhere strange, a wavering lead and glints of light
 - **Card library:** *The Archivist's Lute*, gentle plucked arpeggios
 - **Quests:** *The Road Ahead*, mellow but hopeful, like the night before setting out: picked arpeggios, a climbing melody and a light marching step
 - **Deck builder:** *Hammer and Hearth*, a low drone with an anvil ringing on every bar, the hammer bouncing in two lighter taps, and the bellows breathing every other bar

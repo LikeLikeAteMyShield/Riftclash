@@ -7,6 +7,9 @@
 // particles...) are drawn on top each frame as pure functions of time.
 //
 // Keep scenes dark and calm: the board's minions, cards and stats sit on top.
+//
+// Each board names its own battle music (`music`, a song id in songs.js),
+// which plays for the whole match fought on it.
 // test/backgrounds.test.js enforces brightness and "busyness" limits.
 
 export const BG_WIDTH = 192;
@@ -17,6 +20,7 @@ export const BG_HEIGHT = 108;
 export const BACKGROUNDS = {
   highkeep: {
     name: 'Dusk over Highkeep',
+    music: 'highkeep',
     layers: [
       { type: 'sky', stops: [[0, '#140e26'], [30, '#2a1838'], [58, '#4a2436'], [70, '#5a2e30']] },
       { type: 'glow', x: 150, y: 66, r: 40, color: '#7a3c28', alpha: 0.35 },
@@ -31,6 +35,7 @@ export const BACKGROUNDS = {
 
   frozenpass: {
     name: 'The Frozen Pass',
+    music: 'frozenpass',
     layers: [
       { type: 'sky', stops: [[0, '#08101e'], [36, '#122638'], [62, '#1e3a4c']] },
       { type: 'stars', count: 40, yMax: 34, color: '#b8d0e8', seed: 5 },
@@ -45,6 +50,7 @@ export const BACKGROUNDS = {
 
   embers: {
     name: 'Field of Embers',
+    music: 'battle',
     layers: [
       { type: 'sky', stops: [[0, '#140808'], [34, '#2c100c'], [64, '#4a1c10']] },
       { type: 'glow', x: 60, y: 70, r: 50, color: '#6a2410', alpha: 0.3 },
@@ -59,6 +65,7 @@ export const BACKGROUNDS = {
 
   moonwood: {
     name: 'Moonwood',
+    music: 'moonwood',
     layers: [
       { type: 'sky', stops: [[0, '#06121a'], [40, '#0e2228'], [70, '#163032']] },
       { type: 'glow', x: 44, y: 24, r: 26, color: '#3c5a52', alpha: 0.35 },
@@ -75,6 +82,7 @@ export const BACKGROUNDS = {
 
   rift: {
     name: 'The Riven Sanctum',
+    music: 'sanctum',
     layers: [
       { type: 'sky', stops: [[0, '#0a0616'], [40, '#170e2a'], [70, '#24123a']] },
       { type: 'stars', count: 55, yMax: 70, color: '#c8b8f0', seed: 43 },
@@ -90,6 +98,7 @@ export const BACKGROUNDS = {
 
   celestial: {
     name: 'The Celestial Realm',
+    music: 'riftkin',
     boss: true,
     layers: [
       { type: 'sky', stops: [[0, '#06061a'], [40, '#0e0c2c'], [76, '#1c1240']] },
@@ -108,6 +117,7 @@ export const BACKGROUNDS = {
 
   citadel: {
     name: 'Citadel of Endless Night',
+    music: 'grun',
     boss: true,
     layers: [
       { type: 'sky', stops: [[0, '#04030a'], [34, '#0a0618'], [64, '#1a0c2a'], [84, '#2a1032']] },
