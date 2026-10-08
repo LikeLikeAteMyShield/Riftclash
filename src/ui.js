@@ -8,7 +8,7 @@ import { sfx, unlock, isMuted, setMuted } from './sfx.js';
 import { artHTML, hasSprite, spriteSVG } from './pixelart.js';
 import { cardHTML, keywordHelpHTML, esc } from './cardview.js';
 import { mountLibrary } from './library.js';
-import { availableModes, bossChoices } from './modes.js';
+import { MODES, availableModes, isModeUnlocked, unlockProgress, bossChoices } from './modes.js';
 import { mountQuests, questNoticeHTML, unseenCompleted } from './questscreen.js';
 import { recordGame, questStatus, loadProgress } from './progress.js';
 import { visibleClasses, sequenceMatcher, SECRET_CODE, togglePlaytest } from './unlocks.js';
@@ -56,18 +56,30 @@ const heroArt = hero => artHTML({ sprite: hero.portrait, emoji: hero.emoji }, { 
 
 /** The title screen: one tile per game mode. */
 function renderTitle() {
-  $('#mode-grid').innerHTML = availableModes().map(m => `
+  // Locked modes show too, greyed out, with what unlocks them and how far along the player is.
+  $('#mode-grid').innerHTML = MODES.map(m => {
+    const icon = `<span class="mode-icon">${hasSprite(m.icon) ? spriteSVG(m.icon) : ''}</span>`;
+    if (isModeUnlocked(m)) return `
     <button class="mode-tile" data-mode="${m.id}" type="button">
-      <span class="mode-icon">${hasSprite(m.icon) ? spriteSVG(m.icon) : ''}</span>
+      ${icon}
       <span class="mode-name">${esc(m.name)}</span>
       <span class="mode-text">${esc(m.text)}</span>
-    </button>`).join('');
+    </button>`;
+    const { done, total } = unlockProgress(m);
+    return `
+    <div class="mode-tile locked" aria-disabled="true">
+      ${icon}
+      <span class="mode-name"><span class="mode-lock" aria-hidden="true">🔒</span>${esc(m.name)}</span>
+      <span class="mode-text">${esc(m.unlock.hint)}<span class="mode-unlock">${done} / ${total} complete</span></span>
+    </div>`;
+  }).join('');
 }
 
 $('#mode-grid').addEventListener('click', e => {
   const tile = e.target.closest('[data-mode]');
   if (!tile) return;
   const mode = availableModes().find(m => m.id === tile.dataset.mode);
+  if (!mode) return;
   sfx.click();
   ui.mode = mode.id;
   $('#play-title').textContent = mode.name;
@@ -194,15 +206,15 @@ document.addEventListener('keydown', e => {
   const on = togglePlaytest();
   renderTitle();
   renderClassSelect();
-  // Locking again closes Challenge the Riftkin, which unlocks with Celestial.
-  if (!on && !$('#bosses').classList.contains('hidden')) showScreen('menu');
+  // Locking again closes Challenge the Riftkin, unless the player has earned it through the trials.
+  if (!on && !$('#bosses').classList.contains('hidden') && !availableModes().some(m => m.id === 'riftkin')) showScreen('menu');
   if (on) {
     sfx.questComplete();
     fx.flash('#c58cff', 600, 0.35);
-    toastMsg('The Rift answers. Celestial unlocked for play-testing.', 3000);
+    toastMsg('The Rift answers. Everything is unlocked for play-testing.', 3000);
   } else {
     sfx.click();
-    toastMsg('The Rift falls silent. Celestial locked again.', 3000);
+    toastMsg('The Rift falls silent. Play-test unlocks removed.', 3000);
   }
 });
 
@@ -254,6 +266,7 @@ let menuScene = null, archive = null, forge = null, questBoard = null;
 
 function showScreen(id) {
   for (const s of ['menu', 'play', 'bosses', 'library', 'decks', 'quests', 'mulligan', 'table']) $('#' + s).classList.toggle('hidden', s !== id);
+  if (id === 'menu') renderTitle();   // a game may have unlocked a mode
   document.body.classList.toggle('in-game', id === 'table');
   showBackdrop(id === 'mulligan' || id === 'table');
   // The title and the modes' setup screens share the battle scene and the menu theme.
@@ -982,7 +995,7 @@ async function gameOverFx() {
         { color: ['#ffd27a', '#7cc0ff', '#8dff8d', '#ff8a7a'], count: 60, speed: 9, shape: 'shard', gravity: 0.15, life: 1500 }), k * 200);
     }
   }
-  const before = questStatus(loadProgress());
+  const before = loadProgress();
   const completed = recordFinishedGame();
   showResult(completed, before, isMusicOn() ? songSeconds(stinger) : 1.5);
 }
@@ -1002,18 +1015,24 @@ function recordFinishedGame() {
  * Defeat or Draw) while its theme plays; a Continue button appears as the
  * theme ends. Then the quest progress, with bars filling and their own
  * jingles, and finally the Rematch / Change class choices.
- * `before` is the quest status from before this game was recorded.
+ * `beforeProgress` is the player's progress from before this game was recorded.
  */
-function showResult(completed, before, themeSeconds) {
+function showResult(completed, beforeProgress, themeSeconds) {
   const w = ui.game.winner;
   const run = ui.resultRun = {};   // a newer result (or a rematch) cancels this one
   const progress = loadProgress();
   const just = new Set(completed.map(q => q.id));
-  // Quests worth showing: those this game completed, then any still open.
-  const shown = questStatus(progress).filter(q => just.has(q.id) || !q.done);
+  const before = questStatus(beforeProgress);
+  const was = Object.fromEntries(before.map(q => [q.id, q.value]));
+  // Quests worth showing: those this game moved forward or completed.
+  const shown = questStatus(progress).filter(q => just.has(q.id) || (!q.done && q.value > (was[q.id] ?? 0)));
+  // Modes this game unlocked (by completing their last quest).
+  const unlocked = MODES.filter(m => !isModeUnlocked(m, undefined, beforeProgress) && isModeUnlocked(m, undefined, progress));
   const foe = HEROES[ui.game.players[AI].heroId];
+  const s = progress.stats;
   $('#result-title').textContent = w === 'draw' ? 'Draw' : w === HUMAN ? 'Victory!' : 'Defeat';
-  $('#result-banner').innerHTML = !foe.boss || w === 'draw' ? '' : `<p class="result-boss">${esc(foe.name)} ${w === HUMAN ? 'is defeated.' : 'stands victorious.'}</p>`;
+  $('#result-banner').innerHTML = (!foe.boss || w === 'draw' ? '' : `<p class="result-boss">${esc(foe.name)} ${w === HUMAN ? 'is defeated.' : 'stands victorious.'}</p>`)
+    + `<p class="result-record">Record: ${s.wins} W · ${s.losses} L${s.draws ? ` · ${s.draws} D` : ''}</p>`;
   $('#result-quests').innerHTML = '';
   $('#menu-btn').textContent = ui.mode === 'riftkin' ? 'Choose another foe' : 'Change class';
   setResultButtons('none');
@@ -1024,7 +1043,7 @@ function showResult(completed, before, themeSeconds) {
     if (ui.resultRun !== run) return;
     setResultButtons(shown.length ? 'continue' : 'choices');
   }, Math.max(1, themeSeconds - 0.4) * 1000);
-  $('#continue-btn').onclick = () => { sfx.click(); showQuestProgress(run, shown, before, just, progress.stats); };
+  $('#continue-btn').onclick = () => { sfx.click(); showQuestProgress(run, shown, before, just, unlocked); };
 }
 
 /** Which buttons the result overlay offers: none yet, Continue, or the Rematch / Change class choices. */
@@ -1036,16 +1055,14 @@ function setResultButtons(which) {
 }
 
 /** Step two: each quest's bar fills from where it was before the game, with a chime; completed quests get stamped. */
-async function showQuestProgress(run, shown, before, just, stats) {
+async function showQuestProgress(run, shown, before, just, unlocked) {
   setResultButtons('none');
   const was = Object.fromEntries(before.map(q => [q.id, q]));
   $('#result-title').textContent = 'Quest Progress';
   $('#result-banner').innerHTML = '';
   // Start every notice where it stood before this game.
   const start = q => ({ ...q, value: was[q.id]?.value ?? 0, done: false, completedAt: null });
-  $('#result-quests').innerHTML = `
-    <p class="result-record">Record: ${stats.wins} W · ${stats.losses} L${stats.draws ? ` · ${stats.draws} D` : ''}</p>
-    ${shown.map(q => `<div data-quest="${q.id}">${questNoticeHTML(start(q), { compact: true })}</div>`).join('')}`;
+  $('#result-quests').innerHTML = shown.map(q => `<div data-quest="${q.id}">${questNoticeHTML(start(q), { compact: true })}</div>`).join('');
   await sleep(500);
   for (const q of shown) {
     if (ui.resultRun !== run) return;
@@ -1062,6 +1079,18 @@ async function showQuestProgress(run, shown, before, just, stats) {
       sfx.questComplete();
       await sleep(1200);
     }
+  }
+  // Completing the last of a mode's quests unlocks it: the grand finale.
+  for (const m of unlocked) {
+    if (ui.resultRun !== run) return;
+    $('#result-quests').insertAdjacentHTML('beforeend', `
+      <div class="result-unlock">
+        <span class="result-unlock-icon">${hasSprite(m.icon) ? spriteSVG(m.icon) : ''}</span>
+        <span><small>New mode unlocked</small>${esc(m.name)}</span>
+      </div>`);
+    sfx.questComplete();
+    fx.flash('#c58cff', 600, 0.3);
+    await sleep(1400);
   }
   if (ui.resultRun !== run) return;
   setResultButtons('choices');

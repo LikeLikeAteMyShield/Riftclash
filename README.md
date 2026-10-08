@@ -13,7 +13,7 @@ It has no dependencies and no build step. ES modules don't load over `file://`, 
 
 ## How to play
 
-The title screen offers the game modes. For now there's one, **Enter the Rift**: pick it, choose your champion (class), deck and opponent, then **Begin battle**. **Deck Builder**, **Card Library** and **Quests** are on the title screen too. Game modes are defined in `src/modes.js`.
+The title screen offers the game modes. **Enter the Rift** is open from the start: pick it, choose your champion (class), deck and opponent, then **Begin battle**. **Challenge the Riftkin**, the boss battle mode, starts locked: complete all six Champion's Trials (see Quests) to open it. Until then its tile shows how many trials you've completed. **Deck Builder**, **Card Library** and **Quests** are on the title screen too. Game modes are defined in `src/modes.js`.
 
 - Each hero starts with 30 Health. You gain a Mana Crystal every turn, up to 10.
 - The player going first starts with 3 cards. The player going second starts with 4 cards plus the **Ember Coin** (gain 1 mana this turn). You can mulligan your opening hand.
@@ -48,11 +48,14 @@ Like the archive, it's painted into a pixel buffer (`src/forge.js`), so `npm tes
 
 ### Quests
 
-Quests are goals that track your progress across games, like achievements. Every finished game is added to your record, and a quest is marked complete (for good) once its goal is met. To start with there is one quest: **Proven in Battle**, *win 5 games*.
+Quests are goals that track your progress across games, like achievements. Every finished game is added to your record, and a quest is marked complete (for good) once its goal is met. The quests are:
+
+- **Proven in Battle**: *win 5 games*.
+- **The Champion's Trials**: *win 5 games* as each class: the Trial of Flame (Pyromancer), Iron (Warlord), the Hunt (Stalker), Light (Oracle), the Shield (Vanguard) and Shadows (Shade). Completing all six unlocks **Challenge the Riftkin**. The Quest Board shows how many you've done.
 
 - **Quests** on the main menu opens the Quest Board. Each quest is a parchment notice pinned to the board, showing your progress and a "Complete" stamp with the date once you've done it.
 - Beside the board, the **Adventurer's Record** shows your games, wins, losses, draws, win rate and best win streak, plus wins and losses for each champion you've played.
-- The victory and defeat screen shows your record and your progress on any open quest. When a game completes a quest, it says so and plays a fanfare. The menu's Quests button then shows a "new" badge until you look.
+- After a battle, the result screen shows your record. If the game moved a quest forward, **Continue** shows the progress: each bar fills from where it was, and a completed quest is stamped with a fanfare. When a quest completes the last of the trials, the new mode is announced too. The menu's Quests button then shows a "new" badge until you look.
 - Stats and quests are saved in your browser's local storage.
 
 The board hangs in an adventurers' guild at first light, painted in pixel art like the other screens:
