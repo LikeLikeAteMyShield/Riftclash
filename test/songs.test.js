@@ -14,7 +14,8 @@ test('every song compiles, with all channels the same length', () => {
 });
 
 test('each screen has its own track', () => {
-  assert.deepEqual(Object.keys(SONGS).filter(id => SONGS[id].loop !== false).sort(), ['battle', 'forge', 'grun', 'library', 'menu', 'quests', 'riftkin']);
+  assert.deepEqual(Object.keys(SONGS).filter(id => SONGS[id].loop !== false).sort(),
+    ['battle', 'forge', 'frozenpass', 'grun', 'highkeep', 'library', 'menu', 'moonwood', 'quests', 'riftkin', 'sanctum']);
 });
 
 test('battle, library and forge are calmer than the menu theme', () => {
@@ -83,8 +84,9 @@ test('the quest theme sits between the library and the menu: brighter than one, 
 
 test('the Riftkin fight to their own music: the battle theme made menacing, and Grun\'s more intense still', async () => {
   const { HEROES, RIFTKIN } = await import('../src/cards.js');
-  for (const id of RIFTKIN) assert.equal(HEROES[id].music, id === 'grun' ? 'grun' : 'riftkin', id);
-  assert.ok(!Object.values(HEROES).some(h => !h.boss && h.music), 'other heroes use the standard battle music');
+  const { BACKGROUNDS } = await import('../src/backgrounds.js');
+  // Their music comes with their boards.
+  for (const id of RIFTKIN) assert.equal(BACKGROUNDS[HEROES[id].board].music, id === 'grun' ? 'grun' : 'riftkin', id);
   const density = id => { const s = compileSong(id); return s.events.length / (s.length * s.stepDur); };
   const { riftkin, grun, battle, menu } = SONGS;
   // The Riftkin theme keeps the battle theme's ambient energy: about as slow, sparse and quiet.
@@ -141,4 +143,19 @@ test('the title theme is a marching battle theme in C minor, toned down to sit w
   // No bright major interlude: every chord is minor, or one of the darker major chords of C minor.
   const roots = compileSong('menu').events.filter(e => e.channel === 'bass' && e.step % 16 === 0).map(e => e.midi % 12);
   assert.ok(roots.every(r => [0, 5, 7, 8, 10].includes(r)), 'chords on C, F, G, Ab and Bb');
+});
+
+test('every battle board has its own track, as calm as the battle theme', async () => {
+  const { BACKGROUNDS } = await import('../src/backgrounds.js');
+  const density = id => { const s = compileSong(id); return s.events.length / (s.length * s.stepDur); };
+  const tracks = Object.values(BACKGROUNDS).map(b => b.music);
+  assert.equal(new Set(tracks).size, tracks.length, 'no two boards share a track');
+  for (const [id, board] of Object.entries(BACKGROUNDS)) {
+    const song = SONGS[board.music];
+    assert.ok(song && song.loop !== false, `${id} plays a looping track`);
+    if (board.boss) continue;   // the boss boards' tracks have their own test
+    assert.ok(song.bpm <= 80 && song.volume < SONGS.menu.volume, `${id}: slow and quieter than the menu`);
+    assert.ok(density(board.music) < density('battle') * 1.5, `${id}: about as sparse as the battle theme (${density(board.music).toFixed(1)} notes/s)`);
+  }
+  assert.equal(BACKGROUNDS.embers.music, 'battle', 'Field of Embers keeps the original battle theme');
 });
