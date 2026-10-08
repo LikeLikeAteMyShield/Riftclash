@@ -2,8 +2,10 @@
 // is in on any beat, and the schedule of attacks. Pure data and functions (no
 // DOM), so they are unit tested; src/menuscene.js does the drawing.
 
+import { SONGS } from './songs.js';
+
 export const SCENE_H = 180;
-export const MENU_BPM = 140;      // matches the menu theme, so the scene keeps time even with music off
+export const MENU_BPM = SONGS.menu.bpm;   // the menu theme's tempo, so the scene keeps time even with music off
 export const CYCLE = 16;          // beats in one round of the choreography (four bars)
 export const GROUND = SCENE_H - 4;  // heroes' feet
 export const FIG = 32;              // hero sprite size

@@ -65,7 +65,7 @@ const REST = '. . . . . . . . . . . . . . . .';
 
 // ---------------------------------------------------------------- songs
 
-const MENU_CHORDS = ['Dm', 'Bb', 'C', 'Dm', 'Dm', 'Bb', 'C', 'A', 'F', 'C', 'Bb', 'C', 'Dm', 'Bb', 'A', 'Dm'];
+const MENU_CHORDS = ['Cm', 'Ab', 'Bb', 'Cm', 'Cm', 'Ab', 'Bb', 'G', 'Fm', 'Cm', 'Ab', 'G', 'Cm', 'Ab', 'G', 'Cm'];
 const BATTLE_CHORDS = ['Am', 'F', 'G', 'Em', 'Am', 'Dm', 'Em', 'Am', 'F', 'C', 'G', 'Em', 'F', 'Dm', 'Em', 'Am'];
 const LIBRARY_CHORDS = ['C', 'Am', 'F', 'G', 'C', 'Em', 'F', 'G', 'F', 'G', 'Em', 'Am', 'Dm', 'G', 'C', 'C'];
 const QUEST_CHORDS = ['G', 'D', 'Em', 'C', 'G', 'D', 'C', 'D', 'Em', 'C', 'G', 'D', 'C', 'D', 'G', 'G'];
@@ -76,35 +76,37 @@ const GRUN_CHORDS = ['Cm', 'Db', 'Cm', 'Bb', 'Ab', 'Fm', 'G', 'G', 'Cm', 'Ab', '
 const FORGE_CHORDS = ['Dm', 'Dm', 'Bb', 'C', 'Dm', 'Dm', 'Gm', 'A', 'Dm', 'F', 'C', 'Gm', 'Bb', 'C', 'A', 'Dm'];
 
 export const SONGS = {
-  // Main menu: a bright, marching heroic theme in D minor.
+  // Main menu: a marching battle theme in C minor. Heavier and a touch slower than
+  // it once was, so it sits with the calmer music of the rest of the game: the
+  // middle climbs through Fm, Cm, Ab and G rather than breaking into a bright major.
   menu: {
     title: 'Banners of the Rift',
-    bpm: 140,
-    volume: 1,
+    bpm: 124,
+    volume: 0.9,
     channels: {
       lead: {
-        wave: 'pulse25', volume: 0.2, env: { a: 0.005, d: 0.1, s: 0.55, r: 0.05 }, vibrato: { rate: 6, depth: 4, delay: 0.12 },
+        wave: 'pulse25', volume: 0.17, filter: 2800, env: { a: 0.005, d: 0.1, s: 0.55, r: 0.05 }, vibrato: { rate: 6, depth: 4, delay: 0.12 },
         bars: [
-          'D5 - - - A4 - D5 - F5 - - - E5 - D5 -',
-          'C5 - - - Bb4 - - - A4 - Bb4 - C5 - - -',
-          'E5 - - - D5 - C5 - G5 - - - E5 - C5 -',
-          'D5 - - - - - - - A4 - D5 - F5 - A5 -',
-          'D6 - - - C6 - A5 - F5 - - - G5 - A5 -',
-          'Bb5 - - - A5 - G5 - F5 - - - D5 - F5 -',
-          'G5 - - - F5 - E5 - C5 - - - E5 - G5 -',
-          'A5 - - - - - G5 - F5 - E5 - C#5 - - -',
-          'A5 - - - - - C6 - A5 - - - F5 - - -',
-          'G5 - - - - - E5 - C5 - - - E5 - G5 -',
-          'F5 - - - - - D5 - Bb4 - - - D5 - F5 -',
-          'E5 - - - - - G5 - C6 - - - Bb5 - G5 -',
-          'A5 - - - F5 - A5 - D6 - - - C6 - A5 -',
-          'Bb5 - - - A5 - G5 - F5 - G5 - A5 - - -',
-          'E5 - - - C#5 - E5 - A5 - - - G5 - E5 -',
-          'D5 - - - - - - - - - - - . . . .',
+          'C5 - - - G4 - C5 - Eb5 - - - D5 - C5 -',
+          'Bb4 - - - Ab4 - - - G4 - Ab4 - Bb4 - - -',
+          'D5 - - - C5 - Bb4 - F5 - - - D5 - Bb4 -',
+          'C5 - - - - - - - G4 - C5 - Eb5 - G5 -',
+          'C6 - - - Bb5 - G5 - Eb5 - - - F5 - G5 -',
+          'Ab5 - - - G5 - F5 - Eb5 - - - C5 - Eb5 -',
+          'F5 - - - Eb5 - D5 - Bb4 - - - D5 - F5 -',
+          'G5 - - - - - F5 - Eb5 - D5 - B4 - - -',
+          'Ab5 - - - - - C6 - Ab5 - - - F5 - - -',
+          'G5 - - - - - Eb5 - C5 - - - Eb5 - G5 -',
+          'F5 - - - - - Eb5 - C5 - - - Eb5 - Ab5 -',
+          'G5 - - - - - B4 - D5 - - - F5 - G5 -',
+          'G5 - - - Eb5 - G5 - C6 - - - Bb5 - G5 -',
+          'Ab5 - - - G5 - F5 - Eb5 - F5 - G5 - - -',
+          'D5 - - - B4 - D5 - G5 - - - F5 - D5 -',
+          'C5 - - - - - - - - - - - . . . .',
         ],
       },
       harmony: {
-        wave: 'pulse12', volume: 0.07, env: { a: 0.002, d: 0.06, s: 0.3, r: 0.03 },
+        wave: 'pulse12', volume: 0.07, filter: 2400, env: { a: 0.002, d: 0.06, s: 0.3, r: 0.03 },
         bars: MENU_CHORDS.map(c => arp(c, { octave: 4, order: [0, 1, 2, 1] })),
       },
       bass: {

@@ -125,3 +125,20 @@ test('a battle ends with a short victory or defeat theme that plays once, and be
   assert.equal(last(g, 'lead') % 12, 0, 'Grun\'s victory resolves to C');
   assert.ok(SONGS.defeat.bpm < SONGS.victory.bpm && SONGS.defeat.volume < SONGS.victory.volume, 'defeat is slower and quieter');
 });
+
+test('the title theme is a marching battle theme in C minor, toned down to sit with the rest of the game', async () => {
+  const { MENU_BPM } = await import('../src/menuplan.js');
+  const menu = SONGS.menu;
+  assert.equal(MENU_BPM, menu.bpm, 'the menu battle scene keeps time with the theme');
+  assert.ok(menu.bpm >= 115 && menu.bpm <= 130, `a marching tempo, a little slower than before (${menu.bpm} BPM)`);
+  assert.ok(menu.volume < 1);
+  // C minor: the lead stays in C natural minor, plus the B natural that leads home from G.
+  const cMinor = new Set([0, 2, 3, 5, 7, 8, 10, 11]);
+  const lead = compileSong('menu').events.filter(e => e.channel === 'lead');
+  assert.ok(lead.every(e => cMinor.has(e.midi % 12)), 'lead stays in C minor');
+  assert.equal(lead[0].midi % 12, 0, 'starts on C');
+  assert.equal(lead.at(-1).midi % 12, 0, 'ends on C');
+  // No bright major interlude: every chord is minor, or one of the darker major chords of C minor.
+  const roots = compileSong('menu').events.filter(e => e.channel === 'bass' && e.step % 16 === 0).map(e => e.midi % 12);
+  assert.ok(roots.every(r => [0, 5, 7, 8, 10].includes(r)), 'chords on C, F, G, Ab and Bb');
+});

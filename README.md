@@ -97,7 +97,7 @@ Behind the title screen and champion selection, a pixel art battle plays out in 
   - The **Warlord** leaps into the middle and slams the ground.
   - The **Shade** vanishes in smoke and dashes in to strike.
 
-When the music is playing, the scene locks onto its beat. With music off it keeps the same 140 BPM time.
+When the music is playing, the scene locks onto its beat. With music off it keeps the same 124 BPM time.
 
 The scene is drawn at 180 pixels tall and as wide as your screen's shape needs. Narrower screens show fewer heroes (two pairs, then one), so no one is cut off. With "reduce motion" on, you get a single still frame. The scene pauses whenever you leave the menu or switch tabs.
 
@@ -113,7 +113,7 @@ Scenes are built from layers in `src/backgrounds.js` (sky gradients, mountain ri
 
 Chiptune background music in an 8-bit medieval style plays on every screen, synthesized live like the sound effects (two pulse-wave channels, a triangle bass and noise drums, as on the NES). Each screen has its own track and they crossfade as you move between them:
 
-- **Main menu:** *Banners of the Rift*, an energetic, marching theme
+- **Main menu:** *Banners of the Rift*, a marching battle theme in C minor
 - **Battle:** *Embers Between Turns*, slow and spacious so it stays in the background through long games
 - **Card library:** *The Archivist's Lute*, gentle plucked arpeggios
 - **Quests:** *The Road Ahead*, mellow but hopeful, like the night before setting out: picked arpeggios, a climbing melody and a light marching step
