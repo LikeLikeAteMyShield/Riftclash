@@ -105,7 +105,7 @@ The hero figures are sprites in `src/sprites/champions.js`, two poses per hero. 
 
 ### Battlefields
 
-Each match is fought in front of a randomly chosen pixel art battlefield (never the same one twice in a row): *Dusk over Highkeep*, *The Frozen Pass*, *Field of Embers*, *Moonwood* and *The Riven Sanctum*. Each has subtle motion (drifting clouds, flickering castle windows, falling snow, rising embers, fireflies, a pulsing rift) and is dimmed so the board stays the focus; with "reduce motion" on, the scene holds still.
+Each match is fought in front of a randomly chosen pixel art battlefield (never the same one twice in a row): *Dusk over Highkeep*, *The Frozen Pass*, *Field of Embers*, *Moonwood*, *The Riven Sanctum* and *The Ancient Crypt*. Each has subtle motion (drifting clouds, flickering castle windows, falling snow, rising embers, fireflies, a pulsing rift, guttering candles) and is dimmed so the board stays the focus; with "reduce motion" on, the scene holds still.
 
 Scenes are built from layers in `src/backgrounds.js` (sky gradients, mountain ridges, castles, trees, particles...). `npm test` checks every scene stays dark, calm and only gently animated, so new ones can't drown out the board.
 
@@ -120,6 +120,7 @@ Chiptune background music in an 8-bit medieval style plays on every screen, synt
   - *Field of Embers*: *Embers Between Turns*, a slow, smouldering A minor
   - *Moonwood*: *Under the Moonwood*, a flute-like melody over a harp, with a hand drum and crickets
   - *The Riven Sanctum*: *The Riven Sanctum*, slow swelling chords that keep slipping somewhere strange, a wavering lead and glints of light
+  - *The Ancient Crypt*: *Dirge of the Crypt*
 - **Card library:** *The Archivist's Lute*, gentle plucked arpeggios
 - **Quests:** *The Road Ahead*, mellow but hopeful, like the night before setting out: picked arpeggios, a climbing melody and a light marching step
 - **Deck builder:** *Hammer and Hearth*, a low drone with an anvil ringing on every bar, the hammer bouncing in two lighter taps, and the bellows breathing every other bar

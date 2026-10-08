@@ -98,6 +98,7 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
   - Field of Embers: `battle`, the original battle theme;
   - Moonwood: `moonwood`;
   - The Riven Sanctum: `sanctum`;
+  - The Ancient Crypt: `crypt`;
   - the Riftkin's boss boards: `riftkin` (the battle theme made menacing) for the Celestial Realm and `grun` (more intense) for the Citadel.
   `songs.test.js` keeps every board's track as calm as `battle`, no two boards sharing one, and the boss tracks' tempo, density and volume relative to `battle` and `menu`.
 - A song with `loop: false` is a stinger: `playStinger(id)` plays it once and silence follows (`wanted` is cleared, so nothing restarts until the next `playTrack`). When a battle ends, `gameOverFx` calls `stopMusic()` and then plays `victory` (or the beaten hero's `victoryMusic`: `grunVictory` for Grun) or `defeat`. A test keeps each stinger to about 5 seconds. The result overlay then comes in two steps (`showResult`, then `showQuestProgress` in `ui.js`): the result alone while the stinger plays, a Continue button as it ends (`songSeconds`), then the quest bars filling with their own chimes, then Rematch / Change class.
