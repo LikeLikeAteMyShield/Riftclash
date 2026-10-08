@@ -13,6 +13,8 @@ It has no dependencies and no build step. ES modules don't load over `file://`, 
 
 ## How to play
 
+The game opens on a splash screen: the title inside rings of glowing runes, the six class sigils around it, and the Rift tearing open behind. Press any key (or click or tap) to enter. That's also what lets the browser start the music, since browsers don't play sound until you interact with the page.
+
 The title screen offers the game modes. **Enter the Rift** is open from the start: pick it, choose your champion (class), deck and opponent, then **Begin battle**. A second mode starts locked, its name hidden: complete all six Champion's Trials (see Quests) to discover it. Until then its tile shows how many trials you've completed. **Deck Builder**, **Card Library** and **Quests** are on the title screen too. Game modes are defined in `src/modes.js`.
 
 - Each hero starts with 30 Health. You gain a Mana Crystal every turn, up to 10.
@@ -152,6 +154,7 @@ Each class's standard deck is 2 copies of its 8 class cards plus 7 pairs of neut
 
 ```
 index.html, styles.css   page shell and visuals (CSS card frames around pixel art)
+src/splash.js            the opening splash screen: its Rift backdrop, rune rings and sigil layout
 src/cards.js             all card + class data, and deck building
 src/engine.js            rules engine (no DOM); deterministic given a seed
 src/ai.js                greedy AI: removal/trades, lethal check, curve play

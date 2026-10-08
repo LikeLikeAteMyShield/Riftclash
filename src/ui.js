@@ -17,6 +17,7 @@ import { mountDeckBuilder } from './deckbuilder.js';
 import { STANDARD_DECK, loadDecks, isPlayable, loadDeckChoice, saveDeckChoice } from './decks.js';
 import { playTrack, playStinger, stopMusic, startMusic, isMusicOn, setMusicOn, beatClock } from './music.js';
 import { songSeconds } from './songs.js';
+import { createSplash, splashWidth, runeRingSVG, ticksSVG, sigilPoints, hexagramPath } from './splash.js';
 import { mountBackdrop, newBackdrop, setBackdrop, showBackdrop } from './backdrop.js';
 import { mountMenuScene } from './menuscene.js';
 import { mountScene } from './sceneview.js';
@@ -1321,6 +1322,61 @@ $('#music-btn').addEventListener('click', () => {
   sfx.click();
 });
 
+// ------------------------------------------------------------------ splash
+
+/**
+ * The splash screen over the title screen when the game opens: the title in
+ * rings of runes, the class sigils around it, the Rift tearing open behind.
+ * Any key (or a click or tap) dismisses it, and that same gesture is what
+ * lets the browser start the music, so the menu theme rises as it clears.
+ */
+function mountSplash() {
+  const splash = $('#splash');
+  $('.splash-rings').innerHTML = `
+    <g class="ring ring-outer">
+      <circle class="line" r="452" pathLength="1"/>
+      <circle class="line thin" r="408" pathLength="1"/>
+      ${ticksSVG({ r0: 456, r1: 466, count: 120, major: 10 })}
+      ${runeRingSVG({ r: 430, count: 36, size: 26 })}
+    </g>
+    <g class="ring ring-mid">
+      <circle class="line violet" r="374" pathLength="1"/>
+      <circle class="line violet dashed" r="334"/>
+      ${runeRingSVG({ r: 354, count: 28, size: 20, offset: 5, className: 'rune violet' })}
+    </g>
+    <g class="ring ring-hex">
+      <circle class="line faint" r="300" pathLength="1"/>
+      <path class="hex" d="${hexagramPath(300)}" pathLength="1"/>
+    </g>`;
+  // The six classes every player knows (never a hidden one) as glowing sigils on the hexagram's points.
+  const classes = Object.keys(CLASSES).filter(cls => !CLASSES[cls].hidden);
+  $('.splash-sigils').innerHTML = sigilPoints(classes.length, 300).map((p, i) => {
+    const hp = defaultHero(classes[i]).heroPower;
+    return `<span class="splash-sigil" style="--cls:${CLASSES[classes[i]].color}; --i:${i}; left:${50 + p.x / 10}%; top:${50 + p.y / 10}%">${powerArt(hp)}</span>`;
+  }).join('');
+  const scene = mountScene($('#splash-bg'), { width: splashWidth, create: createSplash, fps: 30, stillAt: 3 });
+  scene.show(true);
+  document.body.classList.add('on-splash');
+  splash.focus({ preventScroll: true });
+
+  const IGNORED = new Set(['Shift', 'Control', 'Alt', 'Meta', 'Escape', 'Tab', 'CapsLock']);
+  let gone = false;
+  const dismiss = e => {
+    if (gone || (e.type === 'keydown' && IGNORED.has(e.key))) return;
+    gone = true;
+    e.preventDefault();
+    e.stopPropagation();   // the dismissing key isn't also a key press on the title screen
+    unlock(); startMusic();
+    sfx.enter();
+    fx.flash('#c58cff', 500, 0.25);
+    splash.classList.add('leaving');
+    document.body.classList.remove('on-splash');
+    setTimeout(() => { splash.classList.add('hidden'); scene.show(false); }, 1100);
+  };
+  splash.addEventListener('pointerdown', dismiss);
+  addEventListener('keydown', dismiss, { capture: true });
+}
+
 // Browsers only start audio after a user gesture.
 const onGesture = () => { unlock(); startMusic(); };
 document.addEventListener('pointerdown', onGesture);
@@ -1335,6 +1391,7 @@ questBoard = mountScene($('#quests-bg'), { width: questBoardWidth, create: creat
 forge = mountScene($('#decks-bg'), { width: forgeWidth, create: createForge, fps: 24, stillAt: 2.95, time: forgeTime });
 menuScene.show(true);
 document.body.classList.add('on-menu');
+mountSplash();
 renderSoundButton();
 renderMusicButton();
 renderTitle();

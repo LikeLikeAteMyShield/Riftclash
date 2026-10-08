@@ -160,6 +160,13 @@ export const sfx = {
     noise({ type: 'bandpass', freq: 5200, to: 2400, dur: 0.6, vol: 0.14, q: 0.8, attack: 0.06 });
     tone(392, { type: 'sine', to: 196, dur: 0.7, vol: 0.08, attack: 0.02 });
   },
+  // Entering the game from the splash screen: a deep boom under a rising, shimmering chord.
+  enter() {
+    tone(70, { type: 'sine', to: 32, dur: 1.8, vol: 0.32, attack: 0.01 });
+    noise({ type: 'lowpass', freq: 900, to: 60, dur: 1.4, vol: 0.22, attack: 0.01 });
+    [262, 392, 523, 659, 784, 1047].forEach((f, i) => tone(f, { type: 'triangle', dur: 1.3, vol: 0.055, attack: 0.05, delay: 0.08 + i * 0.07 }));
+    tone(1568, { type: 'sine', to: 2093, dur: 1.6, vol: 0.04, attack: 0.3, delay: 0.3 });
+  },
   // A soft two-note chime as a quest's progress bar fills.
   questProgress() {
     tone(784, { type: 'triangle', dur: 0.25, vol: 0.08, attack: 0.01 });

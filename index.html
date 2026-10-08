@@ -20,6 +20,22 @@
   <canvas id="battle-bg" aria-hidden="true"></canvas>
   <div id="battle-dim" aria-hidden="true"></div>
 
+  <!-- The splash screen: shown over the title screen when the game opens, until the player presses a key. -->
+  <section id="splash" aria-label="Riftclash. Press any key to begin." tabindex="0">
+    <canvas id="splash-bg" aria-hidden="true"></canvas>
+    <div class="splash-stage" aria-hidden="true">
+      <svg class="splash-rings" viewBox="-500 -500 1000 1000"></svg>
+      <div class="splash-sigils"></div>
+      <div class="splash-title">
+        <p class="splash-kicker">✦ The Rift Awakens ✦</p>
+        <h1 class="splash-logo" data-text="Riftclash">Riftclash</h1>
+        <p class="splash-sub">A card battle across the Rift</p>
+      </div>
+    </div>
+    <p class="splash-prompt"><span class="keys">Press any key to begin</span><span class="touch">Tap to begin</span></p>
+    <div class="splash-flash" aria-hidden="true"></div>
+  </section>
+
   <main id="app">
     <section id="menu" class="screen">
       <h1 class="logo">Riftclash</h1>
