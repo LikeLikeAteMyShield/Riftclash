@@ -12,7 +12,8 @@ import { mountLibrary } from './library.js';
 import { MODES, availableModes, isModeUnlocked, unlockProgress, bossChoices } from './modes.js';
 import { mountQuests, questNoticeHTML, unseenCompleted } from './questscreen.js';
 import { recordGame, questStatus, loadProgress } from './progress.js';
-import { visibleClasses, sequenceMatcher, SECRET_CODE, togglePlaytest } from './unlocks.js';
+import { visibleClasses, sequenceMatcher, SECRET_CODE, togglePlaytest, isPlaytest } from './unlocks.js';
+import { startTranscript, finishTranscript, saveTranscript, loadTranscripts, exportBundle } from './transcript.js';
 import { lockedCards, rewardCards, unseenRewards, markRewardsSeen } from './rewards.js';
 import { createQuestBoard, questBoardWidth } from './questboard.js';
 import { mountDeckBuilder } from './deckbuilder.js';
@@ -77,6 +78,7 @@ function renderTitle() {
       <span class="mode-text" aria-hidden="true">${esc(m.unlock.hint)}<span class="mode-unlock">${done} / ${total} complete</span></span>
     </div>`;
   }).join('');
+  renderTranscriptsButton();
 }
 
 $('#mode-grid').addEventListener('click', e => {
@@ -342,6 +344,11 @@ function startGame() {
   // Which mind plays the opponent: the Masochist (in its mode) or the usual greedy AI.
   ui.ai = availableModes().find(m => m.id === ui.mode)?.ai ?? 'greedy';
   if (ui.ai === 'masochist') $('#log').insertAdjacentHTML('beforeend', '<li class="log-warn">The Masochist sees every card in both decks. It will not be merciful.</li>');
+  // While play-testing, every match is recorded (transcript.js) so it can be studied later.
+  ui.transcript = isPlaytest() ? startTranscript(ui.game, {
+    mode: ui.mode, ai: ui.ai, board: backdropId(), boardName: place, boss: foe.boss ? heroes[1] : null,
+    humanDeck: loadDecks().find(d => d.id === loadDeckChoice()[ui.playerClass] && chosenDeck())?.name ?? 'Standard deck',
+  }) : null;
   ui.game.mulligan(AI, ui.ai === 'masochist' ? masochistMulligan(ui.game, AI) : mulliganChoice(ui.game, AI));
   renderMulligan();
   showScreen('mulligan');
@@ -1032,6 +1039,11 @@ async function gameOverFx() {
   }
   const before = loadProgress();
   const completed = recordFinishedGame();
+  if (ui.transcript && !ui.transcript.result) {
+    finishTranscript(ui.transcript, ui.game);
+    saveTranscript(ui.transcript);
+    renderTranscriptsButton();
+  }
   showResult(completed, before, isMusicOn() ? songSeconds(stinger) : 1.5);
 }
 
@@ -1086,6 +1098,7 @@ function setResultButtons(which) {
   $('#continue-btn').classList.toggle('hidden', which !== 'continue');
   $('#again-btn').classList.toggle('hidden', which !== 'choices');
   $('#menu-btn').classList.toggle('hidden', which !== 'choices');
+  $('#transcript-btn').classList.toggle('hidden', which !== 'choices' || !ui.transcript?.result);
   $('#overlay .overlay-actions').classList.toggle('appear', which !== 'none');
 }
 
@@ -1425,6 +1438,39 @@ function mountSplash() {
   splash.addEventListener('pointerdown', dismiss);
   addEventListener('keydown', dismiss, { capture: true });
 }
+
+// ------------------------------------------------------------------ transcripts
+
+/** Offer a file to save: the browser downloads it. */
+function download(filename, data) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: filename });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+const stamp = () => new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+
+/** The title screen's Transcripts button: only while play-testing, with how many matches are saved. */
+function renderTranscriptsButton() {
+  const n = loadTranscripts().length;
+  const b = $('#transcripts-btn');
+  b.classList.toggle('hidden', !isPlaytest() || !n);
+  b.textContent = `Transcripts (${n})`;
+}
+$('#transcripts-btn').addEventListener('click', () => {
+  sfx.click();
+  const all = loadTranscripts();
+  download(`riftclash-transcripts-${stamp()}.json`, exportBundle(all));
+  toastMsg(`Downloaded ${all.length} match transcript${all.length === 1 ? '' : 's'}.`, 2500);
+});
+$('#transcript-btn').addEventListener('click', () => {
+  sfx.click();
+  const t = ui.transcript;
+  if (!t?.result) return;
+  download(`riftclash-match-${stamp()}-${t.meta.classes.join('-vs-')}.json`, t);
+});
 
 // Browsers only start audio after a user gesture.
 const onGesture = () => { unlock(); startMusic(); };
