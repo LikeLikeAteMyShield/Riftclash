@@ -39,7 +39,7 @@ test('Challenge the Riftkin unlocks by completing every Champion\'s Trial, or wi
   // Every trial complete: open.
   assert.deepEqual(availableModes({}, withTrials(ids)).map(m => m.id), ['standard', 'riftkin']);
   // The play-test code opens it with no trials done.
-  assert.deepEqual(availableModes({ celestial: { how: 'playtest', at: 1 } }, emptyProgress()).map(m => m.id), ['standard', 'riftkin']);
+  assert.deepEqual(availableModes({ celestial: { how: 'playtest', at: 1 } }, emptyProgress()).map(m => m.id), ['standard', 'riftkin', 'masochist']);
   // Opening the mode through the trials doesn't reveal the Celestial class: beating the Riftkin will.
   assert.equal(isVisible('celestial', {}), false);
   assert.equal(isModeUnlocked(MODES.find(m => m.id === 'standard'), {}, emptyProgress()), true, 'the standard mode is always open');

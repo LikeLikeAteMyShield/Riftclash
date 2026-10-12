@@ -8,14 +8,27 @@ export const MAX_HAND = 10;
 export const MAX_MANA = 10;
 export const STARTING_HEALTH = 30;
 
+/** Seeded random numbers. Its state is readable (`rand.state`) so a game can be snapshotted exactly. */
 function mulberry32(seed) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
+  const rand = () => {
+    rand.state = (rand.state + 0x6d2b79f5) >>> 0;
+    let t = rand.state;
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  rand.state = seed >>> 0;
+  return rand;
+}
+
+/** A copy of a player's state that shares nothing mutable with the original. */
+function copyPlayer(p) {
+  return {
+    ...p,
+    hero: { ...p.hero },
+    weapon: p.weapon && { ...p.weapon },
+    deck: [...p.deck], hand: [...p.hand],   // card instances ({ uid, cardId }) are never changed in place
+    board: p.board.map(m => ({ ...m, keywords: { ...m.keywords } })),
   };
 }
 
@@ -27,8 +40,12 @@ export class Game {
    * @param {string[][]} [opts.decks] card id lists; built automatically if omitted
    * @param {number} [opts.seed]
    * @param {number} [opts.firstPlayer] 0 or 1; random if omitted
+   * @param {object} [opts.restore]  a snapshot() to rebuild instead (see Game.restore)
+   * @param {boolean} [opts.silent]  skip events and the log (for fast simulations)
    */
-  constructor({ heroes, classes, decks, locked, seed = Date.now(), firstPlayer } = {}) {
+  constructor({ heroes, classes, decks, locked, seed = Date.now(), firstPlayer, restore, silent = false } = {}) {
+    this.silent = silent;
+    if (restore) { this.#load(restore); return; }
     heroes ??= classes?.map(cls => {
       if (!CLASSES[cls]) throw new Error(`Unknown class "${cls}"`);
       return CLASSES[cls].defaultHero;
@@ -55,6 +72,38 @@ export class Game {
       const n = p.id === this.current ? 3 : 4;
       for (let k = 0; k < n; k++) this.#drawRaw(p);
     }
+  }
+
+  // ---------------------------------------------------------------- snapshots
+
+  /**
+   * The whole game as plain data, random number state included, so restore()
+   * rebuilds a game that will play out identically: the same draws and the
+   * same random effects for the same actions. (Events and the log aren't kept.)
+   */
+  snapshot() {
+    return {
+      rng: this.rand.state, nextUid: this.nextUid, turn: this.turn, winner: this.winner, phase: this.phase,
+      fx: this.fx, fxSeq: this.fxSeq, current: this.current, mulliganDone: [...this.mulliganDone],
+      players: this.players.map(copyPlayer),
+    };
+  }
+
+  /** A game rebuilt from a snapshot(). `silent` skips events and the log, for simulations. */
+  static restore(snap, { silent = false } = {}) { return new Game({ restore: snap, silent }); }
+
+  /** An exact, independent copy of this game (silent by default: it's for looking ahead). */
+  clone({ silent = true } = {}) { return Game.restore(this.snapshot(), { silent }); }
+
+  #load(snap) {
+    this.rand = mulberry32(0);
+    this.rand.state = snap.rng;
+    Object.assign(this, {
+      nextUid: snap.nextUid, turn: snap.turn, winner: snap.winner, phase: snap.phase,
+      fx: snap.fx, fxSeq: snap.fxSeq, combat: false, current: snap.current,
+      mulliganDone: [...snap.mulliganDone], players: snap.players.map(copyPlayer),
+      events: [], log: [],
+    });
   }
 
   #createPlayer(id, heroId, deckIds) {
@@ -374,8 +423,8 @@ export class Game {
   }
 
   #fail(reason) { this.lastError = reason; return false; }
-  #emit(ev) { this.events.push(ev); }
-  #log(msg) { this.log.push(msg); this.#emit({ type: 'log', msg }); }
+  #emit(ev) { if (!this.silent) this.events.push(ev); }
+  #log(msg) { if (this.silent) return; this.log.push(msg); this.#emit({ type: 'log', msg }); }
   #name(pid) { return pid === 0 ? 'You' : 'Opponent'; }
   #entName(e) {
     if (e.kind === 'hero') return `${e.owner === 0 ? 'your' : "the opponent's"} hero`;

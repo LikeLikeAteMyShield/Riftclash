@@ -3,6 +3,7 @@
 import { Game, MAX_MANA } from './engine.js';
 import { CARDS, CLASSES, HEROES, KEYWORD_HELP, defaultHero } from './cards.js';
 import { nextAction, applyAction, mulliganChoice } from './ai.js';
+import { planTurn as masochistPlan, chooseMulligan as masochistMulligan } from './masochist.js';
 import * as fx from './fx.js';
 import { sfx, unlock, isMuted, setMuted } from './sfx.js';
 import { artHTML, hasSprite, spriteSVG } from './pixelart.js';
@@ -61,8 +62,9 @@ const heroArt = hero => artHTML({ sprite: hero.portrait, emoji: hero.emoji }, { 
 function renderTitle() {
   // Locked modes show too, but as a mystery: no name, no emblem, just what unlocks them and how far along the player is.
   $('#mode-grid').innerHTML = MODES.map(m => {
+    if (m.playtestOnly && !isModeUnlocked(m)) return '';   // play-test modes don't exist at all until the code is entered
     if (isModeUnlocked(m)) return `
-    <button class="mode-tile" data-mode="${m.id}" type="button">
+    <button class="mode-tile${m.playtestOnly ? ' playtest' : ''}" data-mode="${m.id}" type="button">
       <span class="mode-icon">${hasSprite(m.icon) ? spriteSVG(m.icon) : ''}</span>
       <span class="mode-name">${esc(m.name)}</span>
       <span class="mode-text">${esc(m.text)}</span>
@@ -209,8 +211,9 @@ document.addEventListener('keydown', e => {
   const on = togglePlaytest();
   renderTitle();
   renderClassSelect();
-  // Locking again closes Challenge the Riftkin, unless the player has earned it through the trials.
+  // Locking again closes Challenge the Riftkin (unless earned through the trials) and the play-test-only modes.
   if (!on && !$('#bosses').classList.contains('hidden') && !availableModes().some(m => m.id === 'riftkin')) showScreen('menu');
+  if (!on && !$('#play').classList.contains('hidden') && !availableModes().some(m => m.id === ui.mode)) { ui.mode = 'standard'; showScreen('menu'); }
   if (on) {
     sfx.questComplete();
     fx.flash('#c58cff', 600, 0.35);
@@ -336,7 +339,10 @@ function startGame() {
     ? `<li>${esc(foe.name)}, ${esc(foe.title)}, awaits you at ${esc(place)}.</li>`
     : `<li>The battle is joined at ${esc(place)}.</li>`;
   $('#overlay').classList.add('hidden');
-  ui.game.mulligan(AI, mulliganChoice(ui.game, AI));
+  // Which mind plays the opponent: the Masochist (in its mode) or the usual greedy AI.
+  ui.ai = availableModes().find(m => m.id === ui.mode)?.ai ?? 'greedy';
+  if (ui.ai === 'masochist') $('#log').insertAdjacentHTML('beforeend', '<li class="log-warn">The Masochist sees every card in both decks. It will not be merciful.</li>');
+  ui.game.mulligan(AI, ui.ai === 'masochist' ? masochistMulligan(ui.game, AI) : mulliganChoice(ui.game, AI));
   renderMulligan();
   showScreen('mulligan');
 }
@@ -1320,8 +1326,10 @@ async function runAiTurn() {
   render();
   await banner("Opponent's turn");
   await flushEvents();
+  // The Masochist plans its whole turn at once (on copies of the game), then plays the plan out.
+  const plan = ui.ai === 'masochist' ? masochistPlan(g, AI) : null;
   for (let i = 0; i < 60 && g.winner === null; i++) {
-    const action = nextAction(g, AI);
+    const action = plan ? plan.shift() ?? null : nextAction(g, AI);
     if (!action) break;
     if (action.type === 'attack') {
       document.querySelector(`[data-uid="${action.uid}"]`)?.classList.add('selected');

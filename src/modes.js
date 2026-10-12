@@ -2,6 +2,9 @@
 // To add a mode, add an entry here with its emblem sprite
 // (src/sprites/modes.js) and wire its `screen` in ui.js.
 //
+// A mode with `playtestOnly: true` exists only once the play-test code has
+// been entered: it's hidden entirely otherwise, not shown as a locked tile.
+//
 // A mode with `unlock: { quests, hint }` is locked until every one of those
 // quests is complete (or the play-test code is used, see unlocks.js). The
 // title screen shows it locked, with the hint and how far along the player is.
@@ -30,6 +33,15 @@ export const MODES = [
       hint: 'Complete every Champion\'s Trial on the Quest Board to unlock.',
     },
   },
+  {
+    id: 'masochist',
+    name: 'Masochist',
+    text: 'Experimental. An AI that sees every card in both decks, knows what fate will bring, and always makes the most brutal move.',
+    icon: 'mode_masochist',
+    screen: 'play',              // the standard class, deck and opponent selection
+    playtestOnly: true,          // only after the play-test code; hidden entirely otherwise
+    ai: 'masochist',             // src/masochist.js plays the opponent
+  },
 ];
 
 /** How many of a mode's unlock quests are complete: { done, total } (0 / 0 for a mode that's always open). */
@@ -40,6 +52,7 @@ export function unlockProgress(mode, progress = loadProgress()) {
 
 /** Can the player pick this mode? Always, unless it has unlock quests still to complete (the play-test code skips them). */
 export function isModeUnlocked(mode, unlocks = loadUnlocks(), progress = loadProgress()) {
+  if (mode.playtestOnly) return isPlaytest(unlocks);
   if (!mode.unlock || isPlaytest(unlocks)) return true;
   const { done, total } = unlockProgress(mode, progress);
   return done === total;
