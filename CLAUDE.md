@@ -63,6 +63,10 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
   - **Mulligan:** `chooseMulligan` uses the known deck order.
   - **Cost:** about 20 ms a turn in node, capped at 700 ms (`ms`), so `runAiTurn` plans synchronously, then plays the plan out with the normal animations.
   - **Tests:** `masochist.test.js` checks that it only plans legal moves, that it always takes lethal, and that it beats the greedy AI almost every game.
+- **Match transcripts** (`src/transcript.js`, pure) record games for studying how people play against the AI. They're only recorded while the play-test code is on.
+  - `startTranscript(game, meta)` wraps the game's action methods (`mulligan`, `playCard`, `useHeroPower`, `attack`, `endTurn`) and records each successful action with readable names. It also keeps a `summarize` of the position (both hands included) at the end of every turn. `finishTranscript` adds the result and the battle log.
+  - A transcript holds the starting `snapshot()`, so `replay(t, { upTo })` rebuilds the match exactly, or any position part-way through. It throws if an action no longer applies (for example, the cards changed since).
+  - Finished matches are saved under `riftclash-transcripts` (the latest `MAX_SAVED` = 50). The result screen offers *⬇ Transcript* for that match, and the title screen offers *Transcripts (n)*, which downloads everything as one bundle (`exportBundle`).
 
 ### `src/ui.js` is the app shell
 - It renders the board, handles input (drag and click placement), and directs the animations.
