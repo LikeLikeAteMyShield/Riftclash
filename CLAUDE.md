@@ -22,6 +22,11 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
 ### Rules engine is separate from the UI
 - `src/engine.js` (`Game`) holds all game rules and has no DOM. It is deterministic for a given `seed` (mulberry32), which is why tests can run full AI games.
 - The human is always player 0 and the AI is player 1. The UI never changes game state directly; it calls `playCard` / `attack` / `useHeroPower` / `endTurn` / `mulligan`.
+- **Snapshots:**
+  - `game.snapshot()` returns the whole state as plain data, including the RNG (`rand.state`). `Game.restore(snap)` rebuilds a game that plays out identically, and `game.clone()` is an exact copy.
+  - Clones are `silent` by default: no events, no log.
+  - A copy has to go through the constructor (`restore` option), because private methods only work on objects the class built.
+  - New state on `Game` must be added to `snapshot()` and `#load`, or simulations will drift from the real game.
 
 ### Classes, heroes and cards are data
 - `src/cards.js` holds `CLASSES`, `HEROES` and `CARDS`.
@@ -48,6 +53,16 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
 - `src/ai.js` is a greedy AI. `nextAction` returns one action at a time so the UI can animate the AI's turn.
 - `playTurn` runs a whole turn, and is used in tests.
 - `engine.test.js` runs AI-vs-AI games across every class pairing (hidden classes included), so engine or AI changes that hang or crash games fail the tests.
+- **Masochist** (`src/masochist.js`) is an experimental opponent that cheats: it plans on clones, so it knows every draw and random outcome and can read the human's hand.
+  - **Mode:** it plays in the play-test-only *Masochist* mode (`playtestOnly: true`, `ai: 'masochist'` in `modes.js`). That mode doesn't exist until the play-test code is entered: no locked tile, and it's not in the README.
+  - **Planning:** `planTurn` runs four stages:
+    - an exhaustive lethal search;
+    - a beam search over whole turns (every card, target, slot, hero power and attack);
+    - the best finishes played against two models of the human's reply (greedy, and an all-out rush), the worse one counting;
+    - a rollout of each to the end of the game.
+  - **Mulligan:** `chooseMulligan` uses the known deck order.
+  - **Cost:** about 20 ms a turn in node, capped at 700 ms (`ms`), so `runAiTurn` plans synchronously, then plays the plan out with the normal animations.
+  - **Tests:** `masochist.test.js` checks that it only plans legal moves, that it always takes lethal, and that it beats the greedy AI almost every game.
 
 ### `src/ui.js` is the app shell
 - It renders the board, handles input (drag and click placement), and directs the animations.
