@@ -231,6 +231,13 @@ function cheapestKill(game, pid, attackers, targets) {
   return best && { type: 'attack', uid: best.uid, target: best.target };
 }
 
+/** Turns `pid`'s board (minions and weapon) needs to kill the other hero, if nothing changed: Infinity with no damage. */
+function raceClock(game, pid) {
+  const p = game.players[pid], foe = game.opponentOf(pid).hero;
+  const dmg = p.board.reduce((s, m) => s + m.attack * (m.keywords.windfury ? 2 : 1), 0) + (p.weapon?.attack ?? 0);
+  return dmg > 0 ? Math.ceil((foe.health + foe.armor) / dmg) : Infinity;
+}
+
 function planAttack(game, pid) {
   const p = game.players[pid];
   const enemyHero = game.opponentOf(pid).hero;
@@ -260,6 +267,10 @@ function planAttack(game, pid) {
     if (kill) return kill;
   }
 
+  // Racing: when our board kills them no later than theirs kills us, go face and trade only for real threats.
+  const ahead = raceClock(game, pid) <= raceClock(game, 1 - pid);
+  const worthTrading = t => !ahead || t.attack >= 3 || minionWorth(game, t) >= 7;
+
   for (const a of attackers) {
     const targets = game.attackTargets(a.uid);
     const minions = targets.filter(t => t.kind === 'minion');
@@ -275,10 +286,11 @@ function planAttack(game, pid) {
     }
 
     // Value trade: kill something and survive.
-    const value = minions.filter(t => !t.keywords.divineShield && kills(t) && survives(t)).sort((x, y) => y.attack - x.attack)[0];
-    if (value && (value.attack >= 2 || !targets.includes(enemyHero))) return { type: 'attack', uid: a.uid, target: value.uid };
+    // Behind on the race, even a 1-attack minion is worth killing for free.
+    const value = minions.filter(t => !t.keywords.divineShield && kills(t) && survives(t) && worthTrading(t)).sort((x, y) => y.attack - x.attack)[0];
+    if (value && (value.attack >= (ahead ? 2 : 1) || !targets.includes(enemyHero))) return { type: 'attack', uid: a.uid, target: value.uid };
     // Even trade into something at least as valuable.
-    const even = minions.filter(t => !t.keywords.divineShield && kills(t) && t.attack + t.health >= a.attack + a.health)
+    const even = minions.filter(t => !t.keywords.divineShield && kills(t) && worthTrading(t) && t.attack + t.health >= a.attack + a.health)
       .sort((x, y) => (y.attack + y.health) - (x.attack + x.health))[0];
     if (even) return { type: 'attack', uid: a.uid, target: even.uid };
     if (targets.includes(enemyHero)) return { type: 'attack', uid: a.uid, target: enemyHero.uid };

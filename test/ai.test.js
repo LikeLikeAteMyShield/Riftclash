@@ -121,3 +121,22 @@ test('in danger of dying, it plays a taunt with armour over a bigger threat of i
   assert.ok(!g.players[1].hand.some(c => c.uid === warden));
   assert.equal(g.players[1].hero.armor, 3);
 });
+
+test('ahead on the race, a big minion goes face instead of trading with a small one (g6 t24)', () => {
+  const g = setup(['pyromancer', 'warlord'], 0);
+  setHealth(g, 0, 12);
+  place(g, 0, 't_shardling');                     // 2/2: a free trade the old AI always took
+  place(g, 1, VANILLA, { attack: 9, health: 6 });
+  playTurn(g, 1);
+  assert.equal(g.players[0].hero.health, 3);
+});
+
+test('behind on the race, it takes a free trade even into a 1-attack minion', () => {
+  const g = setup(['pyromancer', 'warlord'], 0);
+  setHealth(g, 1, 20);
+  for (let i = 0; i < 3; i++) place(g, 0, VANILLA);    // 12 a turn at us
+  const beetle = place(g, 0, 'n_adder', { keywords: {} }); // a 1/2 with nothing special
+  place(g, 1, 'n_courier');
+  playTurn(g, 1);
+  assert.ok(!g.players[0].board.includes(beetle));
+});
