@@ -166,7 +166,11 @@ function planCardPlay(game, pid) {
     const { ok, target } = chooseTarget(game, pid, card, game.cardTargets(pid, inst.uid));
     if (!ok) continue;
     if (card.type === 'weapon' && p.weapon) continue;
-    options.push({ inst, score: card.cost * 10 + (card.type === 'minion' ? 2 : 0), target });
+    // Removal is worth what it removes: a big threat comes off before anything else is played.
+    const victim = target != null && (card.type === 'spell' ? card.effects : card.battlecry).some(e => e.type === 'destroy' && e.to === 'target')
+      ? game.getEntity(target) : null;
+    const removed = victim?.owner !== pid && victim?.kind === 'minion' ? 5 * (victim.attack + victim.health) : 0;
+    options.push({ inst, score: card.cost * 10 + (card.type === 'minion' ? 2 : 0) + removed, target });
   }
   options.sort((a, b) => b.score - a.score);
   const best = options[0];
@@ -456,10 +460,69 @@ function attackFirst(game, pid, play) {
   return attacksFirst > cardsFirst + 0.5 ? attack : null;
 }
 
+const AOE_ENEMY_MINIONS = ['allEnemyMinions', 'allMinions', 'allEnemies', 'allOtherCharacters', 'allOtherMinions'];
+
+/**
+ * Cards like "Destroy a damaged enemy minion" need something to set them up.
+ * When one has no target yet, try each enabler (an AoE or ping in hand, the
+ * hero power, an attack that wounds without killing) followed by the card,
+ * on copies, and return the enabler of the best pair if it beats the plain turn.
+ */
+function planEnabler(game, pid) {
+  const p = game.players[pid];
+  const needy = p.hand.map(c => ({ c, card: CARDS[c.cardId] }))
+    .filter(({ c, card }) => card.targetFilter?.damaged && card.cost <= p.mana && !game.canPlay(pid, c.uid));
+  if (!needy.length) return null;
+  const wanted = game.opponentOf(pid).board.filter(m => !m.keywords.stealth && !m.keywords.divineShield && m.health === m.maxHealth);
+  if (!wanted.length) return null;
+  const cheapest = Math.min(...needy.map(n => n.card.cost));
+  const room = p.mana - cheapest;
+
+  const options = [];
+  for (const inst of p.hand) {
+    const card = CARDS[inst.cardId];
+    if (card.targetFilter?.damaged || card.cost > room || !game.canPlay(pid, inst.uid)) continue;
+    const fx = card.type === 'spell' ? card.effects : card.battlecry ?? [];
+    const dmg = fx.filter(e => e.type === 'damage' && e.to === 'target').reduce((s, e) => s + e.amount, 0) + (card.type === 'spell' ? game.spellDamage(pid) : 0);
+    const position = card.type === 'minion' ? choosePosition(game, pid, card) : null;
+    if (fx.some(e => e.type === 'damage' && AOE_ENEMY_MINIONS.includes(e.to)) && !card.target) options.push({ type: 'play', uid: inst.uid, target: null, position });
+    else if (dmg > 0) for (const t of wanted) if (t.health > dmg && game.cardTargets(pid, inst.uid).includes(t)) options.push({ type: 'play', uid: inst.uid, target: t.uid, position });
+  }
+  const hp = game.heroPower(pid);
+  const hpDmg = hp.target ? hp.effects.find(e => e.type === 'damage' && e.to === 'target')?.amount : 0;
+  if (hpDmg && hp.cost <= room && game.canUseHeroPower(pid)) {
+    for (const t of wanted) if (t.health > hpDmg) options.push({ type: 'heroPower', target: t.uid });
+  }
+  for (const a of [...p.board, p.hero]) {
+    if (!game.canAttack(a.uid)) continue;
+    for (const t of game.attackTargets(a.uid)) if (wanted.includes(t) && a.attack < t.health) options.push({ type: 'attack', uid: a.uid, target: t.uid });
+  }
+  if (!options.length) return null;
+
+  // Each option: the enabler, then the card it sets up, then plain greedy for the rest of the turn.
+  const followUp = (g, pid2) => {
+    const ready = needy.find(n => g.canPlay(pid2, n.c.uid));
+    if (!ready) return null;
+    const { ok, target } = chooseTarget(g, pid2, ready.card, g.cardTargets(pid2, ready.c.uid));
+    return ok ? { type: 'play', uid: ready.c.uid, target, position: null } : null;
+  };
+  let best = { value: finishTurn(blindClone(game), pid, null) + 1, action: null };
+  for (const action of options) {
+    const g = blindClone(game);
+    if (!applyAction(g, action)) continue;
+    let done = false;
+    const value = finishTurn(g, pid, (gg, pp) => done ? null : (done = true, followUp(gg, pp)));
+    if (value > best.value) best = { value, action };
+  }
+  return best.action;
+}
+
 export function nextAction(game, pid) {
   if (game.winner !== null || game.current !== pid) return null;
   const lethal = findLethal(game, pid);
   if (lethal) return lethal[0];
+  const enabler = planEnabler(game, pid);
+  if (enabler) return enabler;
   const play = planCardPlay(game, pid);
   return attackFirst(game, pid, play) ?? play ?? planHeroPower(game, pid) ?? planAttack(game, pid);
 }
