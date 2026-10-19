@@ -15,14 +15,14 @@ function damageAmount(effects = []) {
   return effects.filter(e => e.type === 'damage' && e.to === 'target').reduce((s, e) => s + e.amount, 0);
 }
 
-/** Rough value of an AoE spell: enemy stats removed minus friendly stats lost. */
-function aoeValue(game, pid, effects) {
+/** Rough value of an AoE spell or battlecry: enemy stats removed minus friendly stats lost. */
+function aoeValue(game, pid, effects, isSpell = true) {
   let value = 0;
   const me = game.players[pid];
   const them = game.opponentOf(pid);
   for (const e of effects) {
     if (e.type !== 'damage' || e.to === 'target' || e.to.startsWith('random')) continue;
-    const amt = e.amount + game.spellDamage(pid);
+    const amt = e.amount + (isSpell ? game.spellDamage(pid) : 0);
     const hitsEnemies = ['allEnemyMinions', 'allMinions', 'allEnemies', 'allOtherCharacters', 'allOtherMinions'].includes(e.to);
     const hitsFriends = ['allMinions', 'allOtherCharacters', 'allOtherMinions'].includes(e.to);
     const score = m => (m.keywords.divineShield ? 0 : m.health <= amt ? m.attack + m.health : amt * 0.5);
@@ -100,7 +100,8 @@ function chooseTarget(game, pid, card, targets) {
   // Friendly intent: heals go to the most damaged friend, buffs to the best minion.
   const isHeal = effects.some(e => e.type === 'heal' && e.to === 'target');
   if (isHeal) {
-    const hurt = friends.filter(t => t.health < t.maxHealth).sort((a, b) => (b.maxHealth - b.health) - (a.maxHealth - a.health));
+    // Only where it matters: a hero at 20 or less, or a minion missing 2 or more.
+    const hurt = friends.filter(t => t.kind === 'hero' ? t.health <= 20 && t.health < t.maxHealth : t.maxHealth - t.health >= 2).sort((a, b) => (b.maxHealth - b.health) - (a.maxHealth - a.health));
     return hurt.length ? { ok: true, target: hurt[0].uid } : { ok: card.type === 'minion', target: friends[0]?.uid ?? targets[0].uid };
   }
   const friendMinions = friends.filter(t => t.kind === 'minion').sort((a, b) => (b.attack + b.health) - (a.attack + a.health));
@@ -147,10 +148,10 @@ function planPlays(game, pid) {
     const selfHarm = (card.battlecry ?? []).filter(e => e.type === 'damage' && e.to === 'ownHero').reduce((n, e) => n + e.amount, 0);
     if (selfHarm && selfHarm >= p.hero.health + p.hero.armor - 2) continue;
     if (card.type === 'spell' && !card.target && card.effects.some(e => e.type === 'destroy' && e.to === 'allMinions')) {
-      // A board wipe (Oblivion) only when we lose much less than they do.
+      // A board wipe (Oblivion) only when we lose much less than they do, and never while winning the race.
       const worth = m => m.attack + m.health;
       const swing = game.opponentOf(pid).board.reduce((n, m) => n + worth(m), 0) - p.board.reduce((n, m) => n + worth(m), 0);
-      if (swing >= 10) options.push({ inst, cost: card.cost, score: card.cost * 10 + swing + survival(card), target: null });
+      if (swing >= 10 && raceClock(game, pid) > raceClock(game, 1 - pid)) options.push({ inst, cost: card.cost, score: card.cost * 10 + swing + survival(card), target: null });
       continue;
     }
     const draws = effectsOf(card).filter(e => e.type === 'draw').reduce((n, e) => n + e.count, 0) * 10;
@@ -175,7 +176,11 @@ function planPlays(game, pid) {
     const dmg = damageAmount(fx) + (card.type === 'spell' ? game.spellDamage(pid) : 0);
     const kills = enemyMinion && (fx.some(e => (e.type === 'destroy' || e.type === 'bounce') && e.to === 'target') || (dmg >= victim.health && !victim.keywords.divineShield));
     const removed = kills ? REMOVAL * (victim.attack + victim.health) * (fx.some(e => e.type === 'bounce') ? 0.5 : 1) : 0;
-    const score = card.type === 'spell' && enemyMinion ? removed + draws : card.cost * 10 + (card.type === 'minion' ? 2 : 0) + (fx.some(e => e.type === 'destroy') ? removed : 0);
+    // A battlecry that hits everything (Colossus of the Rift) counts our own losses too.
+    const splash = card.type === 'minion' ? REMOVAL * aoeValue(game, pid, fx, false) : 0;
+    // A heal is worth the health it restores (so a free Healing Aura still gets played when it matters).
+    const healed = victim?.owner === pid ? fx.filter(e => e.type === 'heal' && e.to === 'target').reduce((n, e) => n + Math.min(e.amount, victim.maxHealth - victim.health), 0) * 5 : 0;
+    const score = card.type === 'spell' && enemyMinion ? removed + draws : card.cost * 10 + (card.type === 'minion' ? 2 : 0) + (fx.some(e => e.type === 'destroy') ? removed : 0) + splash + healed;
     // In danger, killing an attacker is as good as armour.
     const saved = danger && kills ? victim.attack * 4 : 0;
     options.push({ inst, cost: card.cost, score: score + survival(card) + saved, target, victim: kills ? target : null });
