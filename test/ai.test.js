@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../src/engine.js';
-import { playTurn, findLethal } from '../src/ai.js';
+import { playTurn, findLethal, mulliganChoice } from '../src/ai.js';
 import { VANILLA } from './testcards.js';
 
 const filler = Array(30).fill(VANILLA);
@@ -220,4 +220,13 @@ test('silences the big taunt that walls its attackers, not a small poisonous min
   give(g, 1, 'n_monk');
   playTurn(g, 1);
   assert.equal(treant.silenced, true);
+});
+
+test('the mulligan keeps one 4-drop when a 2-drop and another early card lead up to it', () => {
+  const g = setup();
+  const hand = ['n_courier', 'n_mossling', VANILLA, VANILLA, 'n_treant'].map(id => give(g, 1, id));
+  assert.deepEqual(mulliganChoice(g, 1), [hand[3], hand[4]]);
+  g.players[1].hand = [];
+  const lone = ['n_mossling', VANILLA].map(id => give(g, 1, id));
+  assert.deepEqual(mulliganChoice(g, 1), [lone[1]]);
 });
