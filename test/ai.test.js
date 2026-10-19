@@ -90,3 +90,13 @@ test('a taunt is cleared by the cheapest minion that kills it, and the big one g
   assert.ok(g.players[1].board.includes(big) && !g.players[1].board.includes(small));
   assert.equal(g.players[0].hero.health + g.players[0].hero.armor, 29, "the 4/1 hit face (through the Warden's 3 Armor)");
 });
+
+test("sets up Headsman's Verdict with Shockwave Stomp to kill a big minion (g6 t12)", () => {
+  const g = setup(['pyromancer', 'warlord'], 3);
+  const treant = place(g, 0, 'n_treant');         // 6/8, undamaged: no target for Verdict yet
+  give(g, 1, 'w_stomp');
+  give(g, 1, 'w_verdict');
+  give(g, 1, 'n_boar');                           // a 3-drop the old AI would rather play
+  playTurn(g, 1);
+  assert.ok(!g.players[0].board.includes(treant));
+});
