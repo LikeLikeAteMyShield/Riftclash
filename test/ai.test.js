@@ -176,3 +176,38 @@ test('the Coin still plays out a 2-drop on turn one', () => {
   playTurn(g, 1);
   assert.deepEqual(g.players[1].board.map(m => m.cardId), ['n_scrapper']);
 });
+
+test("Colossus of the Rift's battlecry counts the friendly minions it would kill (g2 t18)", () => {
+  const g = setup(['pyromancer', 'warlord'], 9);
+  for (let i = 0; i < 3; i++) place(g, 1, 'n_boar', { keywords: {} });   // three 2/4s... that a 3-damage battlecry
+  for (const m of g.players[1].board) m.health = 3;                       // ...would now kill
+  place(g, 0, 'n_mossling');
+  give(g, 1, 'n_colossus');
+  give(g, 1, 'n_sentinel');
+  playTurn(g, 1);
+  assert.equal(g.players[1].board.filter(m => m.cardId === 'n_boar').length, 3);
+  assert.ok(g.players[1].board.some(m => m.cardId === 'n_sentinel'));
+});
+
+test('Healing Aura is not wasted on a healthy hero (g1 t19)', () => {
+  const g = setup(['pyromancer', 'warlord'], 10);
+  setHealth(g, 1, 25);
+  const aura = give(g, 1, 'n_aura');
+  playTurn(g, 1);
+  assert.ok(g.players[1].hand.some(c => c.uid === aura));
+  setHealth(g, 1, 15);
+  g.endTurn();                                    // the opponent's turn passes
+  g.players[1].hand = g.players[1].hand.filter(c => c.uid === aura);
+  playTurn(g, 1);
+  assert.equal(g.players[1].hero.health, 17);
+});
+
+test('Oblivion is held while winning the race (g5 t15)', () => {
+  const g = setup(['pyromancer', 'celestial'], 8);
+  setHealth(g, 0, 7);
+  for (let i = 0; i < 3; i++) place(g, 0, VANILLA);
+  place(g, 1, VANILLA, { attack: 7 });            // kills them next turn; theirs need 3 turns
+  const oblivion = give(g, 1, 'c_oblivion');
+  playTurn(g, 1);
+  assert.ok(g.players[1].hand.some(c => c.uid === oblivion));
+});
