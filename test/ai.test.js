@@ -69,3 +69,24 @@ test('lethal: the search ignores cards with random outcomes', () => {
   place(g, 0, 'n_brambebeetle');
   assert.equal(findLethal(g, 1), null);
 });
+
+test('attacks first when its minion would die to its own AoE anyway (g8 t12)', () => {
+  const g = setup(['pyromancer', 'warlord'], 5);
+  place(g, 0, 'w_bastion');                       // 3/5 taunt
+  for (let i = 0; i < 3; i++) place(g, 0, 'n_mossling');
+  place(g, 1, 'n_scrapper');                      // 3/2: Earthshatter kills it whatever happens
+  give(g, 1, 'w_earthshatter');                   // 3 damage to all minions
+  playTurn(g, 1);
+  assert.deepEqual(g.players[0].board, [], 'Scrapper softens the Warden, then Earthshatter clears the lot');
+});
+
+test('a taunt is cleared by the cheapest minion that kills it, and the big one goes face (g0 t17)', () => {
+  const g = setup(['pyromancer', 'warlord'], 0);
+  place(g, 0, 'w_bastion', { health: 1 });        // a wounded 3/1 taunt
+  const big = place(g, 1, VANILLA, { health: 1 });
+  const small = place(g, 1, 't_recruit');
+  playTurn(g, 1);
+  assert.deepEqual(g.players[0].board, []);
+  assert.ok(g.players[1].board.includes(big) && !g.players[1].board.includes(small));
+  assert.equal(g.players[0].hero.health + g.players[0].hero.armor, 29, "the 4/1 hit face (through the Warden's 3 Armor)");
+});

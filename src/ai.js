@@ -218,6 +218,22 @@ function planAttack(game, pid) {
     return { type: 'attack', uid: faceAttackers[0].uid, target: enemyHero.uid };
   }
 
+  // A taunt in the way: clear it with whatever kills it for the least, so the big hitters go face.
+  const taunts = game.opponentOf(pid).board.filter(m => m.keywords.taunt && !m.keywords.stealth);
+  if (taunts.length && !faceAttackers.length) {
+    let best = null;
+    for (const a of attackers) {
+      for (const t of taunts) {
+        const kills = !t.keywords.divineShield && (a.attack >= t.health || (a.kind === 'minion' && a.keywords.poisonous));
+        if (!kills || (a.kind === 'hero' && t.attack >= p.hero.health - 10)) continue;
+        const dies = a.kind === 'minion' && !a.keywords.divineShield && t.attack >= a.health;
+        const cost = (dies ? minionWorth(game, a) : 0) + (a.kind === 'hero' ? t.attack * 1.5 : 0) + a.attack * 0.1 - minionWorth(game, t);
+        if (!best || cost < best.cost) best = { cost, uid: a.uid, target: t.uid };
+      }
+    }
+    if (best) return { type: 'attack', uid: best.uid, target: best.target };
+  }
+
   for (const a of attackers) {
     const targets = game.attackTargets(a.uid);
     const minions = targets.filter(t => t.kind === 'minion');
@@ -355,11 +371,97 @@ export function findLethal(game, pid, budget = 1500) {
   return dfs(game, []);
 }
 
+// ---------------------------------------------------------------- looking ahead
+
+/** What effective health is worth: every point counts more as a hero gets close to dying. */
+function healthValue(h) {
+  if (h <= 0) return -1000;
+  if (h <= 5) return h * 4;
+  if (h <= 12) return 20 + (h - 5) * 2.2;
+  return 35.4 + (h - 12) * 1.1;
+}
+
+/** What a minion on the board is worth to its owner. */
+function minionWorth(game, m) {
+  const def = game.minionText(m);
+  const k = m.keywords;
+  let v = m.attack * 1.1 + m.health * 0.9 + 1;
+  if (k.taunt) v += 1.5 + m.health * 0.35;
+  if (k.divineShield) v += 1 + m.attack * 0.9;
+  if (k.windfury) v += m.attack * 0.8;
+  if (k.poisonous) v += 3;
+  if (k.lifesteal) v += m.attack * 0.5;
+  v += (m.spellDamage || 0) * 1.5;
+  if (def.deathrattle) v += 2;
+  if (def.endOfTurn || def.onDamaged || def.onFriendlySpell || def.onHeroAttack) v += 2.5;
+  if (def.adjacentAura) v += (def.adjacentAura.attack ?? 0) * 2;
+  if (m.frozen) v -= m.attack * 0.5;
+  return v;
+}
+
+/** How good a position is for `pid`, from what it can see: health, boards, weapons and hand sizes. */
+function positionValue(game, pid) {
+  if (game.winner === pid) return 1e6;
+  if (game.winner !== null) return -1e6;
+  const side = p => healthValue(p.hero.health + p.hero.armor) + p.board.reduce((s, m) => s + minionWorth(game, m), 0)
+    + (p.weapon ? p.weapon.attack * p.weapon.durability * 0.7 : 0) + p.hand.length * 1.5;
+  return side(game.players[pid]) - side(game.opponentOf(pid));
+}
+
+/**
+ * A copy of the game to try moves on that knows no more than the AI does:
+ * both decks are reshuffled and the random numbers changed, so draws and
+ * random effects on the copy say nothing about the real ones.
+ */
+function blindClone(game) {
+  const g = game.clone();
+  let s = (g.rand.state ^ 0x5bd1e995) >>> 0;
+  const rand = () => { s = (s + 0x6d2b79f5) >>> 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t ^= t + Math.imul(t ^ (t >>> 7), 61 | t); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  for (const p of g.players) {
+    for (let i = p.deck.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [p.deck[i], p.deck[j]] = [p.deck[j], p.deck[i]]; }
+  }
+  g.rand.state = Math.floor(rand() * 4294967296) >>> 0;
+  return g;
+}
+
+/** One step of the plain greedy policy: cards, then the hero power, then attacks. */
+const greedyStep = (game, pid) => planCardPlay(game, pid) ?? planHeroPower(game, pid) ?? planAttack(game, pid);
+
+/** Play the rest of the turn on `game` (a copy): `first` picks actions until it returns null, then plain greedy. */
+function finishTurn(game, pid, first) {
+  for (let i = 0, phase = first; i < 40 && game.winner === null; i++) {
+    const a = (phase && phase(game, pid)) ?? (phase = null, greedyStep(game, pid));
+    if (!a || !applyAction(game, a)) break;
+  }
+  return positionValue(game, pid);
+}
+
+/** Whether a card's value depends on the state of the enemy board: removal, AoE, or a condition like "damaged". */
+function boardSensitive(card) {
+  if (card.targetFilter) return true;
+  return effectsOf(card).some(e => ['damage', 'destroy', 'bounce'].includes(e.type) && e.to !== 'ownHero');
+}
+
+/**
+ * Attack first when that makes the card we're about to play better (wounded
+ * minions for an AoE to finish, a target for "destroy a damaged minion"):
+ * play out the turn both ways on copies and keep the better order.
+ */
+function attackFirst(game, pid, play) {
+  if (!play || play.type !== 'play' || !boardSensitive(CARDS[game.players[pid].hand.find(c => c.uid === play.uid).cardId])) return null;
+  const attack = planAttack(game, pid);
+  if (!attack || game.getEntity(attack.target)?.kind !== 'minion') return null;
+  const cardsFirst = finishTurn(blindClone(game), pid, null);
+  const attacksFirst = finishTurn(blindClone(game), pid, planAttack);
+  return attacksFirst > cardsFirst + 0.5 ? attack : null;
+}
+
 export function nextAction(game, pid) {
   if (game.winner !== null || game.current !== pid) return null;
   const lethal = findLethal(game, pid);
   if (lethal) return lethal[0];
-  return planCardPlay(game, pid) ?? planHeroPower(game, pid) ?? planAttack(game, pid);
+  const play = planCardPlay(game, pid);
+  return attackFirst(game, pid, play) ?? play ?? planHeroPower(game, pid) ?? planAttack(game, pid);
 }
 
 /** Pick cards to throw back during the mulligan. */
