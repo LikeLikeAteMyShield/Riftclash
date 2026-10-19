@@ -131,7 +131,8 @@ export function choosePosition(game, pid, card) {
   return board.length;
 }
 
-function planCardPlay(game, pid) {
+/** The best set of plays this turn (see bestPlays), and its total value. */
+function planPlays(game, pid) {
   const p = game.players[pid];
   const options = [];
   // In danger of dying next turn, taunts, armour and healing come first.
@@ -141,12 +142,7 @@ function planCardPlay(game, pid) {
   for (const inst of p.hand) {
     if (!game.canPlay(pid, inst.uid)) continue;
     const card = CARDS[inst.cardId];
-    if (card.id === 't_coin') {
-      // Only coin if it unlocks a card we couldn't otherwise play.
-      const unlocks = p.hand.some(c => CARDS[c.cardId].cost === p.mana + 1);
-      if (unlocks) options.push({ inst, cost: 0, score: 1, target: null });
-      continue;
-    }
+    if (card.id === 't_coin') continue;   // see below
     // Never play a card whose battlecry would kill our own hero (e.g. Unstable Nucleus).
     const selfHarm = (card.battlecry ?? []).filter(e => e.type === 'damage' && e.to === 'ownHero').reduce((n, e) => n + e.amount, 0);
     if (selfHarm && selfHarm >= p.hero.health + p.hero.armor - 2) continue;
@@ -184,10 +180,21 @@ function planCardPlay(game, pid) {
     const saved = danger && kills ? victim.attack * 4 : 0;
     options.push({ inst, cost: card.cost, score: score + survival(card) + saved, target, victim: kills ? target : null });
   }
-  const ping = pingOption(game, pid);
-  if (ping) options.push(ping);
-  const pick = bestPlays(options.filter(o => o.inst?.cardId !== 't_coin'), p.mana)[0]
-    ?? options.find(o => o.inst?.cardId === 't_coin');
+  const power = heroPowerOption(game, pid, danger);
+  if (power) options.push(power);
+  const set = bestPlays(options, p.mana);
+  return { set, total: set.reduce((s, o) => s + o.score - (o.heroPower ? 0 : CARD), 0) };
+}
+
+function planCardPlay(game, pid) {
+  const plan = planPlays(game, pid);
+  // The Coin, when one more mana buys a better turn (a bigger card, or the hero power alongside).
+  const coin = game.players[pid].hand.find(c => c.cardId === 't_coin');
+  if (coin) {
+    const g = game.clone();
+    if (g.playCard(coin.uid) && planPlays(g, pid).total - CARD > plan.total + 5) return { type: 'play', uid: coin.uid, target: null, position: null };
+  }
+  const pick = plan.set[0];
   if (!pick) return null;
   if (pick.heroPower) return { type: 'heroPower', target: pick.target };
   const card = CARDS[pick.inst.cardId];
@@ -198,15 +205,27 @@ function planCardPlay(game, pid) {
 /** Score per point of Attack + Health a card removes from the enemy board (a 5/5 removed is about a 5/5 played). */
 const REMOVAL = 7;
 
-/** A hero-power ping that kills an enemy minion outright: often the cheapest answer to an X/1. */
-function pingOption(game, pid) {
-  if (!game.canUseHeroPower(pid)) return null;
+/**
+ * The hero power as a candidate play, scored like a card: a ping that kills
+ * is removal, otherwise what it adds (armour, a token, face damage, a weapon,
+ * hero Attack when the hero can swing, a heal when hurt).
+ */
+function heroPowerOption(game, pid, danger) {
   const hp = game.heroPower(pid);
-  const amt = hp.target && hp.effects.find(e => e.type === 'damage' && e.to === 'target')?.amount;
-  if (!amt) return null;
-  const kill = game.validTargets(pid, hp.target).filter(t => t.owner !== pid && t.kind === 'minion' && !t.keywords.divineShield && t.health <= amt)
-    .sort((a, b) => (b.attack + b.health) - (a.attack + a.health))[0];
-  return kill ? { heroPower: true, cost: hp.cost, score: REMOVAL * (kill.attack + kill.health), target: kill.uid, victim: kill.uid } : null;
+  const action = planHeroPower(game, pid);
+  if (!action) return null;
+  const target = action.target != null ? game.getEntity(action.target) : null;
+  let score = 0, victim = null;
+  for (const e of hp.effects) {
+    if (e.type === 'damage' && target?.kind === 'minion' && target.health <= e.amount) { score += REMOVAL * (target.attack + target.health); victim = target.uid; }
+    else if (e.type === 'damage') score += e.amount * 6;
+    if (e.type === 'heroAttack') score += e.amount * 6;
+    if (e.type === 'armor') score += e.amount * 5 + (danger ? e.amount * 4 : 0);
+    if (e.type === 'heal' && target) score += Math.min(e.amount, target.maxHealth - target.health) * (danger ? 9 : 5);
+    if (e.type === 'summon') score += (CARDS[e.card].attack + CARDS[e.card].health) * 5;
+    if (e.type === 'weapon') score += CARDS[e.card].attack * CARDS[e.card].durability * 5;
+  }
+  return score > 0 ? { heroPower: true, cost: hp.cost, score, target: action.target, victim } : null;
 }
 
 /** What a card in hand is worth when choosing plays: the same mana spent in fewer cards is better. */

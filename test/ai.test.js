@@ -160,3 +160,19 @@ test('spends the mana: a 3-drop and a 2-drop beat a lone 4-drop with 5 mana', ()
   playTurn(g, 1);
   assert.deepEqual(g.players[1].board.map(m => m.cardId).sort(), ['n_boar', 'n_scrapper']);
 });
+
+test('the Coin unlocks the hero power as well as cards (g5 t8)', () => {
+  const g = setup(['warlord', 'pyromancer'], 1);
+  const herald = place(g, 0, 'n_herald', { health: 1 });   // 3/1
+  give(g, 1, 't_coin');
+  playTurn(g, 1);
+  assert.ok(!g.players[0].board.includes(herald), 'Coin, then Spark');
+});
+
+test('the Coin still plays out a 2-drop on turn one', () => {
+  const g = setup(['pyromancer', 'warlord'], 1);
+  give(g, 1, 't_coin');
+  give(g, 1, 'n_scrapper');
+  playTurn(g, 1);
+  assert.deepEqual(g.players[1].board.map(m => m.cardId), ['n_scrapper']);
+});
