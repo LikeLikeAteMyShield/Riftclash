@@ -51,7 +51,11 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
 
 ### AI
 - `src/ai.js` is a greedy AI. `nextAction` returns one action at a time so the UI can animate the AI's turn.
+  - Each action: a bounded lethal search (`findLethal`), then enablers for conditional cards, then the best set of plays for the turn's mana (cards and hero power, removal scored by what it removes), attacking first when that makes a card better, then attacks (race clock for face vs trade, survival mode when `inDanger`).
+  - It looks ahead on `blindClone`s (decks reshuffled, random numbers changed) and evaluates with public information only, so it doesn't cheat. Keep it that way.
+  - `test/ai.test.js` holds hand-built positions for each behaviour, mostly from play-test transcripts.
 - `playTurn` runs a whole turn, and is used in tests.
+- `src/ai-classic.js` is a frozen copy of the greedy AI from before those changes. Masochist models the human with it, so its play and speed don't change when `ai.js` does. Don't edit it.
 - `engine.test.js` runs AI-vs-AI games across every class pairing (hidden classes included), so engine or AI changes that hang or crash games fail the tests.
 - **Masochist** (`src/masochist.js`) is an experimental opponent that cheats: it plans on clones, so it knows every draw and random outcome and can read the human's hand.
   - **Mode:** it plays in the play-test-only *Masochist* mode (`playtestOnly: true`, `ai: 'masochist'` in `modes.js`). That mode doesn't exist until the play-test code is entered: no locked tile, and it's not in the README.
@@ -66,7 +70,7 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
 - **Match transcripts** (`src/transcript.js`, pure) record games for studying how people play against the AI. They're only recorded while the play-test code is on.
   - `startTranscript(game, meta)` wraps the game's action methods (`mulligan`, `playCard`, `useHeroPower`, `attack`, `endTurn`) and records each successful action with readable names. It also keeps a `summarize` of the position (both hands included) at the end of every turn. `finishTranscript` adds the result and the battle log.
   - A transcript holds the starting `snapshot()`, so `replay(t, { upTo })` rebuilds the match exactly, or any position part-way through. It throws if an action no longer applies (for example, the cards changed since).
-  - `node tools/analyse-transcripts.js <bundle.json>` replays an exported bundle and compares each human turn with what the greedy AI and Masochist would have played. Findings and planned greedy-AI changes are in `docs/ai-learnings.md`.
+  - `node tools/analyse-transcripts.js <bundle.json>` replays an exported bundle and compares each human turn with what the greedy AI and Masochist would have played. Findings, and the greedy-AI changes made from them, are in `docs/ai-learnings.md`.
   - Finished matches are saved under `riftclash-transcripts` (the latest `MAX_SAVED` = 50). The result screen offers *⬇ Transcript* for that match, and the title screen offers *Transcripts (n)*, which downloads everything as one bundle (`exportBundle`).
 
 ### `src/ui.js` is the app shell

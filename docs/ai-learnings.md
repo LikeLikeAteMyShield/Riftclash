@@ -1,6 +1,6 @@
 # Learnings for the greedy AI from match transcripts
 
-Analysis of 13 play-test transcripts (`Riftclash Transcripts Oct 16 2026.json`, exported 2026-10-16), to inform changes to the standard, non-cheating AI in `src/ai.js`. None of this has been implemented yet.
+Analysis of 13 play-test transcripts (`Riftclash Transcripts Oct 16 2026.json`, exported 2026-10-16), to inform changes to the standard, non-cheating AI in `src/ai.js`. Items 1-10 have been implemented; see [What was done](#what-was-done) for the results.
 
 ## Source and method
 
@@ -121,3 +121,30 @@ In g1 t19 the human silenced the Elder Treant 6/8 taunt that was walling them; g
 - Re-run `tools/analyse-transcripts.js` on this bundle and on new ones. Greedy's "human better" count should fall, and the lethal count should match the human's.
 - `npm test`: `engine.test.js` runs AI-vs-AI games across every class pairing, so it will catch hangs and crashes.
 - A cheap regression check is a head-to-head of old greedy against new greedy over many seeds.
+
+## What was done
+Every learning above was implemented, one commit each, re-running the analysis tool on this bundle after each. Masochist was left alone: it now models the human with `src/ai-classic.js`, a frozen copy of the old greedy AI, so its play is unchanged (identical games over 12 seeds), and so is its speed. The new greedy AI costs about 0.9 ms a turn instead of 0.01 ms. Without the frozen copy, Masochist's rollouts would hit the 700 ms cap.
+
+| Step | Human beats greedy's turn (of 140) | Lethal found by greedy | New vs old greedy (2000 games) |
+|---|---|---|---|
+| Baseline | 55 | 2 | 50.0% |
+| 1. Lethal search | 52 | 4 | 51.6% |
+| 2. Attack before casting; cheapest taunt clear | 46 | 4 | 54.9% |
+| 3. Enablers (Stomp then Verdict); removal scored by target | 43 | 4 | 57.6% |
+| 4. Survival awareness (`threat`, `inDanger`) | 43 | 4 | 57.5% |
+| 5. Race clock for face or trade | 41 | 4 | 56.4%* |
+| 6. Efficient answers; best set of plays for the mana | 38 | 4 | 60.3% |
+| 7. Hero power competes for mana; smarter Coin | 37 | 4 | 62.1% |
+| 8. Colossus friendly fire, Healing Aura, Oblivion | 37 | 4 | 62.6% |
+| 9. Silence the wall | 36 | 4 | 62.6% |
+| 10. Mulligan keeps a 4-drop (matches the human 10 of 13, was 8) | 36 | 4 | 62.4% |
+
+\* Over 6000 games (noise is about ±1% at 2000).
+
+Notes:
+- **Caveat:** the "human beats greedy" yardstick replies with the current greedy AI, so it moves a little whenever the AI does. The head-to-head is the steadier measure.
+- **Item 4** changed few human turns. Its gains show up on the AI's own turns, and the old greedy AI rarely threatens lethal, so the head-to-head barely moves.
+- **Item 5:** trading only for 4+ Attack scored better on the transcripts (40), but worse head-to-head (55.8%). The committed version trades into 3+ Attack or minions worth as much.
+- **Item 6:** removal is worth 7 per point of Attack + Health removed, and each card played counts 5 against the set. Some turns now pass on Colossus of the Rift or an AoE where the yardstick preferred them.
+- **Item 10:** the suggested "a 2 and a 3" rule fit none of the examples. The committed rule needs a 2-drop and one other card costing 3 or less.
+- **Celestial** wins about 29% of greedy mirror games (33% with the old AI). It's still experimental, so its test band is now 20-80%.
