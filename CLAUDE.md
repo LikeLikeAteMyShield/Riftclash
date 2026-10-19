@@ -66,6 +66,7 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
 - **Match transcripts** (`src/transcript.js`, pure) record games for studying how people play against the AI. They're only recorded while the play-test code is on.
   - `startTranscript(game, meta)` wraps the game's action methods (`mulligan`, `playCard`, `useHeroPower`, `attack`, `endTurn`) and records each successful action with readable names. It also keeps a `summarize` of the position (both hands included) at the end of every turn. `finishTranscript` adds the result and the battle log.
   - A transcript holds the starting `snapshot()`, so `replay(t, { upTo })` rebuilds the match exactly, or any position part-way through. It throws if an action no longer applies (for example, the cards changed since).
+  - `node tools/analyse-transcripts.js <bundle.json>` replays an exported bundle and compares each human turn with what the greedy AI and Masochist would have played. Findings and planned greedy-AI changes are in `docs/ai-learnings.md`.
   - Finished matches are saved under `riftclash-transcripts` (the latest `MAX_SAVED` = 50). The result screen offers *⬇ Transcript* for that match, and the title screen offers *Transcripts (n)*, which downloads everything as one bundle (`exportBundle`).
 
 ### `src/ui.js` is the app shell
