@@ -211,3 +211,13 @@ test('Oblivion is held while winning the race (g5 t15)', () => {
   playTurn(g, 1);
   assert.ok(g.players[1].hand.some(c => c.uid === oblivion));
 });
+
+test('silences the big taunt that walls its attackers, not a small poisonous minion (g1 t19)', () => {
+  const g = setup(['pyromancer', 'warlord'], 3);
+  place(g, 0, 'n_adder');                         // first on the board: the old AI's pick on a tie
+  const treant = place(g, 0, 'n_treant');
+  place(g, 1, VANILLA);
+  give(g, 1, 'n_monk');
+  playTurn(g, 1);
+  assert.equal(treant.silenced, true);
+});

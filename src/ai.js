@@ -51,8 +51,11 @@ export function silenceValue(game, m) {
 
 /** Silence the enemy minion that loses the most; failing that, whichever minion it hurts least. */
 function chooseSilenceTarget(game, pid, card, targets) {
+  // With attackers of our own, an enemy taunt is a wall: the more health it has, the more silencing it opens up.
+  const attacking = game.players[pid].board.some(m => m.attack > 0);
+  const wall = t => attacking && t.owner !== pid && t.keywords.taunt && !t.silenced ? t.health * 0.5 : 0;
   const scored = targets.filter(t => t.kind === 'minion')
-    .map(t => ({ t, score: (t.owner === pid ? -1 : 1) * silenceValue(game, t) }))
+    .map(t => ({ t, score: (t.owner === pid ? -1 : 1) * silenceValue(game, t) + wall(t) }))
     .sort((a, b) => b.score - a.score);
   const best = scored[0];
   if (!best) return { ok: true, target: null };
