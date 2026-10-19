@@ -100,3 +100,24 @@ test("sets up Headsman's Verdict with Shockwave Stomp to kill a big minion (g6 t
   playTurn(g, 1);
   assert.ok(!g.players[0].board.includes(treant));
 });
+
+test('in danger of dying, it kills the biggest attacker instead of going face', () => {
+  const g = setup(['pyromancer', 'warlord'], 0);
+  setHealth(g, 1, 6);
+  const rider = place(g, 0, 'c_comet', { health: 1 });   // 5/1
+  place(g, 1, VANILLA);                           // 4/5: trading costs it the whole minion, which the old AI never did
+  playTurn(g, 1);
+  assert.ok(!g.players[0].board.includes(rider));
+  assert.equal(g.players[0].hero.health, 30);
+});
+
+test('in danger of dying, it plays a taunt with armour over a bigger threat of its own (g7 t12)', () => {
+  const g = setup(['pyromancer', 'warlord'], 4);
+  setHealth(g, 1, 9);
+  for (let i = 0; i < 2; i++) place(g, 0, VANILLA);    // 8 damage next turn
+  give(g, 1, 'n_stormcaller');
+  const warden = give(g, 1, 'w_bastion');
+  playTurn(g, 1);
+  assert.ok(!g.players[1].hand.some(c => c.uid === warden));
+  assert.equal(g.players[1].hero.armor, 3);
+});

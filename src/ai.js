@@ -134,6 +134,10 @@ export function choosePosition(game, pid, card) {
 function planCardPlay(game, pid) {
   const p = game.players[pid];
   const options = [];
+  // In danger of dying next turn, taunts, armour and healing come first.
+  const danger = inDanger(game, pid);
+  const survival = card => !danger ? 0 : (card.keywords.taunt ? 15 + card.health : 0)
+    + effectsOf(card).filter(e => e.type === 'armor' || (e.type === 'heal' && ['ownHero', 'allFriendly', 'target'].includes(e.to))).reduce((s, e) => s + e.amount * 4, 0);
   for (const inst of p.hand) {
     if (!game.canPlay(pid, inst.uid)) continue;
     const card = CARDS[inst.cardId];
@@ -150,7 +154,7 @@ function planCardPlay(game, pid) {
       // A board wipe (Oblivion) only when we lose much less than they do.
       const worth = m => m.attack + m.health;
       const swing = game.opponentOf(pid).board.reduce((n, m) => n + worth(m), 0) - p.board.reduce((n, m) => n + worth(m), 0);
-      if (swing >= 10) options.push({ inst, score: card.cost * 10 + swing, target: null });
+      if (swing >= 10) options.push({ inst, score: card.cost * 10 + swing + survival(card), target: null });
       continue;
     }
     if (card.type === 'spell' && !card.target) {
@@ -160,17 +164,17 @@ function planCardPlay(game, pid) {
       if (card.effects.some(e => e.type === 'freeze') && game.opponentOf(pid).board.length < 2) continue;
       if (card.effects.some(e => e.to === 'randomEnemyMinion') && !game.opponentOf(pid).board.length) continue;
       if (card.effects.some(e => e.type === 'heal') && !hasAoe && p.hero.health > 20) continue;
-      options.push({ inst, score: card.cost * 10 + Math.max(0, aoe), target: null });
+      options.push({ inst, score: card.cost * 10 + Math.max(0, aoe) + survival(card), target: null });
       continue;
     }
     const { ok, target } = chooseTarget(game, pid, card, game.cardTargets(pid, inst.uid));
     if (!ok) continue;
     if (card.type === 'weapon' && p.weapon) continue;
     // Removal is worth what it removes: a big threat comes off before anything else is played.
-    const victim = target != null && (card.type === 'spell' ? card.effects : card.battlecry).some(e => e.type === 'destroy' && e.to === 'target')
+    const victim = target != null && (card.type === 'spell' ? card.effects : card.battlecry ?? []).some(e => e.type === 'destroy' && e.to === 'target')
       ? game.getEntity(target) : null;
     const removed = victim?.owner !== pid && victim?.kind === 'minion' ? 5 * (victim.attack + victim.health) : 0;
-    options.push({ inst, score: card.cost * 10 + (card.type === 'minion' ? 2 : 0) + removed, target });
+    options.push({ inst, score: card.cost * 10 + (card.type === 'minion' ? 2 : 0) + removed + survival(card), target });
   }
   options.sort((a, b) => b.score - a.score);
   const best = options[0];
@@ -209,6 +213,24 @@ function planHeroPower(game, pid) {
   return face ? { type: 'heroPower', target: face.uid } : null;
 }
 
+/** The attack that kills one of `targets` for the least loss, or null. */
+function cheapestKill(game, pid, attackers, targets) {
+  const hero = game.players[pid].hero;
+  let best = null;
+  for (const a of attackers) {
+    const reachable = game.attackTargets(a.uid);
+    for (const t of targets) {
+      if (!reachable.includes(t)) continue;
+      const kills = !t.keywords.divineShield && (a.attack >= t.health || (a.kind === 'minion' && a.keywords.poisonous));
+      if (!kills || (a.kind === 'hero' && t.attack >= hero.health - 10)) continue;
+      const dies = a.kind === 'minion' && !a.keywords.divineShield && t.attack >= a.health;
+      const cost = (dies ? minionWorth(game, a) : 0) + (a.kind === 'hero' ? t.attack * 1.5 : 0) + a.attack * 0.1 - minionWorth(game, t);
+      if (!best || cost < best.cost) best = { cost, uid: a.uid, target: t.uid };
+    }
+  }
+  return best && { type: 'attack', uid: best.uid, target: best.target };
+}
+
 function planAttack(game, pid) {
   const p = game.players[pid];
   const enemyHero = game.opponentOf(pid).hero;
@@ -222,20 +244,20 @@ function planAttack(game, pid) {
     return { type: 'attack', uid: faceAttackers[0].uid, target: enemyHero.uid };
   }
 
+  // In danger of dying next turn: kill whatever hits hardest, before anything goes face.
+  if (inDanger(game, pid)) {
+    const foes = game.opponentOf(pid).board.filter(m => !m.frozen && m.attack > 0).sort((x, y) => y.attack - x.attack);
+    for (const foe of foes) {
+      const kill = cheapestKill(game, pid, attackers, [foe]);
+      if (kill) return kill;
+    }
+  }
+
   // A taunt in the way: clear it with whatever kills it for the least, so the big hitters go face.
   const taunts = game.opponentOf(pid).board.filter(m => m.keywords.taunt && !m.keywords.stealth);
   if (taunts.length && !faceAttackers.length) {
-    let best = null;
-    for (const a of attackers) {
-      for (const t of taunts) {
-        const kills = !t.keywords.divineShield && (a.attack >= t.health || (a.kind === 'minion' && a.keywords.poisonous));
-        if (!kills || (a.kind === 'hero' && t.attack >= p.hero.health - 10)) continue;
-        const dies = a.kind === 'minion' && !a.keywords.divineShield && t.attack >= a.health;
-        const cost = (dies ? minionWorth(game, a) : 0) + (a.kind === 'hero' ? t.attack * 1.5 : 0) + a.attack * 0.1 - minionWorth(game, t);
-        if (!best || cost < best.cost) best = { cost, uid: a.uid, target: t.uid };
-      }
-    }
-    if (best) return { type: 'attack', uid: best.uid, target: best.target };
+    const kill = cheapestKill(game, pid, attackers, taunts);
+    if (kill) return kill;
   }
 
   for (const a of attackers) {
@@ -403,13 +425,50 @@ function minionWorth(game, m) {
   return v;
 }
 
-/** How good a position is for `pid`, from what it can see: health, boards, weapons and hand sizes. */
+const BURN_ALLOWANCE = 3;
+
+/**
+ * Damage `pid`'s opponent could deal to `pid`'s hero on its next turn, from
+ * what's on the table: its minions (less what it takes to get through our
+ * taunts), its weapon and hero power, and an allowance for burn in a hand we can't see.
+ */
+export function threat(game, pid) {
+  const me = game.players[pid];
+  const them = game.opponentOf(pid);
+  const hits = them.board.filter(m => !m.frozen && m.attack > 0).flatMap(m => Array(m.keywords.windfury ? 2 : 1).fill(m.attack)).sort((a, b) => a - b);
+  // Each taunt soaks up the smallest attacks it takes to kill it.
+  for (const t of me.board.filter(m => m.keywords.taunt)) {
+    for (let soaked = 0; soaked < t.health && hits.length;) soaked += hits.shift();
+  }
+  let dmg = hits.reduce((s, a) => s + a, 0);
+  const w = them.weapon && !them.hero.frozen ? them.weapon.attack * (CARDS[them.weapon.cardId].keywords?.windfury ? 2 : 1) : 0;
+  dmg += w;
+  const hp = game.heroPower(them.id);
+  for (const e of hp.effects) {
+    if (e.type === 'damage') dmg += e.amount;
+    if (e.type === 'heroAttack') dmg += e.amount;
+    if (e.type === 'weapon' && !w) dmg += CARDS[e.card].attack;
+    if (e.type === 'summon' && CARDS[e.card].keywords?.charge) dmg += CARDS[e.card].attack;
+  }
+  return dmg + (them.hand.length ? BURN_ALLOWANCE : 0);
+}
+
+/** Whether `pid` could die on the opponent's next turn if it doesn't look after itself. */
+export function inDanger(game, pid) {
+  const h = game.players[pid].hero;
+  return threat(game, pid) + 4 >= h.health + h.armor;
+}
+
+/** How good a position is for `pid`, from what it can see: health, boards, weapons, hand sizes, and the threat of dying. */
 function positionValue(game, pid) {
   if (game.winner === pid) return 1e6;
   if (game.winner !== null) return -1e6;
   const side = p => healthValue(p.hero.health + p.hero.armor) + p.board.reduce((s, m) => s + minionWorth(game, m), 0)
     + (p.weapon ? p.weapon.attack * p.weapon.durability * 0.7 : 0) + p.hand.length * 1.5;
-  return side(game.players[pid]) - side(game.opponentOf(pid));
+  const me = game.players[pid].hero;
+  const eff = me.health + me.armor, danger = threat(game, pid);
+  const pressure = danger >= eff ? 120 : 25 * (danger / Math.max(1, eff)) ** 2;
+  return side(game.players[pid]) - side(game.opponentOf(pid)) - pressure;
 }
 
 /**
