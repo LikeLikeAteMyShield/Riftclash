@@ -144,7 +144,7 @@ function planCardPlay(game, pid) {
     if (card.id === 't_coin') {
       // Only coin if it unlocks a card we couldn't otherwise play.
       const unlocks = p.hand.some(c => CARDS[c.cardId].cost === p.mana + 1);
-      if (unlocks) options.push({ inst, score: 1, target: null });
+      if (unlocks) options.push({ inst, cost: 0, score: 1, target: null });
       continue;
     }
     // Never play a card whose battlecry would kill our own hero (e.g. Unstable Nucleus).
@@ -154,9 +154,10 @@ function planCardPlay(game, pid) {
       // A board wipe (Oblivion) only when we lose much less than they do.
       const worth = m => m.attack + m.health;
       const swing = game.opponentOf(pid).board.reduce((n, m) => n + worth(m), 0) - p.board.reduce((n, m) => n + worth(m), 0);
-      if (swing >= 10) options.push({ inst, score: card.cost * 10 + swing + survival(card), target: null });
+      if (swing >= 10) options.push({ inst, cost: card.cost, score: card.cost * 10 + swing + survival(card), target: null });
       continue;
     }
+    const draws = effectsOf(card).filter(e => e.type === 'draw').reduce((n, e) => n + e.count, 0) * 10;
     if (card.type === 'spell' && !card.target) {
       const aoe = aoeValue(game, pid, card.effects);
       const hasAoe = card.effects.some(e => e.type === 'damage' && e.to !== 'target' && !e.to.startsWith('random'));
@@ -164,24 +165,75 @@ function planCardPlay(game, pid) {
       if (card.effects.some(e => e.type === 'freeze') && game.opponentOf(pid).board.length < 2) continue;
       if (card.effects.some(e => e.to === 'randomEnemyMinion') && !game.opponentOf(pid).board.length) continue;
       if (card.effects.some(e => e.type === 'heal') && !hasAoe && p.hero.health > 20) continue;
-      options.push({ inst, score: card.cost * 10 + Math.max(0, aoe) + survival(card), target: null });
+      // An AoE is worth what it clears, not what it costs.
+      options.push({ inst, cost: card.cost, score: (hasAoe ? REMOVAL * aoe + draws : card.cost * 10) + survival(card), target: null });
       continue;
     }
     const { ok, target } = chooseTarget(game, pid, card, game.cardTargets(pid, inst.uid));
     if (!ok) continue;
     if (card.type === 'weapon' && p.weapon) continue;
-    // Removal is worth what it removes: a big threat comes off before anything else is played.
-    const victim = target != null && (card.type === 'spell' ? card.effects : card.battlecry ?? []).some(e => e.type === 'destroy' && e.to === 'target')
-      ? game.getEntity(target) : null;
-    const removed = victim?.owner !== pid && victim?.kind === 'minion' ? 5 * (victim.attack + victim.health) : 0;
-    options.push({ inst, score: card.cost * 10 + (card.type === 'minion' ? 2 : 0) + removed + survival(card), target });
+    // Removal is worth what it removes, so a cheap answer beats an expensive one for the same job.
+    const fx = card.type === 'spell' ? card.effects : card.battlecry ?? [];
+    const victim = target != null ? game.getEntity(target) : null;
+    const enemyMinion = victim?.owner !== pid && victim?.kind === 'minion';
+    const dmg = damageAmount(fx) + (card.type === 'spell' ? game.spellDamage(pid) : 0);
+    const kills = enemyMinion && (fx.some(e => (e.type === 'destroy' || e.type === 'bounce') && e.to === 'target') || (dmg >= victim.health && !victim.keywords.divineShield));
+    const removed = kills ? REMOVAL * (victim.attack + victim.health) * (fx.some(e => e.type === 'bounce') ? 0.5 : 1) : 0;
+    const score = card.type === 'spell' && enemyMinion ? removed + draws : card.cost * 10 + (card.type === 'minion' ? 2 : 0) + (fx.some(e => e.type === 'destroy') ? removed : 0);
+    // In danger, killing an attacker is as good as armour.
+    const saved = danger && kills ? victim.attack * 4 : 0;
+    options.push({ inst, cost: card.cost, score: score + survival(card) + saved, target, victim: kills ? target : null });
   }
-  options.sort((a, b) => b.score - a.score);
-  const best = options[0];
-  if (!best) return null;
-  const card = CARDS[best.inst.cardId];
+  const ping = pingOption(game, pid);
+  if (ping) options.push(ping);
+  const pick = bestPlays(options.filter(o => o.inst?.cardId !== 't_coin'), p.mana)[0]
+    ?? options.find(o => o.inst?.cardId === 't_coin');
+  if (!pick) return null;
+  if (pick.heroPower) return { type: 'heroPower', target: pick.target };
+  const card = CARDS[pick.inst.cardId];
   const position = card.type === 'minion' ? choosePosition(game, pid, card) : null;
-  return { type: 'play', uid: best.inst.uid, target: best.target, position };
+  return { type: 'play', uid: pick.inst.uid, target: pick.target, position };
+}
+
+/** Score per point of Attack + Health a card removes from the enemy board (a 5/5 removed is about a 5/5 played). */
+const REMOVAL = 7;
+
+/** A hero-power ping that kills an enemy minion outright: often the cheapest answer to an X/1. */
+function pingOption(game, pid) {
+  if (!game.canUseHeroPower(pid)) return null;
+  const hp = game.heroPower(pid);
+  const amt = hp.target && hp.effects.find(e => e.type === 'damage' && e.to === 'target')?.amount;
+  if (!amt) return null;
+  const kill = game.validTargets(pid, hp.target).filter(t => t.owner !== pid && t.kind === 'minion' && !t.keywords.divineShield && t.health <= amt)
+    .sort((a, b) => (b.attack + b.health) - (a.attack + a.health))[0];
+  return kill ? { heroPower: true, cost: hp.cost, score: REMOVAL * (kill.attack + kill.health), target: kill.uid, victim: kill.uid } : null;
+}
+
+/** What a card in hand is worth when choosing plays: the same mana spent in fewer cards is better. */
+const CARD = 5;
+
+/**
+ * The set of plays that fits in `mana` for the most total score, best first.
+ * Two plays aimed at killing the same minion never both count.
+ */
+function bestPlays(options, mana) {
+  let best = { score: 0, set: [] };
+  const sorted = [...options].sort((a, b) => b.score - a.score);
+  const dfs = (i, left, set, score, victims) => {
+    if (score > best.score) best = { score, set: [...set] };
+    for (let j = i; j < sorted.length; j++) {
+      const o = sorted[j];
+      if (o.cost > left || o.score <= 0 || (o.victim != null && victims.has(o.victim))) continue;
+      if (o.heroPower && set.some(x => x.heroPower)) continue;
+      set.push(o);
+      if (o.victim != null) victims.add(o.victim);
+      dfs(j + 1, left - o.cost, set, score + o.score - (o.heroPower ? 0 : CARD), victims);
+      if (o.victim != null) victims.delete(o.victim);
+      set.pop();
+    }
+  };
+  dfs(0, mana, [], 0, new Set());
+  return best.set;
 }
 
 function planHeroPower(game, pid) {

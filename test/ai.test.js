@@ -140,3 +140,23 @@ test('behind on the race, it takes a free trade even into a 1-attack minion', ()
   playTurn(g, 1);
   assert.ok(!g.players[0].board.includes(beetle));
 });
+
+test('the cheapest answer: Spark kills a 5/1 and Starfall Meteor stays in hand (g5 t14)', () => {
+  const g = setup(['warlord', 'pyromancer'], 7);
+  const rider = place(g, 0, 'c_comet', { health: 1 });
+  place(g, 0, 'n_brambebeetle');
+  const starfall = give(g, 1, 'p_starfall');
+  give(g, 1, 'n_ram');
+  playTurn(g, 1);
+  assert.ok(!g.players[0].board.includes(rider));
+  assert.ok(g.players[1].hand.some(c => c.uid === starfall));
+});
+
+test('spends the mana: a 3-drop and a 2-drop beat a lone 4-drop with 5 mana', () => {
+  const g = setup(['pyromancer', 'warlord'], 5);
+  give(g, 1, VANILLA);
+  give(g, 1, 'n_boar');
+  give(g, 1, 'n_scrapper');
+  playTurn(g, 1);
+  assert.deepEqual(g.players[1].board.map(m => m.cardId).sort(), ['n_boar', 'n_scrapper']);
+});
