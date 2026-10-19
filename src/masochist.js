@@ -17,7 +17,7 @@
 // it's tested in node and runs in a Web Worker in the browser (masochistworker.js).
 
 import { CARDS } from './cards.js';
-import { nextAction as greedyAction, applyAction, playTurn as greedyTurn } from './ai.js';
+import { nextAction as greedyAction, applyAction, playTurn as greedyTurn } from './ai-classic.js';
 
 const WIN = 1e6;
 
