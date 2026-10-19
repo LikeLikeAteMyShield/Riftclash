@@ -249,8 +249,116 @@ function planAttack(game, pid) {
   return null;
 }
 
+// ---------------------------------------------------------------- lethal search
+
+const RANDOM_EFFECT = e => e.to?.startsWith('random') || e.type === 'copyFromOpponentDeck';
+const effectsOf = card => [...(card.effects ?? []), ...(card.battlecry ?? []), ...(card.combo ?? [])];
+
+/** Whether a card can change this turn's damage: burn, a body that can swing, an aura, a buff, removal for a taunt... */
+function helpsLethal(card) {
+  const fx = effectsOf(card);
+  if (fx.some(RANDOM_EFFECT)) return false;   // its outcome isn't ours to know
+  if (card.type === 'weapon' || card.id === 't_coin') return true;
+  if (card.type === 'minion' && (card.keywords.charge || card.adjacentAura || card.spellDamage)) return true;
+  return fx.some(e => ['damage', 'destroy', 'bounce', 'silence', 'buff', 'mana', 'heroAttack', 'buffWeapon', 'weapon'].includes(e.type) && e.to !== 'ownHero');
+}
+
+/** Generous upper bound on the face damage `pid` could deal this turn, so most turns skip the search. */
+function maxDamage(game, pid) {
+  const p = game.players[pid];
+  const swings = e => e.frozen ? 0 : game.maxAttacks(e) - e.attacksThisTurn;
+  const ready = p.board.filter(m => !m.sleeping || m.keywords.charge);
+  let dmg = ready.reduce((s, m) => s + m.attack * swings(m), 0) + p.hero.attack * swings(p.hero);
+  dmg += p.board.reduce((s, m) => s + (game.minionText(m).deathrattle ?? []).filter(e => e.type === 'damage' && e.to === 'enemyHero').reduce((n, e) => n + e.amount, 0), 0);
+  const mana = p.mana + p.hand.filter(c => c.cardId === 't_coin').length;
+  const bodies = ready.length + 2;
+  const add = (card, isSpell) => {
+    for (const e of effectsOf(card)) {
+      if (e.type === 'damage' && e.to !== 'ownHero') dmg += (e.amount + (isSpell ? game.spellDamage(pid) + 2 : 0)) * (e.times ?? 1);
+      if (e.type === 'buff' && e.attack) dmg += e.attack * bodies * 2;
+      if (e.type === 'heroAttack' || e.type === 'buffWeapon') dmg += (e.amount ?? e.attack ?? 0) * 2;
+      if (e.type === 'weapon') dmg += CARDS[e.card].attack;
+      if (e.type === 'destroy' || e.type === 'bounce' || e.type === 'silence') dmg += 3;   // a taunt out of the way
+    }
+  };
+  for (const c of p.hand) {
+    const card = CARDS[c.cardId];
+    if (card.cost > mana) continue;
+    if (card.type === 'minion' && card.keywords.charge) dmg += card.attack * (card.keywords.windfury ? 2 : 1);
+    if (card.type === 'minion' && card.adjacentAura) dmg += card.adjacentAura.attack * 2;
+    if (card.type === 'weapon') dmg += card.attack * (card.keywords.windfury ? 2 : 1);
+    add(card, card.type === 'spell');
+  }
+  if (game.canUseHeroPower(pid)) add(game.heroPower(pid), false);
+  return dmg;
+}
+
+/** Every action that might matter for lethal: attacks (face first), then cards and the hero power. */
+function lethalActions(game, pid, handUids) {
+  const p = game.players[pid];
+  const enemyHero = game.opponentOf(pid).hero.uid;
+  const acts = [];
+  for (const a of [...p.board, p.hero]) {
+    if (!game.canAttack(a.uid)) continue;
+    const ts = game.attackTargets(a.uid);
+    for (const t of [...ts.filter(t => t.uid === enemyHero), ...ts.filter(t => t.uid !== enemyHero)]) acts.push({ type: 'attack', uid: a.uid, target: t.uid });
+  }
+  const seen = new Set();
+  for (const inst of p.hand) {
+    const card = CARDS[inst.cardId];
+    // Only cards we held at the start: anything drawn since would be peeking at the deck.
+    if (!handUids.has(inst.uid) || seen.has(card.id) || !helpsLethal(card) || !game.canPlay(pid, inst.uid)) continue;
+    seen.add(card.id);
+    const position = card.type === 'minion' ? choosePosition(game, pid, card) : null;
+    const targets = game.cardTargets(pid, inst.uid).map(t => t.uid);
+    for (const target of targets.length ? targets : [null]) acts.push({ type: 'play', uid: inst.uid, target, position });
+  }
+  if (game.canUseHeroPower(pid)) {
+    const hp = game.heroPower(pid);
+    if (!hp.effects.some(RANDOM_EFFECT)) {
+      for (const target of hp.target ? game.validTargets(pid, hp.target).map(t => t.uid) : [null]) acts.push({ type: 'heroPower', target });
+    }
+  }
+  return acts;
+}
+
+const lethalKey = game => game.players.map(p => [p.hero.health, p.hero.armor, p.hero.attack, p.hero.attacksThisTurn, p.mana, p.heroPowerUsed,
+  p.weapon ? `${p.weapon.attack}/${p.weapon.durability}` : '', p.hand.map(c => c.uid).join(','),
+  p.board.map(m => `${m.uid}:${m.attack}:${m.health}:${m.attacksThisTurn}:${m.keywords.taunt ? 1 : 0}${m.keywords.divineShield ? 1 : 0}`).join('|')].join(';')).join('#');
+
+/**
+ * A line that wins this turn, or null. A depth-first search over every attack,
+ * card and hero power, on copies of the game. It's not cheating: cards with a
+ * random outcome are left out, and so is anything drawn along the way.
+ */
+export function findLethal(game, pid, budget = 1500) {
+  const them = game.opponentOf(pid).hero;
+  if (maxDamage(game, pid) < them.health + them.armor) return null;
+  const handUids = new Set(game.players[pid].hand.map(c => c.uid));
+  const seen = new Set();
+  let nodes = budget;
+  const dfs = (g, plan) => {
+    for (const act of lethalActions(g, pid, handUids)) {
+      if (--nodes < 0) return null;
+      const next = g.clone();
+      if (!applyAction(next, act)) continue;
+      if (next.winner === pid) return [...plan, act];
+      if (next.winner !== null) continue;
+      const key = lethalKey(next);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const found = dfs(next, [...plan, act]);
+      if (found) return found;
+    }
+    return null;
+  };
+  return dfs(game, []);
+}
+
 export function nextAction(game, pid) {
   if (game.winner !== null || game.current !== pid) return null;
+  const lethal = findLethal(game, pid);
+  if (lethal) return lethal[0];
   return planCardPlay(game, pid) ?? planHeroPower(game, pid) ?? planAttack(game, pid);
 }
 
