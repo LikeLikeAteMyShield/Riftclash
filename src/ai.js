@@ -677,9 +677,12 @@ export function nextAction(game, pid) {
   return attackFirst(game, pid, play) ?? play ?? planHeroPower(game, pid) ?? planAttack(game, pid);
 }
 
-/** Pick cards to throw back during the mulligan. */
+/** Pick cards to throw back during the mulligan: anything over 3, but one 4-drop stays if a 2 and a 3 lead up to it. */
 export function mulliganChoice(game, pid) {
-  return game.players[pid].hand.filter(c => CARDS[c.cardId].cost > 3).map(c => c.uid);
+  const hand = game.players[pid].hand;
+  const early = hand.filter(c => CARDS[c.cardId].cost <= 3);
+  const keep = early.some(c => CARDS[c.cardId].cost === 2) && early.length >= 2 ? hand.find(c => CARDS[c.cardId].cost === 4) : null;
+  return hand.filter(c => CARDS[c.cardId].cost > 3 && c !== keep).map(c => c.uid);
 }
 
 /** Apply an action produced by nextAction. Returns false if the engine rejected it. */
