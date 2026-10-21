@@ -40,10 +40,12 @@ export class Game {
    * @param {string[][]} [opts.decks] card id lists; built automatically if omitted
    * @param {number} [opts.seed]
    * @param {number} [opts.firstPlayer] 0 or 1; random if omitted
+   * @param {boolean} [opts.stacked] decks are in draw order (first card drawn first) and never shuffled: for scripted games like the tutorial
+   * @param {number[]} [opts.health] starting Health for each hero (default 30 each)
    * @param {object} [opts.restore]  a snapshot() to rebuild instead (see Game.restore)
    * @param {boolean} [opts.silent]  skip events and the log (for fast simulations)
    */
-  constructor({ heroes, classes, decks, locked, seed = Date.now(), firstPlayer, restore, silent = false } = {}) {
+  constructor({ heroes, classes, decks, locked, seed = Date.now(), firstPlayer, stacked = false, health, restore, silent = false } = {}) {
     this.silent = silent;
     if (restore) { this.#load(restore); return; }
     heroes ??= classes?.map(cls => {
@@ -53,6 +55,7 @@ export class Game {
     if (!heroes || heroes.length !== 2) throw new Error('A game needs two heroes (or two classes)');
     for (const id of heroes) if (!HEROES[id]) throw new Error(`Unknown hero "${id}"`);
     this.rand = mulberry32(seed);
+    this.stacked = stacked;
     this.nextUid = 1;
     this.turn = 0;
     this.winner = null; // 0, 1, or 'draw'
@@ -66,6 +69,7 @@ export class Game {
     this.combat = false;
     this.current = firstPlayer ?? (this.rand() < 0.5 ? 0 : 1);
     this.players = [0, 1].map(i => this.#createPlayer(i, heroes[i], decks?.[i] ?? buildDeck(HEROES[heroes[i]].cls, this.rand, locked)));
+    if (health) for (const p of this.players) p.hero.health = p.hero.maxHealth = health[p.id] ?? STARTING_HEALTH;
     this.mulliganDone = [false, false];
     // Opening hands: 3 for the player going first, 4 for the other.
     for (const p of this.players) {
@@ -83,7 +87,7 @@ export class Game {
    */
   snapshot() {
     return {
-      rng: this.rand.state, nextUid: this.nextUid, turn: this.turn, winner: this.winner, phase: this.phase,
+      rng: this.rand.state, stacked: this.stacked, nextUid: this.nextUid, turn: this.turn, winner: this.winner, phase: this.phase,
       fx: this.fx, fxSeq: this.fxSeq, current: this.current, mulliganDone: [...this.mulliganDone],
       players: this.players.map(copyPlayer),
     };
@@ -99,7 +103,7 @@ export class Game {
     this.rand = mulberry32(0);
     this.rand.state = snap.rng;
     Object.assign(this, {
-      nextUid: snap.nextUid, turn: snap.turn, winner: snap.winner, phase: snap.phase,
+      stacked: !!snap.stacked, nextUid: snap.nextUid, turn: snap.turn, winner: snap.winner, phase: snap.phase,
       fx: snap.fx, fxSeq: snap.fxSeq, combat: false, current: snap.current,
       mulliganDone: [...snap.mulliganDone], players: snap.players.map(copyPlayer),
       events: [], log: [],
@@ -108,7 +112,9 @@ export class Game {
 
   #createPlayer(id, heroId, deckIds) {
     const deck = deckIds.map(cardId => ({ uid: this.nextUid++, cardId }));
-    this.#shuffle(deck);
+    // Cards are drawn from the end, so a stacked deck is reversed to draw in the order it was given.
+    if (this.stacked) deck.reverse();
+    else this.#shuffle(deck);
     return {
       // The hero decides the portrait and hero power; the class decides the cards.
       id, heroId, heroClass: HEROES[heroId].cls,
@@ -263,8 +269,8 @@ export class Game {
     const returned = p.hand.filter(c => uids.includes(c.uid));
     p.hand = p.hand.filter(c => !uids.includes(c.uid));
     for (let i = 0; i < returned.length; i++) this.#drawRaw(p);
-    p.deck.push(...returned);
-    this.#shuffle(p.deck);
+    if (this.stacked) p.deck.unshift(...returned);   // a stacked deck keeps its order: returned cards go to the bottom
+    else { p.deck.push(...returned); this.#shuffle(p.deck); }
     this.mulliganDone[playerId] = true;
     if (this.mulliganDone.every(Boolean)) this.#begin();
     return true;

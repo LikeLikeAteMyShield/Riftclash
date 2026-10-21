@@ -15,7 +15,9 @@ It has no dependencies and no build step. ES modules don't load over `file://`, 
 
 The game opens on a splash screen: the title inside rings of glowing runes, the six class sigils around it, and the Rift tearing open behind. Press any key (or click or tap) to enter. That's also what lets the browser start the music, since browsers don't play sound until you interact with the page.
 
-The title screen offers the game modes. **Enter the Rift** is open from the start: pick it, choose your champion (class), deck and opponent, then **Begin battle**. A second mode starts locked, its name hidden: complete all six Champion's Trials (see Quests) to discover it. Until then its tile shows how many trials you've completed. **Deck Builder**, **Card Library** and **Quests** are on the title screen too. Game modes are defined in `src/modes.js`.
+The title screen offers the game modes. New to the game? Start with the **Tutorial**: a short guided battle as Commander Hale that teaches mana, minions, attacking and trading, spells, Battlecry, Divine Shield, the hero power, Taunt, weapons, Charge, Rush and counting lethal. Tips beside the board point out each move to make, and the battle plays out the same way every time. You can leave it at any point from the tip.
+
+**Enter the Rift** is open from the start: pick it, choose your champion (class), deck and opponent, then **Begin battle**. A second mode starts locked, its name hidden: complete all six Champion's Trials (see Quests) to discover it. Until then its tile shows how many trials you've completed. **Deck Builder**, **Card Library** and **Quests** are on the title screen too. Game modes are defined in `src/modes.js`.
 
 - Each hero starts with 30 Health. You gain a Mana Crystal every turn, up to 10.
 - The player going first starts with 3 cards. The player going second starts with 4 cards plus the **Ember Coin** (gain 1 mana this turn). You can mulligan your opening hand.
@@ -52,6 +54,7 @@ Like the archive, it's painted into a pixel buffer (`src/forge.js`), so `npm tes
 
 Quests are goals that track your progress across games, like achievements. Every finished game is added to your record, and a quest is marked complete (for good) once its goal is met. The quests are:
 
+- **First Steps**: *complete the tutorial*. The tutorial isn't counted as a game: winning it doesn't count towards any other quest or your record.
 - **Proven in Battle**: *win 5 games*. Reward: five new neutral cards, hidden until you earn them.
 - **The Champion's Trials**: *win 5 games* as each class: the Trial of Flame (Pyromancer), Iron (Warlord), the Hunt (Stalker), Light (Oracle), the Shield (Vanguard) and Shadows (Shade). Completing all six unlocks a new game mode.
 
@@ -164,6 +167,7 @@ src/splash.js            the opening splash screen: its Rift backdrop, rune ring
 src/cards.js             all card + class data, and deck building
 src/engine.js            rules engine (no DOM); deterministic given a seed
 src/ai.js                greedy AI: removal/trades, lethal check, curve play
+src/tutorial.js          the tutorial: its fixed match, the script of tips and moves, and the rules that keep it on rails
 src/cardview.js          card faces and keyword help, shared by the game and the library
 src/library.js           the card library screen and its filters
 src/archive.js           the card library's archive backdrop, painted into a pixel buffer

@@ -33,6 +33,13 @@ export const CHAMPION_QUESTS = Object.keys(CLASSES).filter(cls => !CLASSES[cls].
 
 export const QUESTS = [
   {
+    id: 'tutorial',
+    title: 'First Steps',
+    text: 'Complete the tutorial.',
+    goal: 1,
+    progress: stats => stats.tutorials,
+  },
+  {
     id: 'win5',
     title: 'Proven in Battle',
     text: 'Win 5 games.',
@@ -46,7 +53,8 @@ export const QUESTS = [
 const emptyRecord = () => ({ played: 0, wins: 0, losses: 0, draws: 0 });
 
 export function emptyStats() {
-  return { ...emptyRecord(), streak: 0, bestStreak: 0, byClass: {}, byBoss: {} };
+  // `tutorials` counts finished tutorials, which aren't games: they don't count as wins or towards any other quest.
+  return { ...emptyRecord(), streak: 0, bestStreak: 0, byClass: {}, byBoss: {}, tutorials: 0 };
 }
 
 export function emptyProgress() {
@@ -68,8 +76,11 @@ export function recordResult(stats, { cls, result, boss }) {
   if (CLASSES[cls]) byClass[cls] = tally(byClass[cls] ?? emptyRecord(), result);
   const byBoss = { ...stats.byBoss };
   if (HEROES[boss]?.boss) byBoss[boss] = tally(byBoss[boss] ?? emptyRecord(), result);
-  return { ...tally(stats, result), streak, bestStreak: Math.max(stats.bestStreak, streak), byClass, byBoss };
+  return { ...stats, ...tally(stats, result), streak, bestStreak: Math.max(stats.bestStreak, streak), byClass, byBoss };
 }
+
+/** Stats after finishing the tutorial. Only the tutorial count changes: it isn't a game, so it's no win and no streak. */
+export const recordTutorialResult = stats => ({ ...stats, tutorials: stats.tutorials + 1 });
 
 /** Every quest with the player's progress: { ...quest, value, done, completedAt }. */
 export function questStatus(progress) {
@@ -115,7 +126,7 @@ export function sanitizeProgress(raw) {
   const p = emptyProgress();
   if (!raw || typeof raw !== 'object') return p;
   const s = raw.stats ?? {};
-  p.stats = { ...cleanRecord(s), streak: count(s.streak), bestStreak: count(s.bestStreak), byClass: {}, byBoss: {} };
+  p.stats = { ...cleanRecord(s), streak: count(s.streak), bestStreak: count(s.bestStreak), byClass: {}, byBoss: {}, tutorials: count(s.tutorials) };
   for (const cls of Object.keys(CLASSES)) if (s.byClass?.[cls]) p.stats.byClass[cls] = cleanRecord(s.byClass[cls]);
   for (const id of RIFTKIN) if (s.byBoss?.[id]) p.stats.byBoss[id] = cleanRecord(s.byBoss[id]);
   for (const q of QUESTS) {
@@ -133,6 +144,14 @@ export function loadProgress(storage = defaultStorage()) {
 
 export function saveProgress(progress, storage = defaultStorage()) {
   try { storage.setItem(STORE_KEY, JSON.stringify(progress)); return true; } catch { return false; }
+}
+
+/** Load, record a finished tutorial, save. Returns { progress, completed }, like recordGame. */
+export function recordTutorial(storage = defaultStorage(), now = Date.now()) {
+  const p = loadProgress(storage);
+  const out = updateQuests({ ...p, stats: recordTutorialResult(p.stats) }, now);
+  saveProgress(out.progress, storage);
+  return out;
 }
 
 /** Load, record a game, save. Returns { progress, completed } for the UI to celebrate. */
