@@ -11,7 +11,8 @@ import { cardHTML, keywordHelpHTML, esc } from './cardview.js';
 import { mountLibrary } from './library.js';
 import { MODES, availableModes, isModeUnlocked, unlockProgress, bossChoices } from './modes.js';
 import { mountQuests, questNoticeHTML, unseenCompleted } from './questscreen.js';
-import { recordGame, questStatus, loadProgress } from './progress.js';
+import { recordGame, recordTutorial, questStatus, loadProgress } from './progress.js';
+import { Tutorial, TUTORIAL_SETUP, findRef } from './tutorial.js';
 import { visibleClasses, sequenceMatcher, SECRET_CODE, togglePlaytest, isPlaytest } from './unlocks.js';
 import { startTranscript, finishTranscript, saveTranscript, loadTranscripts, exportBundle } from './transcript.js';
 import { lockedCards, rewardCards, unseenRewards, markRewardsSeen } from './rewards.js';
@@ -49,6 +50,7 @@ const ui = {
   selection: null, // { type: 'hand' | 'attacker' | 'heroPower', uid? }
   busy: false,
   mulliganPicks: new Set(),
+  tutorial: null,   // the Tutorial (src/tutorial.js) while the tutorial match is on
 };
 
 // ------------------------------------------------------------------ menu
@@ -65,7 +67,8 @@ function renderTitle() {
   $('#mode-grid').innerHTML = MODES.map(m => {
     if (m.playtestOnly && !isModeUnlocked(m)) return '';   // play-test modes don't exist at all until the code is entered
     if (isModeUnlocked(m)) return `
-    <button class="mode-tile${m.playtestOnly ? ' playtest' : ''}" data-mode="${m.id}" type="button">
+    <button class="mode-tile${m.playtestOnly ? ' playtest' : ''}${m.tutorial ? ' tutorial' : ''}" data-mode="${m.id}" type="button">
+      ${m.tutorial && !loadProgress().quests.tutorial ? '<span class="mode-badge">Start here</span>' : ''}
       <span class="mode-icon">${hasSprite(m.icon) ? spriteSVG(m.icon) : ''}</span>
       <span class="mode-name">${esc(m.name)}</span>
       <span class="mode-text">${esc(m.text)}</span>
@@ -87,6 +90,7 @@ $('#mode-grid').addEventListener('click', e => {
   const mode = availableModes().find(m => m.id === tile.dataset.mode);
   if (!mode) return;
   sfx.click();
+  if (mode.tutorial) return startTutorial();
   ui.mode = mode.id;
   $('#play-title').textContent = mode.name;
   renderClassSelect();
@@ -284,10 +288,11 @@ $('#decks-btn').addEventListener('click', () => {
   showScreen('decks');
   openDecks();
 });
-$('#again-btn').addEventListener('click', () => { ui.resultRun = null; startGame(); });
+$('#again-btn').addEventListener('click', () => { ui.resultRun = null; ui.mode === 'tutorial' ? startTutorial() : startGame(); });
 $('#menu-btn').addEventListener('click', () => {
   ui.resultRun = null;
   $('#overlay').classList.add('hidden');
+  if (ui.mode === 'tutorial') { leaveTutorial(); return; }
   renderClassSelect();
   showScreen(ui.mode === 'riftkin' ? 'bosses' : 'play');
 });
@@ -313,6 +318,7 @@ function showScreen(id) {
   document.body.classList.toggle('in-archive', id === 'library');
   document.body.classList.toggle('on-menu', titleScreens);
   playTrack({ menu: 'menu', play: 'menu', bosses: 'menu', library: 'library', decks: 'forge', quests: 'quests' }[id] ?? battleTrack());
+  renderCoach();
 }
 
 // ------------------------------------------------------------------ setup
@@ -327,6 +333,7 @@ function opponentHero() {
 
 function startGame() {
   // The player plays their class's default hero; the class decides the cards.
+  ui.tutorial = null;
   const heroes = [CLASSES[ui.playerClass].defaultHero, opponentHero()];
   // Built decks (the standard deck and the AI's) leave out reward cards the player hasn't earned.
   ui.game = new Game({ heroes, decks: [chosenDeck()], locked: lockedCards(), seed: Date.now() });
@@ -361,18 +368,20 @@ function renderMulligan() {
     <div class="mulligan-slot${ui.mulliganPicks.has(inst.uid) ? ' replace' : ''}" data-uid="${inst.uid}">
       ${cardHTML(inst.cardId)}
     </div>`).join('');
+  renderCoach();
 }
 
 $('#mulligan-cards').addEventListener('click', e => {
   const slot = e.target.closest('[data-uid]');
   if (!slot) return;
+  if (ui.tutorial) { toast('Keep this hand for now: click Confirm.'); return; }
   const uid = Number(slot.dataset.uid);
   ui.mulliganPicks.has(uid) ? ui.mulliganPicks.delete(uid) : ui.mulliganPicks.add(uid);
   renderMulligan();
 });
 
 $('#mulligan-btn').addEventListener('click', async () => {
-  ui.game.mulligan(HUMAN, [...ui.mulliganPicks]);
+  if (!ui.game.mulligan(HUMAN, [...ui.mulliganPicks])) { toast(ui.game.lastError ?? 'Not now'); return; }
   showScreen('table');
   await flushEvents();
   render();
@@ -515,6 +524,7 @@ function render() {
     <div class="hand">${handCards}</div>`;
   $('#table').classList.toggle('targeting', !!ui.selection);
   slideFrom(before);
+  renderCoach();
 }
 
 /** Your lane, with drop slots while placing or a ghost where a minion will go. */
@@ -1038,7 +1048,7 @@ async function gameOverFx() {
     }
   }
   const before = loadProgress();
-  const completed = recordFinishedGame();
+  const completed = ui.tutorial ? recordFinishedTutorial() : recordFinishedGame();
   if (ui.transcript && !ui.transcript.result) {
     finishTranscript(ui.transcript, ui.game);
     saveTranscript(ui.transcript);
@@ -1055,6 +1065,14 @@ function recordFinishedGame() {
   const result = g.winner === 'draw' ? 'draw' : g.winner === HUMAN ? 'win' : 'loss';
   const foe = HEROES[g.players[AI].heroId];
   return recordGame({ cls: g.players[HUMAN].heroClass, result, boss: foe.boss ? g.players[AI].heroId : undefined }).completed;
+}
+
+/** The tutorial was won: it counts for its own quest only (not as a game). Returns the quests it completed. */
+function recordFinishedTutorial() {
+  const g = ui.game;
+  if (g.recorded || g.winner !== HUMAN) return [];
+  g.recorded = true;
+  return recordTutorial().completed;
 }
 
 /**
@@ -1078,10 +1096,13 @@ function showResult(completed, beforeProgress, themeSeconds) {
   const foe = HEROES[ui.game.players[AI].heroId];
   const s = progress.stats;
   $('#result-title').textContent = w === 'draw' ? 'Draw' : w === HUMAN ? 'Victory!' : 'Defeat';
-  $('#result-banner').innerHTML = (!foe.boss || w === 'draw' ? '' : `<p class="result-boss">${esc(foe.name)} ${w === HUMAN ? 'is defeated.' : 'stands victorious.'}</p>`)
-    + `<p class="result-record">Record: ${s.wins} W · ${s.losses} L${s.draws ? ` · ${s.draws} D` : ''}</p>`;
+  $('#result-banner').innerHTML = ui.tutorial
+    ? '<p class="result-record">Tutorial complete! You know the basics. Now choose a champion and Enter the Rift.</p>'
+    : (!foe.boss || w === 'draw' ? '' : `<p class="result-boss">${esc(foe.name)} ${w === HUMAN ? 'is defeated.' : 'stands victorious.'}</p>`)
+      + `<p class="result-record">Record: ${s.wins} W · ${s.losses} L${s.draws ? ` · ${s.draws} D` : ''}</p>`;
   $('#result-quests').innerHTML = '';
-  $('#menu-btn').textContent = ui.mode === 'riftkin' ? 'Choose another foe' : 'Change class';
+  $('#menu-btn').textContent = ui.tutorial ? 'Main menu' : ui.mode === 'riftkin' ? 'Choose another foe' : 'Change class';
+  $('#again-btn').textContent = ui.tutorial ? 'Replay tutorial' : 'Rematch';
   setResultButtons('none');
   $('#overlay').classList.remove('hidden');
   renderQuestBadge();
@@ -1176,7 +1197,11 @@ $('#table').addEventListener('click', e => {
   const g = ui.game;
   if (!g || ui.busy || g.current !== HUMAN || g.winner !== null || ui.suppressClick) return;
 
-  if (e.target.closest('#end-turn')) { sfx.click(); endPlayerTurn(); return; }
+  if (e.target.closest('#end-turn')) {
+    const why = tutorBlock('endTurn');
+    if (why) { toast(why); return; }
+    sfx.click(); endPlayerTurn(); return;
+  }
 
   const handEl = e.target.closest('[data-hand]');
   const entEl = e.target.closest('[data-uid]');
@@ -1201,6 +1226,8 @@ $('#table').addEventListener('click', e => {
   if (handEl) {
     const uid = Number(handEl.dataset.hand);
     if ((sel?.type === 'hand' || sel?.type === 'place') && sel.uid === uid) { ui.selection = null; return render(); }
+    const why = tutorBlock('play', uid);
+    if (why) { toast(why); return; }
     const blocker = g.playBlocker(HUMAN, uid);
     if (blocker) { toast(blocker); return; }
     if (CARDS[handEl.dataset.card].type === 'minion') {
@@ -1215,6 +1242,8 @@ $('#table').addEventListener('click', e => {
 
   if (hpEl) {
     if (sel?.type === 'heroPower') { ui.selection = null; return render(); }
+    const why = tutorBlock('heroPower');
+    if (why) { toast(why); return; }
     if (!g.canUseHeroPower(HUMAN)) {
       toast(g.players[HUMAN].heroPowerUsed ? 'Hero power already used' : 'Not enough mana');
       return;
@@ -1228,7 +1257,11 @@ $('#table').addEventListener('click', e => {
     const ent = g.getEntity(uid);
     if (ent?.owner === HUMAN) {
       if (sel?.uid === uid) { ui.selection = null; return render(); }
-      if (g.canAttack(uid)) { sfx.click(); ui.selection = { type: 'attacker', uid }; return render(); }
+      if (g.canAttack(uid)) {
+        const why = tutorBlock('attack', uid);
+        if (why) { toast(why); return; }
+        sfx.click(); ui.selection = { type: 'attacker', uid }; return render();
+      }
       if (ent.kind === 'minion') {
         toast(ent.frozen ? 'Frozen!' : ent.sleeping && ent.attacksThisTurn === 0 ? 'Needs a turn to get ready' : ent.attack <= 0 ? 'No attack' : 'Already attacked');
       }
@@ -1257,6 +1290,8 @@ addEventListener('pointermove', e => {
   if (!drag.ghost) {
     if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 10) return;
     if (CARDS[drag.cardId].type !== 'minion') { drag = null; return; } // spells stay click-to-cast
+    const why = tutorBlock('play', drag.uid);
+    if (why) { toast(why); drag = null; return; }
     const blocker = ui.game.playBlocker(HUMAN, drag.uid);
     if (blocker) { toast(blocker); drag = null; return; }
     ui.selection = { type: 'place', uid: drag.uid };
@@ -1318,6 +1353,146 @@ document.addEventListener('mouseover', e => {
   tip.className = 'hover';
 });
 
+// ------------------------------------------------------------------ tutorial
+
+/** Start the tutorial: a scripted match (src/tutorial.js) with tips that walk the player through it. */
+function startTutorial() {
+  ui.mode = 'tutorial';
+  ui.ai = 'tutorial';
+  ui.transcript = null;
+  ui.resultRun = null;
+  ui.tutorial = new Tutorial();
+  ui.game = ui.tutorial.game;
+  ui.selection = null;
+  setBusy(false);
+  ui.mulliganPicks = new Set();
+  const place = setBackdrop(TUTORIAL_SETUP.board);
+  $('#battlefield').textContent = `Battlefield: ${place}`;
+  $('#log').innerHTML = `<li>Training begins at ${esc(place)}.</li>`;
+  $('#overlay').classList.add('hidden');
+  renderMulligan();
+  showScreen('mulligan');
+}
+
+function leaveTutorial() {
+  ui.tutorial = null;
+  ui.game = null;
+  ui.selection = null;
+  showScreen('menu');
+}
+
+/** In the tutorial, why the player can't start this move (null if it's one the script wants next, or outside the tutorial). */
+function tutorBlock(type, uid) {
+  const t = ui.tutorial;
+  if (!t?.step) return null;
+  if (t.waiting) return 'Read the tip, then click Next.';
+  return t.pending().some(({ action: a, sources }) => a.type === type && (uid == null || (type === 'attack' ? sources : [a.uid]).includes(uid)))
+    ? null : 'Not yet. Follow the tip: make the highlighted move.';
+}
+
+/** What a tip is about, as page elements (see `point` in tutorial.js). */
+function coachNodes(ref) {
+  if (!ref) return [];
+  const sel = {
+    hero: '#table .hero-row.you .hero', enemyHero: '#table .hero-row.foe .hero', mana: '#table .hero-row.you .mana',
+    heroPower: '#table .hero-row.you .hero-power', endTurn: '#end-turn', mulligan: '#mulligan-cards',
+  }[ref];
+  if (sel) return [$(sel)];
+  const e = findRef(ui.game, HUMAN, ref);
+  return e ? [nodeOf(e.uid)] : [];
+}
+
+/** The elements to highlight now: the tip's subject, or each scripted move's card or character (its target once it's chosen). */
+function coachFocus(t) {
+  if (t.waiting) return coachNodes(t.step.point);
+  const sel = ui.selection;
+  return t.pending().flatMap(({ action: a, sources }) => {
+    if (a.type === 'mulligan') return [$('#mulligan-btn')];
+    if (a.type === 'endTurn') return [$('#end-turn')];
+    if (a.type === 'heroPower') return [$('#table [data-action="hero-power"]')];
+    if (a.type === 'play') {
+      if (sel?.uid !== a.uid) return [$(`#table [data-hand="${a.uid}"]`)];
+      return [a.target != null ? nodeOf(a.target) : $('#table .you-lane')];
+    }
+    // An attack: any of the characters that may make it, then its target once one is chosen.
+    return sel?.type === 'attacker' && sources.includes(sel.uid) ? [nodeOf(a.target)] : sources.map(nodeOf);
+  });
+}
+
+/** Show the current tip next to what it's about, and highlight the move to make (hidden on the opponent's turn). */
+function renderCoach() {
+  const t = ui.tutorial, box = $('#coach');
+  document.querySelectorAll('.tut-focus').forEach(n => n.classList.remove('tut-focus'));
+  const screen = ['table', 'mulligan'].find(id => !$('#' + id).classList.contains('hidden'));
+  document.body.classList.toggle('tutorial', !!t && !!screen);
+  if (!t || !screen || !t.step || t.aiTurn || ui.game.winner !== null || (screen === 'table') !== (ui.game.phase === 'play')) {
+    box.classList.add('hidden');
+    return;
+  }
+  const focus = coachFocus(t).filter(Boolean);
+  focus.forEach(n => n.classList.add('tut-focus'));
+  const changed = box.dataset.step !== String(t.index);
+  box.dataset.step = t.index;
+  $('#coach-text').textContent = t.step.text;
+  $('#coach-next').classList.toggle('hidden', !t.waiting);
+  box.classList.remove('hidden');
+  placeCoach(box, screen === 'mulligan' ? $('#mulligan-btn') : focus[0], focus);
+  if (changed) box.animate([{ opacity: 0, translate: '0 6px' }, { opacity: 1, translate: '0 0' }], { duration: 220, easing: 'ease-out' });
+  if (changed && t.waiting) $('#coach-next').focus({ preventScroll: true });
+}
+
+/**
+ * Put the tip beside its subject, on whichever side (above, below, right,
+ * left) covers least of what matters: the highlighted moves most of all,
+ * then the heroes, minions, cards and buttons.
+ */
+function placeCoach(box, anchor, focus = []) {
+  const w = box.offsetWidth, h = box.offsetHeight, pad = 12, gap = 16;
+  const W = innerWidth, H = innerHeight;
+  const clampX = x => Math.min(W - w - pad, Math.max(pad, x)), clampY = y => Math.min(H - h - pad, Math.max(pad, y));
+  if (!anchor) {
+    Object.assign(box.style, { left: `${clampX((W - w) / 2)}px`, top: `${pad + 4}px` });
+    box.dataset.side = '';
+    return;
+  }
+  const r = anchor.getBoundingClientRect();
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  const options = [
+    { side: 'above', left: clampX(cx - w / 2), top: r.top - gap - h },
+    { side: 'below', left: clampX(cx - w / 2), top: r.bottom + gap },
+    { side: 'right', left: r.right + gap, top: clampY(cy - h / 2) },
+    { side: 'left', left: r.left - gap - w, top: clampY(cy - h / 2) },
+    // Or out in open space, with no arrow (the glow still shows the way), if the sides are crowded.
+    ...[0.16, 0.3, 0.44].map(f => ({ side: '', left: clampX((W - w) / 2), top: H * f, penalty: 2500 })),
+  ].filter(o => o.left >= pad - 1 && o.left + w <= W - pad + 1 && o.top >= pad - 1 && o.top + h <= H - pad + 1);
+  const weigh = (sel, k) => [...document.querySelectorAll(sel)].map(n => [n.getBoundingClientRect(), k]);
+  const things = [
+    ...focus.map(n => [n.getBoundingClientRect(), 6]),
+    ...weigh('#table .hero, #table .unit, #end-turn, #table .hero-power, #table .mana, #mulligan-cards .card, #mulligan-btn', 1),
+    ...weigh('#table .hand-card .card', 0.5),
+  ];
+  const cost = o => things.reduce((sum, [b, k]) =>
+    sum + k * Math.max(0, Math.min(o.left + w, b.right) - Math.max(o.left, b.left)) * Math.max(0, Math.min(o.top + h, b.bottom) - Math.max(o.top, b.top)), 0);
+  const best = options.map((o, i) => ({ ...o, c: cost(o) + (o.penalty ?? 0) + i })).sort((a, b) => a.c - b.c)[0]
+    ?? { side: '', left: clampX(cx - w / 2), top: clampY(cy < H / 2 ? r.bottom + gap : r.top - gap - h) };
+  box.dataset.side = best.side;
+  Object.assign(box.style, { left: `${best.left}px`, top: `${best.top}px` });
+  box.style.setProperty('--arrow-x', `${Math.min(w - 22, Math.max(22, cx - best.left))}px`);
+  box.style.setProperty('--arrow-y', `${Math.min(h - 22, Math.max(22, cy - best.top))}px`);
+}
+
+$('#coach-next').addEventListener('click', () => {
+  if (!ui.tutorial?.next()) return;
+  sfx.click();
+  ui.game.phase === 'play' ? render() : renderCoach();
+});
+$('#coach-leave').addEventListener('click', () => {
+  if (ui.busy) return;
+  sfx.click();
+  leaveTutorial();
+});
+addEventListener('resize', () => { if (ui.tutorial) renderCoach(); });
+
 // ------------------------------------------------------------------ turns
 
 async function endPlayerTurn() {
@@ -1342,7 +1517,8 @@ async function runAiTurn() {
   // The Masochist plans its whole turn at once (on copies of the game), then plays the plan out.
   const plan = ui.ai === 'masochist' ? masochistPlan(g, AI) : null;
   for (let i = 0; i < 60 && g.winner === null; i++) {
-    const action = plan ? plan.shift() ?? null : nextAction(g, AI);
+    // In the tutorial the opponent follows the script.
+    const action = ui.tutorial ? ui.tutorial.aiAction() : plan ? plan.shift() ?? null : nextAction(g, AI);
     if (!action) break;
     if (action.type === 'attack') {
       document.querySelector(`[data-uid="${action.uid}"]`)?.classList.add('selected');

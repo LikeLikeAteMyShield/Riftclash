@@ -73,6 +73,15 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
   - `node tools/analyse-transcripts.js <bundle.json>` replays an exported bundle and compares each human turn with what the greedy AI and Masochist would have played. Findings, and the greedy-AI changes made from them, are in `docs/ai-learnings.md`.
   - Finished matches are saved under `riftclash-transcripts` (the latest `MAX_SAVED` = 50). The result screen offers *⬇ Transcript* for that match, and the title screen offers *Transcripts (n)*, which downloads everything as one bundle (`exportBundle`).
 
+### Tutorial
+- `src/tutorial.js` (pure) is a scripted match that teaches the basics. It always plays out the same way and ends in the player's win.
+  - **The match is fixed** (`TUTORIAL_SETUP`): heroes, seed, who goes first, starting Health (`health` option on `Game`) and both decks. The decks are *stacked* (`stacked: true` on `Game`): listed in draw order and never shuffled, not even by the mulligan, so every draw is known.
+  - **The script** (`STEPS`) is a list of tips (`{ text, point }`, the player clicks Next), the player's moves (`{ text, do: [...] }`, in any order within a step) and the opponent's turns (`{ ai: [...] }`). Moves name cards and characters by card id (`'mine:v_captain'`, `'enemyHero'`), resolved to uids when they're due (`resolveMove`).
+  - **On rails:** `new Tutorial()` wraps the game's move methods (like transcripts do), so the player's moves that aren't next in the script fail with a `lastError` saying why. The UI also refuses to start them (`tutorBlock` in `ui.js`). A minion goes to its scripted slot wherever it's dropped.
+  - **Changing it:** the test plays the whole script through (`playThrough`), checks it wins, that it's identical every run, and that each tip's `point` is on the board. A change to any card the tutorial uses can break it, and the test will say which step.
+- **In the UI:** the *Tutorial* mode (`tutorial: true` in `modes.js`, first on the title screen, with a "Start here" badge until done) calls `startTutorial`. `renderCoach` places the tip (`#coach`) beside what it's about and highlights the move to make (`.tut-focus`, while `body.tutorial` quiets every other glow). `runAiTurn` takes the opponent's moves from `tutorial.aiAction()`.
+- **It isn't a game:** winning calls `recordTutorial()` (`progress.js`), which only bumps `stats.tutorials` for the *First Steps* quest. No win, streak, class record or transcript.
+
 ### `src/ui.js` is the app shell
 - It renders the board, handles input (drag and click placement), and directs the animations.
 - **Splash screen:** when the game opens, `#splash` sits over the title screen (`mountSplash` in `ui.js`). Any key except modifiers, Tab and Escape, or a click or tap, dismisses it. That same gesture unlocks audio and starts the menu music (browsers block audio until a gesture), and plays `sfx.enter()`. Its pieces are pure and tested in `src/splash.js`:

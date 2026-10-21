@@ -118,6 +118,16 @@
   <div id="toast" class="hidden" role="status"></div>
   <div id="banner" class="hidden"></div>
 
+  <!-- The tutorial's tips (src/tutorial.js): placed beside whatever they're about. -->
+  <div id="coach" class="hidden" role="dialog" aria-live="polite" aria-label="Tutorial tip">
+    <p class="coach-kicker">Tutorial</p>
+    <p id="coach-text"></p>
+    <div class="coach-actions">
+      <button id="coach-leave" class="coach-leave" type="button">Leave tutorial</button>
+      <button id="coach-next" class="btn primary" type="button">Next</button>
+    </div>
+  </div>
+
   <div id="reward-notice" class="hidden" role="dialog" aria-modal="true" aria-labelledby="reward-title">
     <div class="overlay-box">
       <h2 id="reward-title">Rewards Unlocked</h2>

@@ -2,6 +2,9 @@
 // To add a mode, add an entry here with its emblem sprite
 // (src/sprites/modes.js) and wire its `screen` in ui.js.
 //
+// A mode with `tutorial: true` skips setup: it starts the scripted tutorial
+// match (src/tutorial.js), whose result counts only for its own quest.
+//
 // A mode with `playtestOnly: true` exists only once the play-test code has
 // been entered: it's hidden entirely otherwise, not shown as a locked tile.
 //
@@ -14,6 +17,14 @@ import { CHAMPION_QUESTS, loadProgress } from './progress.js';
 import { loadUnlocks, isPlaytest } from './unlocks.js';
 
 export const MODES = [
+  {
+    id: 'tutorial',
+    name: 'Tutorial',
+    text: 'New to the Rift? Learn the basics in a guided battle.',
+    icon: 'mode_tutorial',
+    screen: 'mulligan',          // straight into the scripted match (src/tutorial.js)
+    tutorial: true,
+  },
   {
     id: 'standard',
     name: 'Enter the Rift',
