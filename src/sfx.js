@@ -177,6 +177,20 @@ export const sfx = {
     [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, { type: 'triangle', dur: 0.5, vol: 0.1, attack: 0.01, delay: 0.25 + i * 0.09 }));
     tone(1568, { type: 'sine', dur: 0.9, vol: 0.06, attack: 0.02, delay: 0.25 + 5 * 0.09 });
   },
+  // A legendary card is played: a timpani roll under a brassy rising fanfare, ending on a shimmering chord.
+  legendary() {
+    tone(65, { type: 'sine', to: 40, dur: 1.3, vol: 0.34, attack: 0.01 });
+    noise({ type: 'lowpass', freq: 420, to: 80, dur: 1.0, vol: 0.24, attack: 0.01 });
+    const brass = (f, delay, dur) => {
+      tone(f, { type: 'sawtooth', dur, vol: 0.085, attack: 0.03, delay, filter: 1900 });
+      tone(f / 2, { type: 'square', dur, vol: 0.045, attack: 0.03, delay, filter: 900 });
+    };
+    brass(392, 0.06, 0.16); brass(392, 0.24, 0.12); brass(523, 0.38, 0.2); brass(659, 0.58, 0.2); brass(784, 0.78, 1.2);
+    brass(523, 0.78, 1.2);
+    [1047, 1319, 1568].forEach((f, i) => tone(f, { type: 'sine', dur: 1.3, vol: 0.05, attack: 0.08, delay: 0.82 + i * 0.05 }));
+    tone(70, { type: 'sine', to: 45, dur: 0.9, vol: 0.3, attack: 0.01, delay: 0.78 });
+    noise({ type: 'highpass', freq: 5000, to: 9000, dur: 1.3, vol: 0.07, attack: 0.3, delay: 0.8 });
+  },
   bounce() { noise({ freq: 600, to: 4000, dur: 0.3, vol: 0.16, q: 2, attack: 0.08 }); },
   burn() { noise({ type: 'lowpass', freq: 3000, to: 400, dur: 0.6, vol: 0.2, attack: 0.05 }); },
 

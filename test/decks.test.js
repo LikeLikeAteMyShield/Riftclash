@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CARDS, CLASSES, CURVE_TARGET, curveBracket, buildDeck } from '../src/cards.js';
+import { CARDS, CLASSES, CURVE_TARGET, curveBracket, buildDeck, maxCopies } from '../src/cards.js';
 import { Game } from '../src/engine.js';
 import {
   DECK_SIZE, MAX_COPIES, deckPool, addCard, removeCard, addBlocker, autoFill, deckProblems, isPlayable, manaCurve,
@@ -70,12 +70,16 @@ test('built (standard and AI) decks are legal, random, and follow the mana curve
 
 test('auto-fill completes any partial deck legally and keeps what was there', () => {
   for (const cls of Object.keys(CLASSES)) {
-    const start = addCard(addCard(newDeck(cls, 'x'), deckPool(cls).at(-1).id), deckPool(cls).at(-1).id);
+    const last = deckPool(cls).filter(c => !c.legendary).at(-1).id;
+    const start = addCard(addCard(newDeck(cls, 'x'), last), last);
     const d = autoFill(start, seeded(cls.length));
     assert.deepEqual(deckProblems(d), []);
-    assert.equal(d.cards.filter(x => x === deckPool(cls).at(-1).id).length, 2);
-    // Every class card goes in first.
-    for (const c of deckPool(cls).filter(c => c.cls === cls)) assert.equal(d.cards.filter(x => x === c.id).length, 2);
+    assert.equal(d.cards.filter(x => x === last).length, 2);
+    // Class cards go in first: every copy allowed, or as many as fit.
+    const classCards = deckPool(cls).filter(c => c.cls === cls);
+    if (classCards.reduce((n, c) => n + maxCopies(c.id), 0) <= DECK_SIZE) {
+      for (const c of classCards) assert.equal(d.cards.filter(x => x === c.id).length, maxCopies(c.id), c.id);
+    } else assert.ok(d.cards.every(id => CARDS[id].cls === cls), `${cls}: all class cards`);
   }
 });
 
@@ -93,6 +97,24 @@ test('names are trimmed, collapsed and capped', () => {
   assert.equal(cleanName('  Big    Burn  '), 'Big Burn');
   assert.equal(cleanName('x'.repeat(40)).length, 24);
   assert.equal(cleanName(null), '');
+});
+
+test('a deck holds at most one copy of a legendary', () => {
+  for (const cls of Object.keys(CLASSES)) {
+    const legend = deckPool(cls).find(c => c.legendary);
+    assert.ok(legend, `${cls} has a legendary`);
+    const one = addCard(newDeck(cls, 'x'), legend.id);
+    assert.equal(addCard(one, legend.id), one);
+    assert.match(addBlocker(one, legend.id), /legendary: only 1 copy/);
+    assert.match(deckProblems({ ...one, cards: [legend.id, legend.id] }).join(' '), /Too many copies/);
+    const filled = autoFill(newDeck(cls, 'x'), seeded(3));
+    assert.ok(filled.cards.filter(id => id === legend.id).length <= 1);
+    let x = 9;
+    for (let i = 0; i < 30; i++) {
+      const cards = buildDeck(cls, () => ((x = (x * 16807) % 2147483647) / 2147483647));
+      assert.ok(cards.filter(id => id === legend.id).length <= 1, `${cls}: built deck has one ${legend.id} at most`);
+    }
+  }
 });
 
 test('mana curve groups 7+ together', () => {

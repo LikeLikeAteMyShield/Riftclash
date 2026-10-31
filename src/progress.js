@@ -3,7 +3,7 @@
 // is met. Everything here is pure except the storage defaults, so it's unit
 // tested in node; ui.js records each finished game and shows the quest screen.
 
-import { CLASSES, HEROES, RIFTKIN } from './cards.js';
+import { CARDS, CLASSES, HEROES, RIFTKIN } from './cards.js';
 
 const STORE_KEY = 'riftclash-progress';
 export const RESULTS = ['win', 'loss', 'draw'];
@@ -15,8 +15,8 @@ export const RESULTS = ['win', 'loss', 'draw'];
  * Reward cards (tokens included) stay hidden until then; see rewards.js.
  */
 // The Champion's Trials: win 5 games as each class the player can see.
-// Hidden classes (Celestial) have none. Completing them all unlocks
-// Challenge the Riftkin (see modes.js).
+// Hidden classes (Celestial) have none. Each trial's reward is its class's
+// legendary card. Completing them all unlocks Challenge the Riftkin (see modes.js).
 const TRIAL_TITLES = {
   pyromancer: 'Trial of Flame', warlord: 'Trial of Iron', stalker: 'Trial of the Hunt',
   oracle: 'Trial of Light', vanguard: 'Trial of the Shield', shade: 'Trial of Shadows',
@@ -29,6 +29,7 @@ export const CHAMPION_QUESTS = Object.keys(CLASSES).filter(cls => !CLASSES[cls].
   text: `Win 5 games as ${withArticle(CLASSES[cls].name)}.`,
   goal: 5,
   progress: stats => stats.byClass[cls]?.wins ?? 0,
+  reward: { cards: Object.values(CARDS).filter(c => c.cls === cls && c.legendary).map(c => c.id) },
 }));
 
 export const QUESTS = [

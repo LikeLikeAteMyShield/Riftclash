@@ -30,8 +30,9 @@ export const rewardCards = q => (q.reward?.cards ?? []).filter(id => CARDS[id] &
 
 /** A short line describing a quest's reward, or '' if it has none. */
 export function rewardText(q) {
-  const n = rewardCards(q).length;
-  return n ? `Reward: ${n} new card${n === 1 ? '' : 's'}` : '';
+  const ids = rewardCards(q);
+  if (ids.length === 1 && CARDS[ids[0]].legendary) return 'Reward: a legendary card';
+  return ids.length ? `Reward: ${ids.length} new card${ids.length === 1 ? '' : 's'}` : '';
 }
 
 const defaultStorage = () => { try { return globalThis.localStorage ?? null; } catch { return null; } };
