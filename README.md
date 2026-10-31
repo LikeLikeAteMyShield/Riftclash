@@ -1,6 +1,6 @@
 # Riftclash
 
-A browser-based card battle game, with six classes and an original set of 70+ cards. You play against an AI opponent.
+A browser-based card battle game, with six classes and an original set of 130+ cards. You play against an AI opponent.
 
 ## Running it
 
@@ -157,7 +157,7 @@ The neutral **Whispering Monk** (3 mana, 2/1) has *Battlecry: Silence a minion.*
 
 Classes and heroes are separate in the data (`CLASSES` and `HEROES` in `src/cards.js`). The class decides the cards and colours; the hero decides the name, portrait and hero power. Each class has a default hero, the one you play when you pick that class, and more than one hero can share a class.
 
-Each class's standard deck is 2 copies of its 8 class cards plus 7 pairs of neutral cards chosen to give a sensible mana curve.
+Each class has 12 cards of its own. Its standard deck (the one the AI always plays) is 2 copies each of a random 8 of them plus 7 pairs of neutral cards chosen to give a sensible mana curve, so no two opponents play quite the same deck.
 
 ## Code layout
 

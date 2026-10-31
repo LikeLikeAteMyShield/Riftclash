@@ -134,6 +134,7 @@ const RAW_CARDS = [
   { id: 't_shardling', name: 'Shardling', type: 'minion', cost: 2, attack: 2, health: 2, emoji: '💎', sprite: 'card_t_shardling', token: true },
   { id: 't_shiv', name: 'Shiv', type: 'weapon', cost: 1, attack: 1, durability: 2, emoji: '🔪', sprite: 'card_t_shiv', token: true, cls: 'shade' },
   { id: 't_footsoldier', name: 'Goblin Footsoldier', type: 'minion', cost: 1, attack: 1, health: 1, emoji: '❔', sprite: 'card_t_footsoldier', token: true },
+  { id: 't_spiderling', name: 'Spiderling', type: 'minion', cost: 1, attack: 1, health: 1, emoji: '🕷️', sprite: 'card_t_spiderling', token: true },
 
   // ---------- Neutral ----------
   { id: 'n_mossling', name: 'Mossling', type: 'minion', cost: 1, attack: 2, health: 1, emoji: '🌱', sprite: 'card_n_mossling' },
@@ -200,6 +201,47 @@ const RAW_CARDS = [
   { id: 'n_scout', name: 'Goblin Scout', type: 'minion', cost: 2, attack: 2, health: 1, emoji: '❔', sprite: 'card_n_scout',
     text: 'Battlecry: Summon a 1/1 Goblin Footsoldier.', battlecry: [{ type: 'summon', card: 't_footsoldier' }] },
 
+  // Neutral, second wave: mostly cheap cards, for more varied decks.
+  { id: 'n_tunnelrat', name: 'Tunnel Rat', type: 'minion', cost: 1, attack: 1, health: 1, emoji: '🐀', sprite: 'card_n_tunnelrat',
+    text: 'Deathrattle: Deal 1 damage to a random enemy.', deathrattle: [{ type: 'damage', amount: 1, to: 'randomEnemy' }] },
+  { id: 'n_squire', name: 'Eager Squire', type: 'minion', cost: 1, attack: 1, health: 1, emoji: '🧒', sprite: 'card_n_squire',
+    keywords: { divineShield: true } },
+  { id: 'n_hedgehog', name: 'Quillback Hedgehog', type: 'minion', cost: 1, attack: 1, health: 2, emoji: '🦔', sprite: 'card_n_hedgehog',
+    text: 'Whenever this takes damage, deal 1 damage to a random enemy.', onDamaged: [{ type: 'damage', amount: 1, to: 'randomEnemy' }] },
+  { id: 'n_faun', name: 'Glade Faun', type: 'minion', cost: 1, attack: 1, health: 2, emoji: '🦌', sprite: 'card_n_faun',
+    text: 'Battlecry: Give a friendly minion +1 Attack.', target: 'friendlyMinion',
+    battlecry: [{ type: 'buff', attack: 1, to: 'target' }] },
+  { id: 'n_pikeman', name: 'Bridge Pikeman', type: 'minion', cost: 2, attack: 2, health: 3, emoji: '🔱', sprite: 'card_n_pikeman' },
+  { id: 'n_tortoise', name: 'Stoneshell Tortoise', type: 'minion', cost: 2, attack: 1, health: 4, emoji: '🐢', sprite: 'card_n_tortoise',
+    keywords: { taunt: true } },
+  { id: 'n_firebrand', name: 'Reckless Firebrand', type: 'minion', cost: 2, attack: 3, health: 3, emoji: '🧨', sprite: 'card_n_firebrand',
+    text: 'Battlecry: Deal 3 damage to your hero.', battlecry: [{ type: 'damage', amount: 3, to: 'ownHero' }] },
+  { id: 'n_fennec', name: 'Sand Fennec', type: 'minion', cost: 2, attack: 3, health: 1, emoji: '🦊', sprite: 'card_n_fennec',
+    keywords: { rush: true } },
+  { id: 'n_herbalist', name: 'Hedge Herbalist', type: 'minion', cost: 2, attack: 2, health: 2, emoji: '🌿', sprite: 'card_n_herbalist',
+    text: 'Battlecry: Restore 3 Health.', target: 'any', battlecry: [{ type: 'heal', amount: 3, to: 'target' }] },
+  { id: 'n_archer', name: 'Watchtower Archer', type: 'minion', cost: 3, attack: 3, health: 2, emoji: '🏹', sprite: 'card_n_archer',
+    text: 'Battlecry: Deal 2 damage to a random enemy minion.', battlecry: [{ type: 'damage', amount: 2, to: 'randomEnemyMinion' }] },
+  { id: 'n_spider', name: 'Cavern Broodmother', type: 'minion', cost: 3, attack: 2, health: 2, emoji: '🕷️', sprite: 'card_n_spider',
+    text: 'Deathrattle: Summon two 1/1 Spiderlings.', deathrattle: [{ type: 'summon', card: 't_spiderling', count: 2 }] },
+  { id: 'n_cook', name: 'Campfire Cook', type: 'minion', cost: 3, attack: 2, health: 4, emoji: '🍲', sprite: 'card_n_cook',
+    text: 'At the end of your turn, restore 1 Health to all friendly characters.',
+    endOfTurn: [{ type: 'heal', amount: 1, to: 'allFriendly' }] },
+  { id: 'n_duelist', name: 'Twinblade Duelist', type: 'minion', cost: 3, attack: 2, health: 3, emoji: '⚔️', sprite: 'card_n_duelist',
+    keywords: { windfury: true } },
+  { id: 'n_hound', name: 'Mire Hound', type: 'minion', cost: 3, attack: 2, health: 3, emoji: '🐕', sprite: 'card_n_hound',
+    keywords: { poisonous: true } },
+  { id: 'n_knight', name: 'Questing Knight', type: 'minion', cost: 4, attack: 4, health: 3, emoji: '🤺', sprite: 'card_n_knight',
+    keywords: { divineShield: true } },
+  { id: 'n_ogre', name: 'Cave Ogre', type: 'minion', cost: 4, attack: 4, health: 5, emoji: '👹', sprite: 'card_n_ogre' },
+  { id: 'n_galeshaman', name: 'Gale Shaman', type: 'minion', cost: 4, attack: 3, health: 3, emoji: '🌬️', sprite: 'card_n_galeshaman',
+    text: 'Battlecry: Deal 1 damage to all enemies.', battlecry: [{ type: 'damage', amount: 1, to: 'allEnemies' }] },
+  { id: 'n_mammoth', name: 'Plains Mammoth', type: 'minion', cost: 5, attack: 6, health: 5, emoji: '🦣', sprite: 'card_n_mammoth' },
+  { id: 'n_ghoul', name: 'Ravenous Ghoul', type: 'minion', cost: 5, attack: 4, health: 5, emoji: '🧟', sprite: 'card_n_ghoul',
+    keywords: { lifesteal: true } },
+  { id: 'n_juggernaut', name: 'Ironclad Juggernaut', type: 'minion', cost: 6, attack: 5, health: 7, emoji: '🛡️', sprite: 'card_n_juggernaut',
+    keywords: { taunt: true } },
+
   // ---------- Pyromancer ----------
   { id: 'p_cinderbolt', cls: 'pyromancer', name: 'Cinder Bolt', type: 'spell', cost: 2, emoji: '☄️', sprite: 'card_p_cinderbolt',
     text: 'Deal 3 damage.', target: 'any', effects: [{ type: 'damage', amount: 3, to: 'target' }] },
@@ -221,6 +263,15 @@ const RAW_CARDS = [
     endOfTurn: [{ type: 'damage', amount: 2, to: 'randomEnemy' }] },
   { id: 'p_starfall', cls: 'pyromancer', name: 'Starfall Meteor', type: 'spell', cost: 7, emoji: '🌠', sprite: 'card_p_starfall',
     text: 'Deal 5 damage to all enemy minions.', effects: [{ type: 'damage', amount: 5, to: 'allEnemyMinions' }] },
+  { id: 'p_frostbite', cls: 'pyromancer', name: 'Frostbite', type: 'spell', cost: 1, emoji: '🧊', sprite: 'card_p_frostbite',
+    text: 'Deal 1 damage to a minion and Freeze it.', target: 'minion',
+    effects: [{ type: 'damage', amount: 1, to: 'target' }, { type: 'freeze', to: 'target' }] },
+  { id: 'p_imp', cls: 'pyromancer', name: 'Cinder Imp', type: 'minion', cost: 1, attack: 1, health: 2, emoji: '😈', sprite: 'card_p_imp',
+    spellDamage: 1 },
+  { id: 'p_searing', cls: 'pyromancer', name: 'Searing Ray', type: 'spell', cost: 3, emoji: '🔆', sprite: 'card_p_searing',
+    text: 'Deal 4 damage to a minion.', target: 'minion', effects: [{ type: 'damage', amount: 4, to: 'target' }] },
+  { id: 'p_revenant', cls: 'pyromancer', name: 'Frost Revenant', type: 'minion', cost: 4, attack: 3, health: 5, emoji: '🥶', sprite: 'card_p_revenant',
+    text: 'Whenever you cast a spell, Freeze a random enemy minion.', onFriendlySpell: [{ type: 'freeze', to: 'randomEnemyMinion' }] },
 
   // ---------- Warlord ----------
   { id: 'w_stomp', cls: 'warlord', name: 'Shockwave Stomp', type: 'spell', cost: 1, emoji: '💥', sprite: 'card_w_stomp',
@@ -239,6 +290,16 @@ const RAW_CARDS = [
     text: 'Deal 3 damage to all minions.', effects: [{ type: 'damage', amount: 3, to: 'allMinions' }] },
   { id: 'w_champion', cls: 'warlord', name: 'Iron Champion', type: 'minion', cost: 7, attack: 7, health: 7, emoji: '🦾', sprite: 'card_w_champion',
     keywords: { rush: true } },
+  { id: 'w_warcry', cls: 'warlord', name: 'Blood Cry', type: 'spell', cost: 1, emoji: '📣', sprite: 'card_w_warcry',
+    text: 'Deal 1 damage to a minion and give it +2 Attack.', target: 'minion',
+    effects: [{ type: 'damage', amount: 1, to: 'target' }, { type: 'buff', attack: 2, to: 'target' }] },
+  { id: 'w_shieldbash', cls: 'warlord', name: 'Shield Bash', type: 'spell', cost: 2, emoji: '🛡️', sprite: 'card_w_shieldbash',
+    text: 'Gain 2 Armor. Deal 2 damage to a minion.', target: 'minion',
+    effects: [{ type: 'armor', amount: 2 }, { type: 'damage', amount: 2, to: 'target' }] },
+  { id: 'w_pitfighter', cls: 'warlord', name: 'Scarred Pit Fighter', type: 'minion', cost: 2, attack: 2, health: 3, emoji: '🤼', sprite: 'card_w_pitfighter',
+    text: 'Whenever this minion takes damage, gain 2 Armor.', onDamaged: [{ type: 'armor', amount: 2 }] },
+  { id: 'w_chieftain', cls: 'warlord', name: 'Warband Chieftain', type: 'minion', cost: 5, attack: 5, health: 5, emoji: '👺', sprite: 'card_w_chieftain',
+    text: 'Battlecry: Deal 1 damage to all other minions.', battlecry: [{ type: 'damage', amount: 1, to: 'allOtherMinions' }] },
 
   // ---------- Stalker ----------
   { id: 's_hawk', cls: 'stalker', name: 'Hunting Hawk', type: 'minion', cost: 1, attack: 1, health: 1, emoji: '🦅', sprite: 'card_s_hawk',
@@ -259,6 +320,15 @@ const RAW_CARDS = [
     effects: [{ type: 'damage', amount: 3, to: 'randomEnemyMinion', times: 2, distinct: true }] },
   { id: 's_stag', cls: 'stalker', name: 'Thunderhoof Stag', type: 'minion', cost: 5, attack: 5, health: 4, emoji: '🦌', sprite: 'card_s_stag',
     keywords: { rush: true } },
+  { id: 's_viper', cls: 'stalker', name: 'Pit Viper', type: 'minion', cost: 1, attack: 1, health: 1, emoji: '🐍', sprite: 'card_s_viper',
+    keywords: { poisonous: true } },
+  { id: 's_barbed', cls: 'stalker', name: 'Barbed Shot', type: 'spell', cost: 2, emoji: '🪝', sprite: 'card_s_barbed',
+    text: 'Deal 2 damage to a minion and 1 damage to the enemy hero.', target: 'minion',
+    effects: [{ type: 'damage', amount: 2, to: 'target' }, { type: 'damage', amount: 1, to: 'enemyHero' }] },
+  { id: 's_boar', cls: 'stalker', name: 'Bristleback Boar', type: 'minion', cost: 3, attack: 3, health: 3, emoji: '🐗', sprite: 'card_s_boar',
+    keywords: { rush: true } },
+  { id: 's_denmother', cls: 'stalker', name: 'Den Mother', type: 'minion', cost: 4, attack: 3, health: 3, emoji: '🐺', sprite: 'card_s_denmother',
+    text: 'Deathrattle: Summon two 2/2 Dusk Wolves.', deathrattle: [{ type: 'summon', card: 't_wolf', count: 2 }] },
 
   // ---------- Oracle ----------
   { id: 'o_ward', cls: 'oracle', name: 'Ward of Light', type: 'spell', cost: 1, emoji: '🔆', sprite: 'card_o_ward',
@@ -282,6 +352,15 @@ const RAW_CARDS = [
     effects: [{ type: 'damage', amount: 2, to: 'allEnemies' }, { type: 'heal', amount: 2, to: 'allFriendly' }] },
   { id: 'o_seraph', cls: 'oracle', name: 'Divine Seraph', type: 'minion', cost: 7, attack: 5, health: 6, emoji: '👼', sprite: 'card_o_seraph',
     keywords: { taunt: true, lifesteal: true } },
+  { id: 'o_novice', cls: 'oracle', name: 'Temple Novice', type: 'minion', cost: 1, attack: 1, health: 2, emoji: '🧎', sprite: 'card_o_novice',
+    text: 'Battlecry: Restore 2 Health.', target: 'any', battlecry: [{ type: 'heal', amount: 2, to: 'target' }] },
+  { id: 'o_smite', cls: 'oracle', name: 'Smite', type: 'spell', cost: 2, emoji: '⚡', sprite: 'card_o_smite',
+    text: 'Deal 2 damage to a minion. Restore 2 Health to your hero.', target: 'minion',
+    effects: [{ type: 'damage', amount: 2, to: 'target' }, { type: 'heal', amount: 2, to: 'ownHero' }] },
+  { id: 'o_vision', cls: 'oracle', name: 'Vision of Dawn', type: 'spell', cost: 3, emoji: '🌅', sprite: 'card_o_vision',
+    text: 'Draw 2 cards. Restore 3 Health to your hero.', effects: [{ type: 'draw', count: 2 }, { type: 'heal', amount: 3, to: 'ownHero' }] },
+  { id: 'o_inquisitor', cls: 'oracle', name: 'Silent Inquisitor', type: 'minion', cost: 4, attack: 3, health: 4, emoji: '🤐', sprite: 'card_o_inquisitor',
+    text: 'Battlecry: Silence a minion.', target: 'minion', battlecry: [{ type: 'silence', to: 'target' }] },
 
   // ---------- Vanguard ----------
   { id: 'v_aegis', cls: 'vanguard', name: 'Aegis Blessing', type: 'spell', cost: 1, emoji: '✝️', sprite: 'card_v_aegis',
@@ -301,6 +380,16 @@ const RAW_CARDS = [
   { id: 'v_justicar', cls: 'vanguard', name: 'High Justicar', type: 'minion', cost: 7, attack: 6, health: 6, emoji: '👑', sprite: 'card_v_justicar',
     text: 'Battlecry: Give all other friendly minions +2/+2.',
     battlecry: [{ type: 'buff', attack: 2, health: 2, to: 'otherFriendlyMinions' }] },
+  { id: 'v_oath', cls: 'vanguard', name: "Squire's Oath", type: 'spell', cost: 1, emoji: '🤝', sprite: 'card_v_oath',
+    text: 'Summon two 1/1 Recruits.', effects: [{ type: 'summon', card: 't_recruit', count: 2 }] },
+  { id: 'v_standard', cls: 'vanguard', name: 'Standard Bearer', type: 'minion', cost: 2, attack: 2, health: 2, emoji: '🚩', sprite: 'card_v_standard',
+    text: 'Adjacent minions have +1 Attack.', adjacentAura: { attack: 1 } },
+  { id: 'v_shieldwright', cls: 'vanguard', name: 'Shieldwright', type: 'minion', cost: 3, attack: 3, health: 3, emoji: '🔰', sprite: 'card_v_shieldwright',
+    text: 'Battlecry: Give a friendly minion Divine Shield.', target: 'friendlyMinion',
+    battlecry: [{ type: 'buff', keywords: { divineShield: true }, to: 'target' }] },
+  { id: 'v_paragon', cls: 'vanguard', name: 'Paragon of Valor', type: 'minion', cost: 4, attack: 3, health: 4, emoji: '🌞', sprite: 'card_v_paragon',
+    text: 'Battlecry: Give all other friendly minions Divine Shield.',
+    battlecry: [{ type: 'buff', keywords: { divineShield: true }, to: 'otherFriendlyMinions' }] },
 
   // ---------- Shade ----------
   { id: 'r_knife', cls: 'shade', name: 'Knife in the Dark', type: 'spell', cost: 0, emoji: '🌑', sprite: 'card_r_knife',
@@ -322,6 +411,15 @@ const RAW_CARDS = [
     text: 'Combo: Gain +2/+2 and Stealth.', combo: [{ type: 'buff', attack: 2, health: 2, keywords: { stealth: true }, to: 'self' }] },
   { id: 'r_contract', cls: 'shade', name: 'Silent Contract', type: 'spell', cost: 4, emoji: '📃', sprite: 'card_r_contract',
     text: 'Destroy an enemy minion.', target: 'enemyMinion', effects: [{ type: 'destroy', to: 'target' }] },
+  { id: 'r_urchin', cls: 'shade', name: 'Street Urchin', type: 'minion', cost: 1, attack: 2, health: 1, emoji: '🧢', sprite: 'card_r_urchin',
+    text: 'Combo: Gain +1/+1 and Stealth.', combo: [{ type: 'buff', attack: 1, health: 1, keywords: { stealth: true }, to: 'self' }] },
+  { id: 'r_smokebomb', cls: 'shade', name: 'Smoke Bomb', type: 'spell', cost: 1, emoji: '💣', sprite: 'card_r_smokebomb',
+    text: 'Give a friendly minion Stealth. Draw a card.', target: 'friendlyMinion',
+    effects: [{ type: 'buff', keywords: { stealth: true }, to: 'target' }, { type: 'draw', count: 1 }] },
+  { id: 'r_peddler', cls: 'shade', name: 'Venom Peddler', type: 'minion', cost: 2, attack: 2, health: 2, emoji: '🧴', sprite: 'card_r_peddler',
+    text: 'Battlecry: Give your weapon +1 Attack.', battlecry: [{ type: 'buffWeapon', attack: 1 }] },
+  { id: 'r_assassin', cls: 'shade', name: 'Veiled Assassin', type: 'minion', cost: 4, attack: 3, health: 3, emoji: '🥷', sprite: 'card_r_assassin',
+    keywords: { stealth: true }, text: 'Combo: Deal 2 damage to a random enemy minion.', combo: [{ type: 'damage', amount: 2, to: 'randomEnemyMinion' }] },
 
   // ---------- Celestial (hidden until unlocked: see src/unlocks.js) ----------
   // Summoned by Nightlord Grun's hero power.
@@ -353,6 +451,10 @@ const RAW_CARDS = [
     text: 'After your hero first attacks with this, it gains +2 Attack.', afterFirstStrike: [{ type: 'buffWeapon', attack: 2 }] },
   { id: 'c_bow', cls: 'celestial', name: 'Lightshard Bow', type: 'weapon', cost: 4, attack: 2, durability: 4, emoji: '🏹', sprite: 'card_c_bow',
     keywords: { windfury: true } },
+  { id: 'c_mote', cls: 'celestial', name: 'Stardust Mote', type: 'minion', cost: 1, attack: 2, health: 1, emoji: '✨', sprite: 'card_c_mote',
+    text: 'Deathrattle: Deal 1 damage to a random enemy.', deathrattle: [{ type: 'damage', amount: 1, to: 'randomEnemy' }] },
+  { id: 'c_pulsar', cls: 'celestial', name: 'Pulsar Warden', type: 'minion', cost: 2, attack: 2, health: 3, emoji: '💠', sprite: 'card_c_pulsar',
+    keywords: { taunt: true } },
 ];
 
 export const CARDS = Object.fromEntries(RAW_CARDS.map(c => [c.id, { cls: 'neutral', keywords: {}, ...c }]));
@@ -394,9 +496,10 @@ export function collectibleCards(cls) {
 const CLASS_PAIRS = 8;
 
 /**
- * Build a 30-card deck: two copies of each class card (16) plus seven
- * neutral pairs (14) picked to give a reasonable mana curve. `locked` card
- * ids (unearned quest rewards, see rewards.js) are left out.
+ * Build a 30-card deck: two copies each of eight class cards (16, a random
+ * eight when the class has more) plus seven neutral pairs (14) picked to give
+ * a reasonable mana curve. `locked` card ids (unearned quest rewards, see
+ * rewards.js) are left out.
  */
 
 export function buildDeck(cls, rand = Math.random, locked = new Set()) {
