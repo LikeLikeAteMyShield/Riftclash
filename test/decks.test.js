@@ -1,11 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CARDS, CLASSES } from '../src/cards.js';
+import { CARDS, CLASSES, CURVE_TARGET, curveBracket, buildDeck } from '../src/cards.js';
 import { Game } from '../src/engine.js';
 import {
   DECK_SIZE, MAX_COPIES, deckPool, addCard, removeCard, addBlocker, autoFill, deckProblems, isPlayable, manaCurve,
   newDeck, sanitizeDecks, loadDecks, saveDecks, storeDeck, removeDeck, loadDeckChoice, saveDeckChoice, cleanName,
 } from '../src/decks.js';
+
+const countBy = ids => { const c = {}; for (const id of ids) c[id] = (c[id] ?? 0) + 1; return c; };
 
 /** An in-memory stand-in for localStorage. */
 const memoryStorage = () => {
@@ -39,6 +41,31 @@ test('at most two copies of a card, and at most 30 cards', () => {
   assert.match(addBlocker(d, deckPool('warlord').find(c => !d.cards.includes(c.id)).id), /full/);
   assert.equal(removeCard(d, id).cards.length, DECK_SIZE - 1);
   assert.equal(removeCard(d, 'no_such_card'), d);
+});
+
+test('built (standard and AI) decks are legal, random, and follow the mana curve', () => {
+  for (const cls of Object.keys(CLASSES)) {
+    let x = cls.length;
+    const rand = () => ((x = (x * 16807) % 2147483647) / 2147483647);
+    const seen = new Set();
+    let classCards = 0, singles = 0;
+    const curve = CURVE_TARGET.map(() => 0);
+    const N = 50;
+    for (let i = 0; i < N; i++) {
+      const cards = buildDeck(cls, rand);
+      assert.deepEqual(deckProblems({ name: 'Built', cls, cards }), [], cls);
+      seen.add([...cards].sort().join());
+      classCards += cards.filter(id => CARDS[id].cls === cls).length;
+      singles += Object.values(countBy(cards)).filter(n => n === 1).length;
+      for (const id of cards) curve[curveBracket(CARDS[id].cost)]++;
+    }
+    assert.equal(seen.size, N, `${cls}: every deck differs`);
+    assert.ok(singles > 0, `${cls}: some cards go in as single copies`);
+    // Class cards make up a good share of the deck, but neutrals do too.
+    assert.ok(classCards / N >= 10 && classCards / N <= 20, `${cls}: ${classCards / N} class cards on average`);
+    // On average each cost bracket is within 1.5 cards of the target curve.
+    curve.forEach((n, b) => assert.ok(Math.abs(n / N - CURVE_TARGET[b]) <= 1.5, `${cls}: bracket ${b} averages ${n / N}`));
+  }
 });
 
 test('auto-fill completes any partial deck legally and keeps what was there', () => {
