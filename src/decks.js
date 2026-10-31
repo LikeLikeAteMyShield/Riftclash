@@ -1,7 +1,7 @@
 // Custom decks: the deck rules, and saving decks in localStorage.
 // Everything except the storage default is pure, so it is unit tested in node.
 
-import { CARDS, CLASSES } from './cards.js';
+import { CARDS, CLASSES, CURVE_TARGET, curveBracket } from './cards.js';
 
 export const DECK_SIZE = 30;
 export const MAX_COPIES = 2;
@@ -97,16 +97,14 @@ export function autoFill(deck, rand = Math.random, locked = NONE) {
   // Class cards are what make a deck feel like its class, so they go in first.
   for (const c of pool.filter(c => c.cls === deck.cls)) while (d.cards.length < DECK_SIZE && tryAdd(c.id));
   // Then neutrals, at whichever cost bracket is furthest below a sensible curve.
-  const target = [4, 7, 7, 5, 4, 3];  // costs 0-1, 2, 3, 4, 5, 6+ (sums to 30)
-  const bracket = cost => (cost <= 1 ? 0 : Math.min(cost - 1, 5));
   while (d.cards.length < DECK_SIZE) {
     const have = Array(6).fill(0);
-    for (const id of d.cards) have[bracket(CARDS[id].cost)]++;
+    for (const id of d.cards) have[curveBracket(CARDS[id].cost)]++;
     const options = pool.filter(c => !addBlocker(d, c.id));
     if (!options.length) break;
-    const need = b => target[b] - have[b];
-    const best = Math.max(...options.map(c => need(bracket(c.cost))));
-    const picks = options.filter(c => need(bracket(c.cost)) === best);
+    const need = b => CURVE_TARGET[b] - have[b];
+    const best = Math.max(...options.map(c => need(curveBracket(c.cost))));
+    const picks = options.filter(c => need(curveBracket(c.cost)) === best);
     tryAdd(picks[Math.floor(rand() * picks.length)].id);
   }
   return d;

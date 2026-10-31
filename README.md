@@ -157,7 +157,7 @@ The neutral **Whispering Monk** (3 mana, 2/1) has *Battlecry: Silence a minion.*
 
 Classes and heroes are separate in the data (`CLASSES` and `HEROES` in `src/cards.js`). The class decides the cards and colours; the hero decides the name, portrait and hero power. Each class has a default hero, the one you play when you pick that class, and more than one hero can share a class.
 
-Each class has 12 cards of its own. Its standard deck (the one the AI always plays) is 2 copies each of a random 8 of them plus 7 pairs of neutral cards chosen to give a sensible mana curve, so no two opponents play quite the same deck.
+Each class has 12 cards of its own. Its standard deck (the one the AI always plays) is built fresh for every game: cards are drawn at random from the class's cards and the neutrals, one or two copies at a time. Each draw favours costs the deck is still short of, measured against a target curve (`CURVE_TARGET` in `src/cards.js`), and favours class cards, so about half the deck is class cards. No two opponents play quite the same deck, but every deck has a playable curve.
 
 ## Code layout
 

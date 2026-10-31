@@ -493,33 +493,49 @@ export function collectibleCards(cls) {
   return Object.values(CARDS).filter(c => !c.token && (c.cls === cls || c.cls === 'neutral'));
 }
 
-const CLASS_PAIRS = 8;
+/** A sensible mana curve for 30 cards: how many to have at costs 0-1, 2, 3, 4, 5 and 6+. */
+export const CURVE_TARGET = [4, 7, 7, 5, 4, 3];
+/** Which CURVE_TARGET bracket a mana cost falls in. */
+export const curveBracket = cost => (cost <= 1 ? 0 : Math.min(cost - 1, 5));
+
+const DECK_SIZE = 30;
+const MAX_COPIES = 2;
+// A class card is this many times as likely to be picked as a neutral one, so
+// decks feel like their class (about half the deck) without being all of it.
+const CLASS_WEIGHT = 6;
+// How likely a picked card goes in as a pair rather than a single copy.
+const PAIR_CHANCE = 0.6;
+// Pick weight for a card whose cost bracket is already full, so the curve
+// guides the deck rather than fixing it.
+const FULL_BRACKET = 0.15;
 
 /**
- * Build a 30-card deck: two copies each of eight class cards (16, a random
- * eight when the class has more) plus seven neutral pairs (14) picked to give
- * a reasonable mana curve. `locked` card ids (unearned quest rewards, see
- * rewards.js) are left out.
+ * Build a random 30-card deck from a class's cards and the neutrals (at most
+ * 2 copies of each). Cards are drawn one at a time, weighted towards cost
+ * brackets the deck is still short of (CURVE_TARGET) and towards class cards;
+ * each pick goes in as a single copy or a pair. `locked` card ids (unearned
+ * quest rewards, see rewards.js) are left out.
  */
-
 export function buildDeck(cls, rand = Math.random, locked = new Set()) {
-  const pool = Object.values(CARDS).filter(c => !c.token && !locked.has(c.id));
-  let classCards = pool.filter(c => c.cls === cls);
-  const neutrals = pool.filter(c => c.cls === 'neutral');
-  const pick = (pool, n) => {
-    const copy = [...pool];
-    const out = [];
-    while (out.length < n && copy.length) out.push(copy.splice(Math.floor(rand() * copy.length), 1)[0]);
-    return out;
-  };
-  // Classes with more than eight cards get a random eight (pairs of each), so every deck is 30.
-  if (classCards.length > CLASS_PAIRS) classCards = pick(classCards, CLASS_PAIRS);
-  const chosen = [
-    ...pick(neutrals.filter(c => c.cost <= 2), 2),
-    ...pick(neutrals.filter(c => c.cost >= 3 && c.cost <= 4), 3),
-    ...pick(neutrals.filter(c => c.cost >= 5), 2),
-  ];
+  const pool = Object.values(CARDS).filter(c => !c.token && !locked.has(c.id) && (c.cls === cls || c.cls === 'neutral'));
+  const copies = {};
+  const have = CURVE_TARGET.map(() => 0);
   const ids = [];
-  for (const c of [...classCards, ...chosen]) ids.push(c.id, c.id);
+  const add = c => { ids.push(c.id); copies[c.id] = (copies[c.id] ?? 0) + 1; have[curveBracket(c.cost)]++; };
+  while (ids.length < DECK_SIZE) {
+    const options = pool.filter(c => (copies[c.id] ?? 0) < MAX_COPIES);
+    if (!options.length) break;
+    const weights = options.map(c => {
+      const b = curveBracket(c.cost);
+      return (c.cls === cls ? CLASS_WEIGHT : 1) * Math.max(CURVE_TARGET[b] - have[b], FULL_BRACKET);
+    });
+    let r = rand() * weights.reduce((a, b) => a + b, 0);
+    let i = 0;
+    while (i < options.length - 1 && (r -= weights[i]) >= 0) i++;
+    const card = options[i];
+    add(card);
+    const b = curveBracket(card.cost);
+    if (ids.length < DECK_SIZE && copies[card.id] < MAX_COPIES && have[b] < CURVE_TARGET[b] && rand() < PAIR_CHANCE) add(card);
+  }
   return ids;
 }

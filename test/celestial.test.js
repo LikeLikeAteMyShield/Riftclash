@@ -134,7 +134,7 @@ test('Starfire Bolt deals 5; Gravity Well damages and freezes the enemy board', 
   assert.equal(g.players[1].hero.health, 25);
 });
 
-test('a Celestial deck is 30 cards from the class and neutrals, despite having more than 8 class cards', () => {
+test('a Celestial deck is 30 cards from the class and neutrals, at most 2 of each', () => {
   const pool = Object.values(CARDS).filter(c => c.cls === 'celestial' && !c.token);
   assert.ok(pool.length > 8);
   for (let s = 0; s < 20; s++) {
@@ -144,7 +144,7 @@ test('a Celestial deck is 30 cards from the class and neutrals, despite having m
     assert.ok(deck.every(id => CARDS[id].cls === 'celestial' || CARDS[id].cls === 'neutral'));
     const counts = {};
     for (const id of deck) counts[id] = (counts[id] ?? 0) + 1;
-    assert.ok(Object.values(counts).every(n => n === 2));
+    assert.ok(Object.values(counts).every(n => n <= 2));
   }
 });
 

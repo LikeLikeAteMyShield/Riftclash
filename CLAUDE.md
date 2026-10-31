@@ -41,7 +41,7 @@ node --test --test-name-pattern="silence" test/*.test.js   # tests whose name ma
 ### Hidden classes
 - A class with `hidden: true` (Celestial) must not appear anywhere until it's unlocked. `src/unlocks.js` holds the unlock state (`riftclash-unlocks`). Any UI that lists classes or cards must filter with `isVisible(cls, unlocks)` / `visibleClasses()`, and `filterCards` takes `unlocks`.
 - For play-testing there's a secret code typed on the main menu (see `SECRET_CODE` in `unlocks.js`). Don't document it in the README, which is public. Boss battles will unlock the class for real through `setUnlocked`.
-- `buildDeck` uses a random 8 of a class's cards when it has more than 8, so every deck stays 30 cards.
+- `buildDeck` (standard and AI decks) draws a random 30 from the class's cards and the neutrals, at most 2 of each. Each draw is weighted towards cost brackets still below `CURVE_TARGET` (shared with auto-fill in `decks.js`) and towards class cards (`CLASS_WEIGHT`). Seeded by the game's RNG, so games stay deterministic.
 - Whenever the engine needs a minion's behaviour, look it up through `game.minionText(m)`, never `CARDS[m.cardId]`. A silenced minion returns text-less data, so this is what keeps Silence working.
 
 ### Engine events drive the animations

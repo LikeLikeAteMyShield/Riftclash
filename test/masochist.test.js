@@ -68,7 +68,8 @@ test('the Masochist takes lethal whenever it has it', () => {
 });
 
 test('the Masochist crushes the regular AI', () => {
-  // It wins about 80% of games: enough of them that one unlucky deal doesn't decide the test.
+  // It wins about 80% of games (two equal AIs would split them), so ask for two in three:
+  // enough games, and enough margin, that a few unlucky random decks don't decide the test.
   let wins = 0;
   const N = 24;
   for (let i = 0; i < N; i++) {
@@ -78,7 +79,7 @@ test('the Masochist crushes the regular AI', () => {
     for (let t = 0; t < 120 && g.winner === null; t++) g.current === 1 ? playTurn(g, 1, FAST) : greedy.playTurn(g, 0);
     if (g.winner === 1) wins++;
   }
-  assert.ok(wins >= N * 0.75, `the Masochist won ${wins} of ${N}`);
+  assert.ok(wins >= N * 2 / 3, `the Masochist won ${wins} of ${N}`);
 });
 
 test('the evaluation prefers winning, and legal moves cover cards, the hero power and attacks', () => {
