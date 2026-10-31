@@ -3,7 +3,7 @@
 // Every change is saved straight away, so there is no "unsaved changes" state.
 // Deck rows carry data-card, so the game's hover preview (ui.js) shows the full card.
 
-import { CARDS, CLASSES, classArt, defaultHero } from './cards.js';
+import { CARDS, CLASSES, classArt, defaultHero, maxCopies } from './cards.js';
 import { loadUnlocks, isVisible } from './unlocks.js';
 import { lockedCards } from './rewards.js';
 import { cardHTML, esc } from './cardview.js';
@@ -62,7 +62,7 @@ export function mountDeckBuilder(root, { onBack, onUse, notify, sounds = {} }) {
         <h2>Deck Builder</h2>
         <span class="lib-count">${decks.length} deck${decks.length === 1 ? '' : 's'}</span>
       </header>
-      <p class="db-intro">Build named decks of ${DECK_SIZE} cards for one class: its own cards plus neutrals, up to ${MAX_COPIES} copies of each. Decks are saved in this browser.</p>
+      <p class="db-intro">Build named decks of ${DECK_SIZE} cards for one class: its own cards plus neutrals, up to ${MAX_COPIES} copies of each (1 of a legendary). Decks are saved in this browser.</p>
       <div class="db-decks">
         <button class="db-tile db-new" data-act="new" type="button"><span class="db-new-plus">+</span>New deck</button>
         ${decks.map(deckTile).join('')}
@@ -184,11 +184,12 @@ export function mountDeckBuilder(root, { onBack, onUse, notify, sounds = {} }) {
     const grid = wrap.querySelector('.db-grid');
     grid.innerHTML = cards.length ? cards.map(c => {
       const n = counts[c.id] ?? 0;
-      const blocked = n >= MAX_COPIES || full;
+      const max = maxCopies(c.id);
+      const blocked = n >= max || full;
       return `
         <button class="lib-card db-card${blocked ? ' blocked' : ''}${n ? ' in-deck' : ''}" type="button" data-add="${c.id}"
-          aria-label="${esc(c.name)}, ${c.cost} mana, ${n} of ${MAX_COPIES} in deck">
-          ${cardHTML(c.id)}${n ? `<span class="db-copies">${n}/${MAX_COPIES}</span>` : ''}
+          aria-label="${esc(c.name)}, ${c.cost} mana, ${n} of ${max} in deck">
+          ${cardHTML(c.id)}${n ? `<span class="db-copies">${n}/${max}</span>` : ''}
         </button>`;
     }).join('') : '<p class="lib-empty">No cards match these filters.</p>';
   }
@@ -212,12 +213,12 @@ export function mountDeckBuilder(root, { onBack, onUse, notify, sounds = {} }) {
     panel.querySelector('.db-list').innerHTML = ids.length ? ids.map(id => {
       const c = CARDS[id];
       return `
-        <li><button class="db-row" data-card="${id}" type="button" style="--cls:${classColor(c.cls)}"
+        <li><button class="db-row${c.legendary ? ' legendary' : ''}" data-card="${id}" type="button" style="--cls:${classColor(c.cls)}"
             aria-label="Remove ${esc(c.name)} (${counts[id]} in deck)">
           <span class="db-row-cost">${c.cost}</span>
           <span class="db-row-name">${esc(c.name)}</span>
           <span class="db-row-art">${artHTML(c)}</span>
-          <span class="db-row-n">${counts[id] > 1 ? `×${counts[id]}` : ''}</span>
+          <span class="db-row-n">${c.legendary ? '<span title="Legendary">★</span>' : counts[id] > 1 ? `×${counts[id]}` : ''}</span>
         </button></li>`;
     }).join('') : '<li class="db-list-empty">Your deck is empty. Click cards on the left to add them.</li>';
     panel.querySelector('.db-problems').innerHTML = problems.length

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CARDS, buildDeck } from '../src/cards.js';
-import { QUESTS, emptyProgress, sanitizeProgress } from '../src/progress.js';
+import { QUESTS, CHAMPION_QUESTS, emptyProgress, sanitizeProgress } from '../src/progress.js';
 import { REWARD_CARDS, lockedCards, rewardCards, rewardText, unseenRewards, markRewardsSeen } from '../src/rewards.js';
 import { filterCards } from '../src/library.js';
 import { addBlocker, autoFill, deckProblems, deckPool, isPlayable, newDeck } from '../src/decks.js';
@@ -13,6 +13,7 @@ const memoryStorage = () => {
 };
 
 const BONUS = ['n_prisoner', 'n_scout', 't_footsoldier', 'n_aura', 'n_troll', 'n_death'];
+const LEGENDS = ['p_pyrrha', 'w_gorrak', 's_kaelen', 'o_aurelia', 'v_aldric', 'r_nyx'];
 const completed = (...ids) => ({ ...emptyProgress(), quests: Object.fromEntries(ids.map(id => [id, { completedAt: 1 }])) });
 const playtest = { celestial: { how: 'playtest', at: 1 } };
 
@@ -27,11 +28,32 @@ test('"Win 5 games" rewards the bonus cards, and every reward card exists', () =
 });
 
 test('reward cards stay locked until their quest is complete (or the play-test code is used)', () => {
-  assert.deepEqual([...lockedCards(emptyProgress(), {})].sort(), [...BONUS].sort());
-  assert.equal(lockedCards(completed('win5'), {}).size, 0);
+  assert.deepEqual([...lockedCards(emptyProgress(), {})].sort(), [...BONUS, ...LEGENDS].sort());
+  assert.deepEqual([...lockedCards(completed('win5'), {})].sort(), [...LEGENDS].sort());
   assert.equal(lockedCards(emptyProgress(), playtest).size, 0);
   // Completion survives a save and load.
-  assert.equal(lockedCards(sanitizeProgress(JSON.parse(JSON.stringify(completed('win5')))), {}).size, 0);
+  assert.deepEqual([...lockedCards(sanitizeProgress(JSON.parse(JSON.stringify(completed('win5')))), {})].sort(), [...LEGENDS].sort());
+});
+
+test('each Champion\'s Trial unlocks its class\'s legendary, and the play-test code unlocks them all', () => {
+  assert.equal(CHAMPION_QUESTS.length, LEGENDS.length);
+  for (const q of CHAMPION_QUESTS) {
+    assert.equal(q.reward.cards.length, 1, q.id);
+    const card = CARDS[q.reward.cards[0]];
+    assert.ok(card.legendary && card.cls === q.cls, `${q.id} rewards ${card.id}`);
+    assert.equal(rewardText(q), 'Reward: a legendary card');
+    const locked = lockedCards(completed('win5', q.id), {});
+    assert.ok(!locked.has(card.id), `${card.id} unlocked by ${q.id}`);
+    assert.equal(locked.size, LEGENDS.length - 1, 'the other legendaries stay locked');
+  }
+  assert.ok(LEGENDS.every(id => !lockedCards(emptyProgress(), playtest).has(id)));
+  // Locked legendaries stay out of the AI's decks too.
+  const locked = lockedCards(emptyProgress(), {});
+  let x = 5;
+  for (let i = 0; i < 30; i++) {
+    const deck = buildDeck('vanguard', () => ((x = (x * 16807) % 2147483647) / 2147483647), locked);
+    assert.ok(!deck.includes('v_aldric'));
+  }
 });
 
 test('locked cards are hidden from the library and deck builder, tokens included', () => {

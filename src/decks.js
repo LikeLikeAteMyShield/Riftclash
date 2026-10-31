@@ -1,9 +1,10 @@
 // Custom decks: the deck rules, and saving decks in localStorage.
 // Everything except the storage default is pure, so it is unit tested in node.
 
-import { CARDS, CLASSES, CURVE_TARGET, curveBracket } from './cards.js';
+import { CARDS, CLASSES, CURVE_TARGET, curveBracket, maxCopies } from './cards.js';
 
 export const DECK_SIZE = 30;
+/** Copies of an ordinary card a deck may hold; legendaries allow 1 (see maxCopies in cards.js). */
 export const MAX_COPIES = 2;
 export const MAX_NAME_LENGTH = 24;
 /** The menu's id for the built-in deck each class gets when no custom deck is chosen. */
@@ -35,7 +36,9 @@ export function addBlocker(deck, cardId, locked = NONE) {
   if (locked.has(cardId)) return `${CARDS[cardId]?.name ?? 'That card'} is still locked.`;
   if (!canInclude(deck.cls, cardId)) return `${CARDS[cardId]?.name ?? 'That card'} can't go in a ${CLASSES[deck.cls].name} deck.`;
   if (deck.cards.length >= DECK_SIZE) return `The deck is full (${DECK_SIZE} cards).`;
-  if ((countCards(deck.cards)[cardId] ?? 0) >= MAX_COPIES) return `Only ${MAX_COPIES} copies of ${CARDS[cardId].name} allowed.`;
+  if ((countCards(deck.cards)[cardId] ?? 0) >= maxCopies(cardId)) {
+    return CARDS[cardId].legendary ? `${CARDS[cardId].name} is legendary: only 1 copy allowed.` : `Only ${MAX_COPIES} copies of ${CARDS[cardId].name} allowed.`;
+  }
   return null;
 }
 
@@ -72,7 +75,7 @@ export function deckProblems(deck, locked = NONE) {
   for (const [id, n] of Object.entries(countCards(deck.cards))) {
     if (locked.has(id)) problems.push(`${CARDS[id].name} is still locked.`);
     else if (!canInclude(deck.cls, id)) problems.push(`${CARDS[id]?.name ?? id} can't go in this deck.`);
-    else if (n > MAX_COPIES) problems.push(`Too many copies of ${CARDS[id].name}.`);
+    else if (n > maxCopies(id)) problems.push(`Too many copies of ${CARDS[id].name}.`);
   }
   return problems;
 }

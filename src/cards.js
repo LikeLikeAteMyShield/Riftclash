@@ -273,6 +273,10 @@ const RAW_CARDS = [
   { id: 'p_revenant', cls: 'pyromancer', name: 'Frost Revenant', type: 'minion', cost: 4, attack: 3, health: 5, emoji: '🥶', sprite: 'card_p_revenant',
     text: 'Whenever you cast a spell, Freeze a random enemy minion.', onFriendlySpell: [{ type: 'freeze', to: 'randomEnemyMinion' }] },
 
+  // Legendary (one per deck). Unlocked by the class's Champion's Trial (see progress.js).
+  { id: 'p_pyrrha', cls: 'pyromancer', legendary: true, name: 'Pyrrha Ashcrown', type: 'minion', cost: 8, attack: 6, health: 6, emoji: '👑', sprite: 'card_p_pyrrha',
+    spellDamage: 2, text: 'Battlecry: Deal 2 damage to all enemies.', battlecry: [{ type: 'damage', amount: 2, to: 'allEnemies' }] },
+
   // ---------- Warlord ----------
   { id: 'w_stomp', cls: 'warlord', name: 'Shockwave Stomp', type: 'spell', cost: 1, emoji: '💥', sprite: 'card_w_stomp',
     text: 'Deal 1 damage to all minions.', effects: [{ type: 'damage', amount: 1, to: 'allMinions' }] },
@@ -300,6 +304,10 @@ const RAW_CARDS = [
     text: 'Whenever this minion takes damage, gain 2 Armor.', onDamaged: [{ type: 'armor', amount: 2 }] },
   { id: 'w_chieftain', cls: 'warlord', name: 'Warband Chieftain', type: 'minion', cost: 5, attack: 5, health: 5, emoji: '👺', sprite: 'card_w_chieftain',
     text: 'Battlecry: Deal 1 damage to all other minions.', battlecry: [{ type: 'damage', amount: 1, to: 'allOtherMinions' }] },
+
+  // Legendary (one per deck). Unlocked by the class's Champion's Trial (see progress.js).
+  { id: 'w_gorrak', cls: 'warlord', legendary: true, name: 'Gorrak Skullsunder', type: 'minion', cost: 8, attack: 8, health: 8, emoji: '👑', sprite: 'card_w_gorrak',
+    keywords: { rush: true }, text: 'Whenever this takes damage, gain +2 Attack.', onDamaged: [{ type: 'buff', attack: 2, to: 'self' }] },
 
   // ---------- Stalker ----------
   { id: 's_hawk', cls: 'stalker', name: 'Hunting Hawk', type: 'minion', cost: 1, attack: 1, health: 1, emoji: '🦅', sprite: 'card_s_hawk',
@@ -329,6 +337,10 @@ const RAW_CARDS = [
     keywords: { rush: true } },
   { id: 's_denmother', cls: 'stalker', name: 'Den Mother', type: 'minion', cost: 4, attack: 3, health: 3, emoji: '🐺', sprite: 'card_s_denmother',
     text: 'Deathrattle: Summon two 2/2 Dusk Wolves.', deathrattle: [{ type: 'summon', card: 't_wolf', count: 2 }] },
+
+  // Legendary (one per deck). Unlocked by the class's Champion's Trial (see progress.js).
+  { id: 's_kaelen', cls: 'stalker', legendary: true, name: 'Kaelen Stormhorn', type: 'minion', cost: 7, attack: 6, health: 5, emoji: '👑', sprite: 'card_s_kaelen',
+    keywords: { rush: true }, text: 'Battlecry: Summon three 2/2 Dusk Wolves.', battlecry: [{ type: 'summon', card: 't_wolf', count: 3 }] },
 
   // ---------- Oracle ----------
   { id: 'o_ward', cls: 'oracle', name: 'Ward of Light', type: 'spell', cost: 1, emoji: '🔆', sprite: 'card_o_ward',
@@ -362,6 +374,11 @@ const RAW_CARDS = [
   { id: 'o_inquisitor', cls: 'oracle', name: 'Silent Inquisitor', type: 'minion', cost: 4, attack: 3, health: 4, emoji: '🤐', sprite: 'card_o_inquisitor',
     text: 'Battlecry: Silence a minion.', target: 'minion', battlecry: [{ type: 'silence', to: 'target' }] },
 
+  // Legendary (one per deck). Unlocked by the class's Champion's Trial (see progress.js).
+  { id: 'o_aurelia', cls: 'oracle', legendary: true, name: 'Saint Aurelia', type: 'minion', cost: 8, attack: 5, health: 8, emoji: '👑', sprite: 'card_o_aurelia',
+    keywords: { taunt: true }, text: 'Battlecry: Restore 8 Health to all friendly characters.',
+    battlecry: [{ type: 'heal', amount: 8, to: 'allFriendly' }] },
+
   // ---------- Vanguard ----------
   { id: 'v_aegis', cls: 'vanguard', name: 'Aegis Blessing', type: 'spell', cost: 1, emoji: '✝️', sprite: 'card_v_aegis',
     text: 'Give a minion +1 Attack and Divine Shield.', target: 'minion',
@@ -390,6 +407,11 @@ const RAW_CARDS = [
   { id: 'v_paragon', cls: 'vanguard', name: 'Paragon of Valor', type: 'minion', cost: 4, attack: 3, health: 4, emoji: '🌞', sprite: 'card_v_paragon',
     text: 'Battlecry: Give all other friendly minions Divine Shield.',
     battlecry: [{ type: 'buff', keywords: { divineShield: true }, to: 'otherFriendlyMinions' }] },
+
+  // Legendary (one per deck). Unlocked by the class's Champion's Trial (see progress.js).
+  { id: 'v_aldric', cls: 'vanguard', legendary: true, name: 'King Aldric Lionheart', type: 'minion', cost: 9, attack: 7, health: 7, emoji: '👑', sprite: 'card_v_aldric',
+    text: 'Battlecry: Fill your board with Recruits, then give your other minions +1/+1.',
+    battlecry: [{ type: 'summon', card: 't_recruit', count: 6 }, { type: 'buff', attack: 1, health: 1, to: 'otherFriendlyMinions' }] },
 
   // ---------- Shade ----------
   { id: 'r_knife', cls: 'shade', name: 'Knife in the Dark', type: 'spell', cost: 0, emoji: '🌑', sprite: 'card_r_knife',
@@ -421,6 +443,10 @@ const RAW_CARDS = [
   { id: 'r_assassin', cls: 'shade', name: 'Veiled Assassin', type: 'minion', cost: 4, attack: 3, health: 3, emoji: '🥷', sprite: 'card_r_assassin',
     keywords: { stealth: true }, text: 'Combo: Deal 2 damage to a random enemy minion.', combo: [{ type: 'damage', amount: 2, to: 'randomEnemyMinion' }] },
 
+  // Legendary (one per deck). Unlocked by the class's Champion's Trial (see progress.js).
+  { id: 'r_nyx', cls: 'shade', legendary: true, name: 'Nyx, Queen of Knives', type: 'minion', cost: 7, attack: 5, health: 5, emoji: '👑', sprite: 'card_r_nyx',
+    keywords: { stealth: true }, text: 'Combo: Destroy a random enemy minion.', combo: [{ type: 'destroy', to: 'randomEnemyMinion' }] },
+
   // ---------- Celestial (hidden until unlocked: see src/unlocks.js) ----------
   // Summoned by Nightlord Grun's hero power.
   { id: 't_riftdemon', cls: 'celestial', name: 'Rift Demon', type: 'minion', cost: 6, attack: 6, health: 6, emoji: '😈', sprite: 'card_t_riftdemon', token: true },
@@ -451,6 +477,9 @@ const RAW_CARDS = [
     text: 'After your hero first attacks with this, it gains +2 Attack.', afterFirstStrike: [{ type: 'buffWeapon', attack: 2 }] },
   { id: 'c_bow', cls: 'celestial', name: 'Lightshard Bow', type: 'weapon', cost: 4, attack: 2, durability: 4, emoji: '🏹', sprite: 'card_c_bow',
     keywords: { windfury: true } },
+  // Legendary (one per deck). Celestial has no Champion's Trial, so it comes with the class.
+  { id: 'c_aster', cls: 'celestial', legendary: true, name: 'Aster, the Rift Unbound', type: 'minion', cost: 9, attack: 8, health: 8, emoji: '👑', sprite: 'card_c_aster',
+    text: 'Battlecry: Deal 1 damage to a random enemy 8 times.', battlecry: [{ type: 'damage', amount: 1, to: 'randomEnemy', times: 8 }] },
   { id: 'c_mote', cls: 'celestial', name: 'Stardust Mote', type: 'minion', cost: 1, attack: 2, health: 1, emoji: '✨', sprite: 'card_c_mote',
     text: 'Deathrattle: Deal 1 damage to a random enemy.', deathrattle: [{ type: 'damage', amount: 1, to: 'randomEnemy' }] },
   { id: 'c_pulsar', cls: 'celestial', name: 'Pulsar Warden', type: 'minion', cost: 2, attack: 2, health: 3, emoji: '💠', sprite: 'card_c_pulsar',
@@ -489,6 +518,9 @@ export function cardText(card) {
   return [kw.join('. '), card.text].filter(Boolean).join('. ').replace(/\.\./g, '.');
 }
 
+/** How many copies of a card a deck may hold: 1 for a legendary, 2 for anything else. */
+export const maxCopies = cardId => (CARDS[cardId]?.legendary ? 1 : 2);
+
 export function collectibleCards(cls) {
   return Object.values(CARDS).filter(c => !c.token && (c.cls === cls || c.cls === 'neutral'));
 }
@@ -499,7 +531,6 @@ export const CURVE_TARGET = [4, 7, 7, 5, 4, 3];
 export const curveBracket = cost => (cost <= 1 ? 0 : Math.min(cost - 1, 5));
 
 const DECK_SIZE = 30;
-const MAX_COPIES = 2;
 // A class card is this many times as likely to be picked as a neutral one, so
 // decks feel like their class (about half the deck) without being all of it.
 const CLASS_WEIGHT = 6;
@@ -511,7 +542,7 @@ const FULL_BRACKET = 0.15;
 
 /**
  * Build a random 30-card deck from a class's cards and the neutrals (at most
- * 2 copies of each). Cards are drawn one at a time, weighted towards cost
+ * 2 copies of each, 1 of a legendary). Cards are drawn one at a time, weighted towards cost
  * brackets the deck is still short of (CURVE_TARGET) and towards class cards;
  * each pick goes in as a single copy or a pair. `locked` card ids (unearned
  * quest rewards, see rewards.js) are left out.
@@ -523,7 +554,7 @@ export function buildDeck(cls, rand = Math.random, locked = new Set()) {
   const ids = [];
   const add = c => { ids.push(c.id); copies[c.id] = (copies[c.id] ?? 0) + 1; have[curveBracket(c.cost)]++; };
   while (ids.length < DECK_SIZE) {
-    const options = pool.filter(c => (copies[c.id] ?? 0) < MAX_COPIES);
+    const options = pool.filter(c => (copies[c.id] ?? 0) < maxCopies(c.id));
     if (!options.length) break;
     const weights = options.map(c => {
       const b = curveBracket(c.cost);
@@ -535,7 +566,7 @@ export function buildDeck(cls, rand = Math.random, locked = new Set()) {
     const card = options[i];
     add(card);
     const b = curveBracket(card.cost);
-    if (ids.length < DECK_SIZE && copies[card.id] < MAX_COPIES && have[b] < CURVE_TARGET[b] && rand() < PAIR_CHANCE) add(card);
+    if (ids.length < DECK_SIZE && copies[card.id] < maxCopies(card.id) && have[b] < CURVE_TARGET[b] && rand() < PAIR_CHANCE) add(card);
   }
   return ids;
 }

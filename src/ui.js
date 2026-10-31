@@ -409,6 +409,7 @@ function minionHTML(m, targets) {
   const def = g.minionText(m);
   const myTurn = g.current === HUMAN && !ui.busy;
   const cls = ['unit'];
+  if (CARDS[m.cardId].legendary) cls.push('legendary');
   if (m.keywords.taunt) cls.push('taunt');
   if (m.keywords.divineShield) cls.push('shielded');
   if (m.keywords.stealth) cls.push('stealthed');
@@ -431,6 +432,7 @@ function minionHTML(m, targets) {
   ].join('');
   return `
     <div class="${cls.join(' ')}" data-uid="${m.uid}" data-card="${m.cardId}" style="--cls:${CLASSES[def.cls]?.color ?? '#8a8f98'}">
+      ${CARDS[m.cardId].legendary ? `<span class="legend-crown">${spriteSVG('ornament_crown')}</span>` : ''}
       <div class="unit-art">${artHTML(def)}</div>
       ${m.sleeping && !m.keywords.charge && !m.keywords.rush && m.owner === g.current ? '<span class="zzz">z<sup>z</sup></span>' : ''}
       <div class="unit-icons">${icons}</div>
@@ -854,6 +856,7 @@ async function playCardFx(ev, st) {
   }
   await fly.animate([{ transform: from, opacity: 0.6 }, { transform: 'none', opacity: 1 }],
     { duration: 380, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' }).finished;
+  if (card.legendary) await legendaryFx(fly, { x: cx, y: cy, h });
   fx.ring({ x: cx, y: cy }, { color, maxR: w * 0.9, width: 5 });
   fx.burst({ x: cx, y: cy }, { color: [color, '#fff6d8'], count: 16, speed: 3, gravity: 0 });
   await sleep(ev.player === AI ? 800 : 220);
@@ -871,6 +874,35 @@ async function playCardFx(ev, st) {
   } else {
     st.flying = fly;
   }
+}
+
+/**
+ * The fanfare for a legendary card: the table dims, golden rays turn behind
+ * the card while it swells, a banner names it, then everything settles back.
+ */
+async function legendaryFx(fly, { x, y, h }) {
+  const gold = ['#ffe9a8', '#f4cf5d', '#ffb52e', '#ffffff'];
+  const stage = document.createElement('div');
+  stage.className = 'legend-stage';
+  stage.style.cssText = `--x:${x}px;--y:${y}px;--h:${h}px`;
+  stage.innerHTML = '<div class="legend-rays"></div><div class="legend-banner">Legendary</div>';
+  document.body.appendChild(stage);
+  sfx.legendary();
+  stage.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, fill: 'forwards' });
+  stage.querySelector('.legend-banner').animate([{ opacity: 0, letterSpacing: '1em' }, { opacity: 1, letterSpacing: '.3em' }],
+    { duration: 600, delay: 250, easing: 'ease-out', fill: 'both' });
+  await fly.animate([{ transform: 'none', filter: 'brightness(1)' },
+    { transform: 'scale(1.3)', filter: 'brightness(1.6) drop-shadow(0 0 22px #ffcf5a)' },
+    { transform: 'scale(1.22)', filter: 'brightness(1.1) drop-shadow(0 0 16px #ffcf5a)' }],
+  { duration: 760, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' }).finished;
+  fx.flash('#ffe8a0', 420, 0.35);
+  fx.shake(tableEl(), 7, 420);
+  fx.ring({ x, y }, { color: '#ffd76a', maxR: 320, width: 12, life: 800 });
+  fx.ring({ x, y }, { color: '#fff3c4', maxR: 200, width: 6, life: 650 });
+  fx.burst({ x, y }, { color: gold, count: 90, speed: 11, size: 5, gravity: 0.03, life: 1100 });
+  await sleep(1150);
+  stage.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 350, fill: 'forwards' }).finished.then(() => stage.remove());
+  await fly.animate([{ transform: 'scale(1.22)' }, { transform: 'none' }], { duration: 300, easing: 'ease-in-out', fill: 'forwards' }).finished;
 }
 
 /** Fly the held card onto a target element, shrinking into it. */
@@ -917,6 +949,10 @@ async function summonFx(ev, st) {
     fx.burst({ x: r.left + r.width / 2, y: r.bottom - 4 }, { color: ['#d8c4a0', '#8f7b5a', '#fff2d0'], count: 14 + cost * 3,
       speed: 2.5 + cost * 0.45, gravity: 0.04, life: 600, angle: -Math.PI / 2, spread: Math.PI * 1.6 });
     fx.ring(node, { color, maxR: 45 + cost * 9, width: 4 });
+    if (CARDS[ev.cardId].legendary) {
+      fx.ring(node, { color: '#ffd76a', maxR: 160, width: 7, life: 700 });
+      fx.sparkle(node, { color: ['#ffe9a8', '#f4cf5d', '#ffffff'], count: 30, life: 1200 });
+    }
     if (cost >= 6) fx.shake(tableEl(), cost);
   } else {
     node.animate([{ transform: 'scale(0)', opacity: 0 }, { transform: 'scale(1.18)', opacity: 1, offset: 0.7 }, { transform: 'none' }],

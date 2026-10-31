@@ -31,7 +31,7 @@ The title screen offers the game modes. New to the game? Start with the **Tutori
 
 ### Deck builder
 
-Open **Deck Builder** from the main menu to make your own decks. Each deck has a name and belongs to one class. It holds exactly 30 cards, drawn from that class's cards and the neutral cards, with at most 2 copies of each.
+Open **Deck Builder** from the main menu to make your own decks. Each deck has a name and belongs to one class. It holds exactly 30 cards, drawn from that class's cards and the neutral cards, with at most 2 copies of each, or 1 of a legendary card.
 
 - **New deck**: pick a class, then type a name.
 - **Adding and removing cards**: click a card to add it. Right-click it, or click its row in the deck list, to take one out. Hover a row to see the full card.
@@ -56,7 +56,7 @@ Quests are goals that track your progress across games, like achievements. Every
 
 - **First Steps**: *complete the tutorial*. The tutorial isn't counted as a game: winning it doesn't count towards any other quest or your record.
 - **Proven in Battle**: *win 5 games*. Reward: five new neutral cards, hidden until you earn them.
-- **The Champion's Trials**: *win 5 games* as each class: the Trial of Flame (Pyromancer), Iron (Warlord), the Hunt (Stalker), Light (Oracle), the Shield (Vanguard) and Shadows (Shade). Completing all six unlocks a new game mode.
+- **The Champion's Trials**: *win 5 games* as each class: the Trial of Flame (Pyromancer), Iron (Warlord), the Hunt (Stalker), Light (Oracle), the Shield (Vanguard) and Shadows (Shade). Each trial unlocks that class's legendary card, and completing all six unlocks a new game mode.
 
 - **Quests** on the main menu opens the Quest Board. Each quest is a parchment notice pinned to the board, showing your progress and a "Complete" stamp with the date once you've done it.
 - Beside the board, the **Adventurer's Record** shows your games, wins, losses, draws, win rate and best win streak, plus wins and losses for each champion you've played.
@@ -159,6 +159,21 @@ Classes and heroes are separate in the data (`CLASSES` and `HEROES` in `src/card
 
 Each class has 12 cards of its own. Its standard deck (the one the AI always plays) is built fresh for every game: cards are drawn at random from the class's cards and the neutrals, one or two copies at a time. Each draw favours costs the deck is still short of, measured against a target curve (`CURVE_TARGET` in `src/cards.js`), and favours class cards, so about half the deck is class cards. No two opponents play quite the same deck, but every deck has a playable curve.
 
+### Legendary cards
+
+Each class has one legendary card: a famous champion of that class, expensive and powerful. A deck can hold only one copy. Legendaries have a gold frame with a crown, in your hand, in the library and on the board. Playing one, yours or the opponent's, dims the table, turns golden rays behind the card and sounds a fanfare.
+
+| Class | Legendary | Cost | |
+|---|---|---|---|
+| Pyromancer | **Pyrrha Ashcrown** | 8 | 6/6, Spell Damage +2. *Battlecry: Deal 2 damage to all enemies.* |
+| Warlord | **Gorrak Skullsunder** | 8 | 8/8, Rush. *Whenever this takes damage, gain +2 Attack.* |
+| Stalker | **Kaelen Stormhorn** | 7 | 6/5, Rush. *Battlecry: Summon three 2/2 Dusk Wolves.* |
+| Oracle | **Saint Aurelia** | 8 | 5/8, Taunt. *Battlecry: Restore 8 Health to all friendly characters.* |
+| Vanguard | **King Aldric Lionheart** | 9 | 7/7. *Battlecry: Fill your board with Recruits, then give your other minions +1/+1.* |
+| Shade | **Nyx, Queen of Knives** | 7 | 5/5, Stealth. *Combo: Destroy a random enemy minion.* |
+
+A legendary starts locked: win 5 games as its class (that class's Champion's Trial) to add it to your collection. A card is legendary when it has `legendary: true` in `src/cards.js`; `maxCopies` there holds the one-copy rule.
+
 ## Code layout
 
 ```
@@ -178,7 +193,7 @@ src/questscreen.js       the quest screen and the quest notices shown after a ga
 src/questboard.js        the quest screen's guild-hall backdrop, painted into a pixel buffer
 src/pixelbuf.js          drawing helpers shared by the archive and forge scenes
 src/sceneview.js         shows and animates a pixel-buffer scene behind a screen
-src/decks.js             deck rules (30 cards, 2 copies, class + neutral), auto-fill, saving to localStorage
+src/decks.js             deck rules (30 cards, 2 copies or 1 legendary, class + neutral), auto-fill, saving to localStorage
 src/deckbuilder.js       the deck builder screen
 src/ui.js                rendering, input, AI turn pacing, and the animation director
                          that replays engine events as effects

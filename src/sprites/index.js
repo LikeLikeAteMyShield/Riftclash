@@ -15,6 +15,7 @@ import champions from './champions.js';
 import celestial from './celestial.js';
 import modes from './modes.js';
 import riftkin from './riftkin.js';
+import ornaments from './ornaments.js';
 
 defineSprites(heroes);
 defineSprites(powers);
@@ -29,3 +30,4 @@ defineSprites(champions);
 defineSprites(celestial);
 defineSprites(modes);
 defineSprites(riftkin);
+defineSprites(ornaments);

@@ -1,7 +1,7 @@
 // Card rendering shared by the game and the card library.
 
 import { CARDS, CLASSES, KEYWORD_LABELS, KEYWORD_HELP, cardText } from './cards.js';
-import { artHTML } from './pixelart.js';
+import { artHTML, spriteSVG } from './pixelart.js';
 
 export const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -23,13 +23,15 @@ export function cardHTML(cardId, { cost, extraClass = '' } = {}) {
     : c.type === 'weapon'
       ? `<span class="stat atk">${c.attack}</span><span class="stat dur">${c.durability}</span>`
       : '';
+  // Legendaries get a gold frame, a crown over the art and a shimmer (see .card.legendary in styles.css).
+  const crown = c.legendary ? `<span class="legend-crown">${spriteSVG('ornament_crown') ?? ''}</span>` : '';
   return `
-    <div class="card ${c.type} ${extraClass}" style="--cls:${color}">
+    <div class="card ${c.type}${c.legendary ? ' legendary' : ''} ${extraClass}" style="--cls:${color}">
       <span class="cost">${cost ?? c.cost}</span>
-      <div class="art">${artHTML(c)}</div>
+      ${crown}<div class="art">${artHTML(c)}</div>
       <div class="name">${esc(c.name)}</div>
       <div class="text"><span>${formatText(cardText(c))}</span></div>
-      <div class="type-line">${c.cls === 'neutral' ? '' : CLASSES[c.cls].name + ' '}${c.type}</div>
+      <div class="type-line">${c.legendary ? 'Legendary ' : ''}${c.cls === 'neutral' ? '' : CLASSES[c.cls].name + ' '}${c.type}</div>
       ${stats}
     </div>`;
 }

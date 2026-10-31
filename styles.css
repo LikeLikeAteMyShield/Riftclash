@@ -106,6 +106,27 @@ button { font: inherit; color: inherit; }
 }
 .card .text { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; font-size: .9em; line-height: 1.2; padding: 4% 2% 0; color: #f6eedd; }
 .card .type-line { font-size: .7em; color: var(--muted); text-transform: capitalize; }
+
+/* Legendary cards: a gold frame, a crown over the art and a slow shimmer. */
+.card.legendary {
+  border: 3px solid #f4cf5d;
+  background: linear-gradient(170deg, color-mix(in srgb, var(--cls) 45%, #5a4210), #1f1913 72%);
+  box-shadow: 0 0 0 2px #6b4b10, 0 0 16px #ffcf5a80, 0 4px 10px rgba(0, 0, 0, .5);
+}
+.card.legendary::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(115deg, transparent 38%, #fff5c855 50%, transparent 62%) no-repeat;
+  background-size: 260% 100%; animation: legend-shimmer 5s ease-in-out infinite;
+}
+@keyframes legend-shimmer { 0% { background-position: 160% 0; } 45%, 100% { background-position: -60% 0; } }
+.card.legendary .art { border: 2px solid #f4cf5d; box-shadow: 0 0 0 2px #6b4b10, inset 0 0 14px #ffd76a55; }
+.card.legendary .name { background: linear-gradient(#a8791f, #5e420f); border-color: #ffe08a; color: #fff6dc; }
+.card.legendary .type-line { color: #f4cf5d; }
+.legend-crown {
+  position: absolute; top: -9%; left: 50%; transform: translateX(-50%); width: 38%; z-index: 3;
+  pointer-events: none; filter: drop-shadow(0 2px 2px #000a);
+}
+.legend-crown svg { display: block; width: 100%; height: auto; }
 .stat {
   position: absolute; width: 28%; aspect-ratio: 1; display: grid; place-items: center;
   font-weight: 800; font-size: 1.5em; text-shadow: 0 1px 2px #000; border-radius: 50%; border: 2px solid #0008;
@@ -218,6 +239,12 @@ body.in-game #table { padding-right: 16px; }
   border: 3px solid #ffe78a; box-shadow: 0 0 14px #ffe07a, inset 0 0 14px #ffe07a88; pointer-events: none;
 }
 .unit.stealthed { opacity: .55; filter: saturate(.4); }
+.unit.legendary { border-color: #f4cf5d; }
+.unit.legendary::before {
+  content: ''; position: absolute; inset: -5px; border-radius: inherit; pointer-events: none;
+  border: 2px solid #ffe08a99; box-shadow: 0 0 14px #ffcf5a77;
+}
+.unit .legend-crown { top: -27%; width: 50%; }
 .frozen { box-shadow: 0 0 0 3px #9fe7ff, 0 0 16px #7fd8ff !important; filter: hue-rotate(160deg) saturate(.5) brightness(1.1); }
 .zzz { position: absolute; top: 0; right: 4%; color: #cfe6ff; font-weight: 800; font-size: .9em; animation: zz 1.6s infinite; }
 @keyframes zz { 50% { transform: translateY(-4px); opacity: .5; } }
@@ -323,6 +350,25 @@ body.in-game #table { padding-right: 16px; }
   background: repeating-linear-gradient(45deg, #5a3a7a 0 6px, #43285e 6px 12px); border: 2px solid #b48ae0;
 }
 .fx-flash { position: fixed; inset: 0; pointer-events: none; z-index: 46; mix-blend-mode: screen; }
+/* A legendary being played: the table dims, golden rays turn behind the card and a banner names it. */
+.legend-stage {
+  position: fixed; inset: 0; z-index: 47; pointer-events: none; overflow: hidden;
+  background: radial-gradient(circle at var(--x) var(--y), #0000 0, #0008 30%, #000c 70%);
+}
+.legend-rays {
+  position: absolute; left: var(--x); top: var(--y); width: 150vmax; height: 150vmax; margin: -75vmax 0 0 -75vmax;
+  background: repeating-conic-gradient(from 0deg, #ffd76a44 0 6deg, #0000 6deg 18deg);
+  -webkit-mask-image: radial-gradient(circle, #000 0, #000a 18%, #0000 45%); mask-image: radial-gradient(circle, #000 0, #000a 18%, #0000 45%);
+  animation: legend-spin 9s linear infinite;
+}
+@keyframes legend-spin { to { transform: rotate(360deg); } }
+.legend-banner {
+  position: absolute; left: var(--x); top: calc(var(--y) + var(--h) * .72); transform: translateX(-50%);
+  font-family: Cinzel, serif; font-weight: 800; letter-spacing: .3em; font-size: clamp(16px, 3.2vh, 28px);
+  color: #ffe9a8; text-shadow: 0 0 12px #ffb52e, 0 2px 3px #000; white-space: nowrap;
+  padding: .2em 1.2em; border-top: 2px solid #f4cf5d; border-bottom: 2px solid #f4cf5d;
+  background: linear-gradient(90deg, #0000, #3a2808dd 20%, #3a2808dd 80%, #0000);
+}
 .sound-btn {
   position: fixed; top: 10px; left: 10px; z-index: 75; width: 40px; height: 40px; border-radius: 50%;
   border: 2px solid #6b5536; background: #2a2119cc; font-size: 18px; cursor: pointer; display: grid; place-items: center;
@@ -970,6 +1016,7 @@ body.on-menu .play-head h2 { text-shadow: 0 2px 8px #000; }
 body.on-splash .sound-btn { visibility: hidden; }
 
 @media (prefers-reduced-motion: reduce) {
+  .card.legendary::after, .legend-rays { animation: none; }
   .ring-outer, .ring-mid, .ring-hex, .splash-rings .rune, .splash-sigil, .splash-logo, .splash-prompt { animation: none !important; }
   .splash-rings .line, .splash-rings .hex { animation: none; stroke-dashoffset: 0; }
   #splash.leaving { animation: splash-fade .4s forwards; }
